@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patota+ — Dependências Instaladas</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      color: #1a1a2e;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 1rem;
+    }
+    .section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .section h2 {
+      color: #1a1a2e;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8e8e8;
+      font-size: 1.4rem;
+    }
+    .section h2 span {
+      font-size: 0.85rem;
+      color: #888;
+      font-weight: normal;
+      margin-left: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 15px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    th {
+      background: #f8f9fa;
+      color: #555;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    td { font-size: 0.95rem; }
+    .lib-name {
+      font-family: 'Courier New', monospace;
+      background: #e8f4fd;
+      color: #0066cc;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-prod { background: #d4edda; color: #155724; }
+    .badge-dev { background: #fff3cd; color: #856404; }
+    .description { color: #555; }
+    .footer {
+      text-align: center;
+      color: #999;
+      font-size: 0.85rem;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Patota+ — Dependências Instaladas</h1>
+    <p class="subtitle">Documentação de todas as bibliotecas utilizadas no projeto</p>
+
+    <!-- FRONTEND -->
+    <div class="section">
+      <h2>Frontend <span>(frontend/vite-patota-plus)</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Biblioteca</th>
+            <th>Tipo</th>
+            <th>Para que serve</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="lib-name">react</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Biblioteca principal para construção da interface do usuário com componentes reutilizáveis.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">react-dom</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Responsável por renderizar os componentes React no navegador (DOM).</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">react-router-dom</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Gerencia a navegação entre telas (rotas) sem recarregar a página. Permite criar uma Single Page Application (SPA).</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">axios</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Cliente HTTP para fazer requisições à API do backend (GET, POST, PUT, DELETE). Mais prático que o fetch nativo.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">@supabase/supabase-js</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">SDK oficial do Supabase. Utilizado para autenticação (login, cadastro, recuperação de senha, gerenciamento de sessão).</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">react-icons</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Biblioteca com milhares de ícones prontos (FontAwesome, Material, Feather etc.) para usar como componentes React.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">vite</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Ferramenta de build e servidor de desenvolvimento. Compila o código React rapidamente e oferece hot reload.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">tailwindcss</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Framework CSS utilitário. Permite estilizar elementos diretamente no JSX com classes como "bg-blue-500", "text-center", "md:flex".</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">@tailwindcss/vite</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Plugin que integra o Tailwind CSS ao Vite, processando as classes automaticamente durante o build.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">eslint</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Ferramenta de análise estática de código. Identifica erros e padrões inconsistentes no JavaScript/JSX.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">@vitejs/plugin-react</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Plugin do Vite que habilita suporte a JSX, Fast Refresh e outras funcionalidades específicas do React.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BACKEND -->
+    <div class="section">
+      <h2>Backend <span>(backend)</span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Biblioteca</th>
+            <th>Tipo</th>
+            <th>Para que serve</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="lib-name">express</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Framework web para Node.js. Cria o servidor HTTP, define rotas (APIs) e gerencia requisições/respostas.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">@prisma/client</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Cliente gerado pelo Prisma para acessar o banco de dados PostgreSQL. Permite fazer queries tipadas e seguras.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">dotenv</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Carrega variáveis de ambiente do arquivo .env para process.env. Usado para guardar senhas e URLs sem expor no código.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">cors</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Middleware que permite o frontend (rodando em outra porta/domínio) fazer requisições ao backend. Sem ele, o navegador bloqueia as chamadas.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">jsonwebtoken</span></td>
+            <td><span class="badge badge-prod">Produção</span></td>
+            <td class="description">Biblioteca para verificar tokens JWT. Usada no middleware de autenticação para validar que o usuário está logado via Supabase.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">prisma</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">CLI do Prisma. Usada para criar migrations, gerar o client, visualizar o banco e executar comandos administrativos do ORM.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">nodemon</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Reinicia o servidor Node.js automaticamente toda vez que um arquivo é alterado. Evita ter que parar e rodar "node server.js" manualmente.</td>
+          </tr>
+          <tr>
+            <td><span class="lib-name">@types/node</span></td>
+            <td><span class="badge badge-dev">Desenvolvimento</span></td>
+            <td class="description">Definições de tipos TypeScript para o Node.js. Necessário para o editor reconhecer variáveis como "process" sem erros.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- COMO TUDO SE CONECTA -->
+    <div class="section">
+      <h2>Como tudo se conecta</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Fluxo</th>
+            <th>Tecnologias envolvidas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="description">Usuário acessa a aplicação no navegador</td>
+            <td class="description">React + Vite + Tailwind CSS</td>
+          </tr>
+          <tr>
+            <td class="description">Navega entre telas sem recarregar a página</td>
+            <td class="description">React Router</td>
+          </tr>
+          <tr>
+            <td class="description">Faz login ou cadastro</td>
+            <td class="description">Supabase JS SDK (frontend)</td>
+          </tr>
+          <tr>
+            <td class="description">Frontend chama a API do backend</td>
+            <td class="description">Axios → Express (com CORS habilitado)</td>
+          </tr>
+          <tr>
+            <td class="description">Backend valida se o usuário está autenticado</td>
+            <td class="description">jsonwebtoken (middleware)</td>
+          </tr>
+          <tr>
+            <td class="description">Backend consulta/grava dados no banco</td>
+            <td class="description">Prisma Client → PostgreSQL (Supabase)</td>
+          </tr>
+          <tr>
+            <td class="description">Variáveis sensíveis ficam protegidas</td>
+            <td class="description">dotenv + arquivo .env</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="footer">Documento gerado para o projeto Patota+ — TCC</p>
+  </div>
+</body>
+</html>

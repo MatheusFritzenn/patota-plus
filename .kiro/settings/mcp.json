@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tokenizin/mcp-npx-fetch"
+      ],
+      "disabled": false
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
+    },
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=shbfvgbnlzxwxggvfbsx&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching",
+      "headers": {
+        "Authorization": "Bearer sbp_8ecdb97643d2cbfeaed6dd0d974432d82dab5699"
+      }
+    }
+  },
+  "powers": {
+    "mcpServers": {}
+  }
+}
