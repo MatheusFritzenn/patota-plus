@@ -1,8 +1,16 @@
 import 'dotenv/config'
 import express from 'express'
+import cors from 'cors'
 import usuariosRoutes from './usuarios/routes.js'
 
 const app = express()
+
+// Habilita CORS apenas para o frontend (porta 5173)
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
 
 // Habilita o parsing de JSON no body das requisições
 app.use(express.json())
