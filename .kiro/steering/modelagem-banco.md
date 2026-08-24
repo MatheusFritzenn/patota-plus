@@ -55,8 +55,11 @@ Referência completa das tabelas e campos planejados para cada fase do projeto.
 | nome | String | |
 | descricao | String, opcional | |
 | modalidadeId | Int, FK → Modalidade | |
+| rua | String | |
 | cidade | String | |
 | estado | String | |
+| diaHabitual | Int, opcional | 1=Segunda, 2=Terça, ..., 7=Domingo |
+| horaHabitual | Time, opcional | Formato HH:MM:SS |
 | presidenteId | UUID, FK → Usuario | |
 | createdAt | DateTime | |
 | updatedAt | DateTime | |

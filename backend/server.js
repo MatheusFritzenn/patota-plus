@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import usuariosRoutes from './usuarios/routes.js'
+import patotasRoutes from './patotas/routes.js'
 
 const app = express()
 
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
 
 // Rotas
 app.use('/usuarios', usuariosRoutes)
+app.use('/patotas', patotasRoutes)
 
 // Inicia o servidor
 app.listen(3000, () => {

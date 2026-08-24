@@ -7,10 +7,10 @@ export async function criarUsuario(dados) {
   try {
     await client.query('BEGIN')
 
-    // Converte dataNascimento para formato adequado
+    // Usa a string de data diretamente (formato YYYY-MM-DD) para evitar problema de fuso horário
     let dataNascimentoConvertida = null
     if (dados.dataNascimento) {
-      dataNascimentoConvertida = new Date(dados.dataNascimento)
+      dataNascimentoConvertida = dados.dataNascimento
     }
 
     // Insere o usuário
@@ -179,7 +179,7 @@ export async function atualizarUsuario(id, dados) {
     }
     if (dados.dataNascimento !== undefined) {
       arrayCampos.push('data_nascimento = $' + indice)
-      arrayValores.push(new Date(dados.dataNascimento))
+      arrayValores.push(dados.dataNascimento)
       indice = indice + 1
     }
     if (dados.foto !== undefined) {

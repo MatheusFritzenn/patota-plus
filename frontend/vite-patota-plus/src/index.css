@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Evita deslocamento horizontal quando a scrollbar aparece/desaparece */
+html {
+  overflow-y: scroll;
+}
