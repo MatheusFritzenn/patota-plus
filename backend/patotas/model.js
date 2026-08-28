@@ -119,7 +119,7 @@ export async function buscarPatotaPorId(patotaId) {
 }
 
 // Busca todos os membros ativos de uma patota
-export async function buscarMembrosPatota(patotaId) {
+export async function buscarMembrosPatota(patotaId, modalidadeId) {
   const querySelectMembros = `
     SELECT u.id, u.nome, u.foto, mp.role, mp.data_entrada AS "dataEntrada"
     FROM membro_patotas mp
@@ -130,16 +130,25 @@ export async function buscarMembrosPatota(patotaId) {
 
   const resultado = await pool.query(querySelectMembros, [patotaId])
 
-  // Busca posições de cada membro
+  // Mapa de posições por modalidade
+  const posicoesPorModalidade = {
+    1: [1, 2, 3, 4, 5, 6],
+    2: [1, 7, 8, 9],
+    3: [1, 7, 8, 9]
+  }
+
+  const arrayIdsPosicoes = posicoesPorModalidade[modalidadeId] || []
+
+  // Busca posições de cada membro (filtradas pela modalidade da patota)
   const arrayMembros = []
   for (const membro of resultado.rows) {
     const querySelectPosicoes = `
       SELECT p.id, p.nome
       FROM usuario_posicoes up
       JOIN posicoes p ON p.id = up.posicao_id
-      WHERE up.usuario_id = $1
+      WHERE up.usuario_id = $1 AND up.posicao_id = ANY($2)
     `
-    const resultadoPosicoes = await pool.query(querySelectPosicoes, [membro.id])
+    const resultadoPosicoes = await pool.query(querySelectPosicoes, [membro.id, arrayIdsPosicoes])
     const arrayPosicoes = []
     for (const row of resultadoPosicoes.rows) {
       arrayPosicoes.push(row.nome)
@@ -246,6 +255,30 @@ export async function excluirPatota(patotaId) {
 
 // Cria uma solicitação de entrada na patota
 export async function criarSolicitacaoEntrada(usuarioId, patotaId) {
+  // Verifica se o usuário pratica a modalidade da patota
+  const queryVerificarModalidade = `
+    SELECT p.modalidade_id, m.nome AS modalidade_nome
+    FROM patotas p
+    JOIN modalidades m ON m.id = p.modalidade_id
+    WHERE p.id = $1
+  `
+  const resultadoModalidade = await pool.query(queryVerificarModalidade, [patotaId])
+
+  if (resultadoModalidade.rows.length > 0) {
+    const modalidadeIdPatota = resultadoModalidade.rows[0].modalidade_id
+    const modalidadeNome = resultadoModalidade.rows[0].modalidade_nome
+
+    const queryVerificarUsuarioModalidade = `
+      SELECT 1 FROM usuario_modalidades
+      WHERE usuario_id = $1 AND modalidade_id = $2
+    `
+    const resultadoUsuarioModalidade = await pool.query(queryVerificarUsuarioModalidade, [usuarioId, modalidadeIdPatota])
+
+    if (resultadoUsuarioModalidade.rows.length === 0) {
+      return { modalidadeIncompativel: true, modalidadeNome: modalidadeNome }
+    }
+  }
+
   // Verifica se já existe uma solicitação pendente
   const queryVerificar = `
     SELECT id FROM solicitacoes_entrada

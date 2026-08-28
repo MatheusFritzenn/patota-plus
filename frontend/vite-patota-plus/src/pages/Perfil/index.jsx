@@ -248,6 +248,33 @@ function Perfil() {
       return
     }
 
+    // Verifica se cada modalidade selecionada tem ao menos uma posição marcada
+    for (const modalidadeId of modalidadesSelecionadas) {
+      const posicoesDaModalidade = posicoesPorModalidade[modalidadeId]
+      let temPosicao = false
+
+      if (posicoesDaModalidade) {
+        for (const posicao of posicoesDaModalidade) {
+          if (posicoesSelecionadas.includes(posicao.id)) {
+            temPosicao = true
+            break
+          }
+        }
+      }
+
+      if (!temPosicao) {
+        let nomeModalidade = ''
+        for (const mod of arrayModalidades) {
+          if (mod.id === modalidadeId) {
+            nomeModalidade = mod.nome
+            break
+          }
+        }
+        setErro('Selecione ao menos uma posição para a modalidade ' + nomeModalidade + '.')
+        return
+      }
+    }
+
     setSalvando(true)
 
     try {

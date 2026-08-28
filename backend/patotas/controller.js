@@ -93,7 +93,14 @@ export async function listarMembros(req, res) {
   try {
     const patotaId = req.params.id
 
-    const arrayMembros = await buscarMembrosPatota(patotaId)
+    // Busca a patota para obter a modalidade
+    const patota = await buscarPatotaPorId(patotaId)
+
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    const arrayMembros = await buscarMembrosPatota(patotaId, patota.modalidadeId)
 
     return res.json(arrayMembros)
   }
@@ -165,6 +172,10 @@ export async function solicitar(req, res) {
     }
 
     const resultado = await criarSolicitacaoEntrada(usuarioId, patotaId)
+
+    if (resultado.modalidadeIncompativel) {
+      return res.status(403).json({ erro: 'Você não pratica a modalidade desta patota (' + resultado.modalidadeNome + '). Atualize seu perfil para solicitar entrada.' })
+    }
 
     if (resultado.jaExiste) {
       return res.status(409).json({ erro: 'Você já possui uma solicitação pendente para esta patota' })

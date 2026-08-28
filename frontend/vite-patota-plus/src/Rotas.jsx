@@ -31,7 +31,7 @@ function Rotas() {
         <Route path="/patota/:id" element={<Patota />} />
       </Route>
 
-      <Route path="/" element={<Navigate to="/home" />} />
+      <Route path="/" element={<Navigate to="/login" />} />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
     )

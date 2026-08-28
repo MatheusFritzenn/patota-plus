@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
-import './style.css'
+import ModalMensagem from '../../components/ModalMensagem.jsx'
 
 // Dias da semana para exibição
 const arrayDiasSemana = [
@@ -28,6 +28,7 @@ function Patota() {
   const [ehMembro, setEhMembro] = useState(false)
   const [solicitacaoPendente, setSolicitacaoPendente] = useState(false)
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
+  const [modalMensagem, setModalMensagem] = useState({ aberto: false, titulo: '', mensagem: '' })
   const [userId, setUserId] = useState(null)
 
   const navigate = useNavigate()
@@ -95,6 +96,7 @@ function Patota() {
   }
 
   async function handleSolicitar() {
+    setErro('')
     try {
       await api.post('/patotas/' + id + '/solicitar', { usuarioId: userId })
       setSolicitacaoPendente(true)
@@ -103,8 +105,10 @@ function Patota() {
       console.error('Erro ao solicitar entrada:', erroRequisicao)
       if (erroRequisicao.response && erroRequisicao.response.status === 409) {
         setSolicitacaoPendente(true)
+      } else if (erroRequisicao.response && erroRequisicao.response.status === 403) {
+        setModalMensagem({ aberto: true, titulo: 'Modalidade incompatível', mensagem: erroRequisicao.response.data.erro })
       } else {
-        setErro('Erro ao solicitar entrada.')
+        setModalMensagem({ aberto: true, titulo: 'Erro', mensagem: 'Erro ao solicitar entrada. Tente novamente.' })
       }
     }
   }
@@ -231,6 +235,14 @@ function Patota() {
             )}
           </div>
         </div>
+
+        {/* Modal de mensagem */}
+        <ModalMensagem
+          aberto={modalMensagem.aberto}
+          titulo={modalMensagem.titulo}
+          mensagem={modalMensagem.mensagem}
+          onFechar={() => setModalMensagem({ aberto: false, titulo: '', mensagem: '' })}
+        />
       </main>
     )
   }
