@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import usuariosRoutes from './usuarios/routes.js'
 import patotasRoutes from './patotas/routes.js'
+import partidasRoutes from './partidas/routes.js'
 
 const app = express()
 
@@ -24,6 +25,7 @@ app.get('/', (req, res) => {
 // Rotas
 app.use('/usuarios', usuariosRoutes)
 app.use('/patotas', patotasRoutes)
+app.use('/partidas', partidasRoutes)
 
 // Inicia o servidor
 app.listen(3000, () => {

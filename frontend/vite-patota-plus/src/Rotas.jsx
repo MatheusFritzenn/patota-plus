@@ -5,6 +5,8 @@ import RecuperarSenha from './pages/RecuperarSenha/index.jsx'
 import RedefinirSenha from './pages/RedefinirSenha/index.jsx'
 import Home from './pages/Home/index.jsx'
 import CriarPatota from './pages/CriarPatota/index.jsx'
+import CriarPartida from './pages/CriarPartida/index.jsx'
+import DetalhesPartida from './pages/DetalhesPartida/index.jsx'
 import MinhasPatotas from './pages/MinhasPatotas/index.jsx'
 import BuscarPatotas from './pages/BuscarPatotas/index.jsx'
 import Perfil from './pages/Perfil/index.jsx'
@@ -29,6 +31,8 @@ function Rotas() {
         <Route path="/minhas-patotas" element={<MinhasPatotas />} />
         <Route path="/buscar-patotas" element={<BuscarPatotas />} />
         <Route path="/patota/:id" element={<Patota />} />
+        <Route path="/patota/:id/criar-partida" element={<CriarPartida />} />
+        <Route path="/partida/:id" element={<DetalhesPartida />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/login" />} />

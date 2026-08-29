@@ -311,7 +311,7 @@ function Patota() {
       )}
 
       {abaAtiva === 'jogos' && (
-        <AbaJogos ehPresidente={ehPresidente} />
+        <AbaJogos patotaId={id} />
       )}
 
       {abaAtiva === 'membros' && (
@@ -429,12 +429,116 @@ function AbaVisaoGeral({ patota, ehPresidente, obterNomeDia, formatarHora, onExc
   )
 }
 
-// Aba Jogos (placeholder)
-function AbaJogos({ ehPresidente }) {
+// Formata a data (timestamp) para o padrão dd/mm/aaaa
+function formatarData(data) {
+  if (!data) return ''
+  const dataObj = new Date(data)
+  const dia = String(dataObj.getUTCDate()).padStart(2, '0')
+  const mes = String(dataObj.getUTCMonth() + 1).padStart(2, '0')
+  const ano = dataObj.getUTCFullYear()
+  return dia + '/' + mes + '/' + ano
+}
+
+// Card de uma partida (data, horário, local, vagas) — clicável para a Tela 5
+function CardPartida({ partida }) {
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-      <p className="text-gray-500 text-lg mb-2">Nenhuma partida registrada ainda.</p>
-      <p className="text-gray-400 text-sm">As partidas aparecerão aqui quando forem criadas.</p>
+    <Link
+      to={'/partida/' + partida.id}
+      className="flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+    >
+      <div>
+        <p className="text-gray-800 font-medium">
+          {formatarData(partida.data)} às {partida.horario}
+        </p>
+        <p className="text-sm text-gray-500">{partida.local}</p>
+      </div>
+      <div className="text-right">
+        <p className="text-sm text-gray-500">Vagas</p>
+        <p className="text-gray-800 font-medium">
+          {partida.vagasPreenchidas}/{partida.vagasTotal}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+// Aba Jogos
+function AbaJogos({ patotaId }) {
+  const [arrayProximos, setArrayProximos] = useState([])
+  const [arrayFinalizados, setArrayFinalizados] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    carregarPartidas()
+  }, [patotaId])
+
+  async function carregarPartidas() {
+    setCarregando(true)
+    setErro('')
+    try {
+      const resposta = await api.get('/partidas/patota/' + patotaId)
+      setArrayProximos(resposta.data.proximos)
+      setArrayFinalizados(resposta.data.finalizados)
+      setCarregando(false)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar partidas:', erroRequisicao)
+      setErro('Erro ao carregar partidas.')
+      setCarregando(false)
+    }
+  }
+
+  if (carregando) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-gray-500">Carregando partidas...</p>
+      </div>
+    )
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-red-500">{erro}</p>
+      </div>
+    )
+  }
+
+  const semPartidas = arrayProximos.length === 0 && arrayFinalizados.length === 0
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+      {semPartidas && (
+        <div className="text-center">
+          <p className="text-gray-500 text-lg mb-2">Nenhuma partida registrada ainda.</p>
+          <p className="text-gray-400 text-sm">As partidas aparecerão aqui quando forem criadas.</p>
+        </div>
+      )}
+
+      {/* Próximos jogos */}
+      {arrayProximos.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Próximos jogos</h3>
+          <div className="flex flex-col gap-3">
+            {arrayProximos.map((partida) => (
+              <CardPartida key={partida.id} partida={partida} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Jogos finalizados */}
+      {arrayFinalizados.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Jogos finalizados</h3>
+          <div className="flex flex-col gap-3">
+            {arrayFinalizados.map((partida) => (
+              <CardPartida key={partida.id} partida={partida} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
