@@ -168,6 +168,23 @@ export async function buscarMembrosPatota(patotaId, modalidadeId) {
   return arrayMembros
 }
 
+// Verifica se um usuário é membro de uma patota
+export async function membroExiste(patotaId, usuarioId) {
+  const querySelect = `
+    SELECT 1 FROM membro_patotas
+    WHERE patota_id = $1 AND usuario_id = $2 AND ativo = true
+  `
+  const resultado = await pool.query(querySelect, [patotaId, usuarioId])
+
+  return resultado.rows.length > 0
+}
+
+// Exclui membro da patota
+export async function removerMembro(patotaId, usuarioId) {
+  const queryDelete = 'DELETE FROM membro_patotas WHERE patota_id = $1 AND usuario_id = $2'
+  await pool.query(queryDelete, [patotaId, usuarioId])
+}
+
 // Atualiza dados de uma patota
 export async function atualizarPatota(patotaId, dados) {
   const arrayCampos = []

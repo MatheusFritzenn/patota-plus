@@ -4,6 +4,7 @@ import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
 import ModalMensagem from '../../components/ModalMensagem.jsx'
+import { Trash2 } from 'lucide-react';
 
 // Dias da semana para exibição
 const arrayDiasSemana = [
@@ -29,6 +30,7 @@ function Patota() {
   const [solicitacaoPendente, setSolicitacaoPendente] = useState(false)
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
   const [modalMensagem, setModalMensagem] = useState({ aberto: false, titulo: '', mensagem: '' })
+  const [membroParaExcluir, setMembroParaExcluir] = useState(null)
   const [userId, setUserId] = useState(null)
 
   const navigate = useNavigate()
@@ -84,7 +86,7 @@ function Patota() {
     }
   }
 
-  async function handleExcluir() {
+  async function handleExcluirPatota() {
     try {
       await api.delete('/patotas/' + id)
       navigate('/minhas-patotas')
@@ -92,6 +94,30 @@ function Patota() {
       console.error('Erro ao excluir patota:', erroRequisicao)
       setErro('Erro ao excluir patota.')
       setModalExcluirAberto(false)
+    }
+  }
+
+  async function handleExcluirMembro() {
+    if (!membroParaExcluir) return
+
+    try {
+      await api.delete('/patotas/' + id + '/membros/' + membroParaExcluir.id)
+
+      // Remove o membro da lista local
+      const arrayAtualizado = []
+      for (const membro of arrayMembros) {
+        if (membro.id !== membroParaExcluir.id) {
+          arrayAtualizado.push(membro)
+        }
+      }
+      setArrayMembros(arrayAtualizado)
+
+      setMembroParaExcluir(null)
+    } 
+    catch (erroRequisicao) {
+      console.error('Erro ao excluir membro da patota:', erroRequisicao)
+      setMembroParaExcluir(null)
+      setModalMensagem({ aberto: true, titulo: 'Erro', mensagem: 'Erro ao excluir membro da patota.' })
     }
   }
 
@@ -289,7 +315,7 @@ function Patota() {
       )}
 
       {abaAtiva === 'membros' && (
-        <AbaMembros arrayMembros={arrayMembros} ehPresidente={ehPresidente} arraySolicitacoes={arraySolicitacoes} onResponder={handleResponderSolicitacao} />
+        <AbaMembros arrayMembros={arrayMembros} ehPresidente={ehPresidente} arraySolicitacoes={arraySolicitacoes} onResponder={handleResponderSolicitacao} onExcluirMembro={(membro) => setMembroParaExcluir(membro)} />
       )}
 
       {abaAtiva === 'relatorios' && (
@@ -302,8 +328,26 @@ function Patota() {
         titulo="Excluir patota"
         mensagem="Tem certeza que deseja excluir esta patota? Essa ação não pode ser desfeita."
         textoBotaoConfirmar="Excluir"
-        onConfirmar={handleExcluir}
+        onConfirmar={handleExcluirPatota}
         onCancelar={() => setModalExcluirAberto(false)}
+      />
+
+      {/* Modal de confirmação de exclusão de membro */}
+      <ModalConfirmacao
+        aberto={!!membroParaExcluir}
+        titulo="Excluir membro"
+        mensagem={membroParaExcluir ? 'Tem certeza que deseja remover ' + membroParaExcluir.nome + ' da patota?' : ''}
+        textoBotaoConfirmar="Excluir"
+        onConfirmar={handleExcluirMembro}
+        onCancelar={() => setMembroParaExcluir(null)}
+      />
+
+      {/* Modal de mensagem */}
+      <ModalMensagem
+        aberto={modalMensagem.aberto}
+        titulo={modalMensagem.titulo}
+        mensagem={modalMensagem.mensagem}
+        onFechar={() => setModalMensagem({ aberto: false, titulo: '', mensagem: '' })}
       />
     </main>
   )
@@ -396,7 +440,7 @@ function AbaJogos({ ehPresidente }) {
 }
 
 // Aba Membros
-function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder }) {
+function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder, onExcluirMembro }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
       {/* Solicitações pendentes (apenas presidente) */}
@@ -492,6 +536,19 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
                   <p className="text-sm text-gray-500">{membro.posicoes.join(', ')}</p>
                 )}
               </div>
+
+              {ehPresidente && membro.role !== 'PRESIDENTE' && (
+                <div>
+                  <button
+                    onClick={() => onExcluirMembro(membro)}
+                    className="text-red-500 hover:text-red-700 cursor-pointer transition-colors"
+                    title="Excluir membro"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              )}
+
             </div>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente } from './model.js'
+import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente, removerMembro, membroExiste } from './model.js'
 
 // POST /patotas — Criar nova patota
 export async function cadastrar(req, res) {
@@ -106,6 +106,28 @@ export async function listarMembros(req, res) {
   }
   catch (erro) {
     console.error('Erro ao listar membros:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// DELETE /patotas/:id/membros/:usuarioID - Exlcuir membro da patota
+export async function excluirMembro(req, res) {
+  try {
+    const patotaId = req.params.id
+    const usuarioId = req.params.usuarioId
+
+    // Valida se o membro existe na patota antes de excluir
+    const existe = await membroExiste(patotaId, usuarioId)
+    if (!existe) {
+      return res.status(404).json({ erro: 'Membro não encontrado nesta patota' })
+    }
+
+    await removerMembro(patotaId, usuarioId)
+
+    return res.json({ mensagem: 'Membro excluído da patota com sucesso' })
+  }
+  catch (erro) {
+    console.error('Erro ao excluir membro:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
