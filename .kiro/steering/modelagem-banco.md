@@ -4,176 +4,221 @@ inclusion: manual
 
 # Modelagem do Banco de Dados — Patota+
 
-Referência completa das tabelas e campos planejados para cada fase do projeto.
+Referência das tabelas e campos do projeto, por fase.
+
+Convenções reais do banco (PostgreSQL no Supabase):
+- Nomes de tabela no **plural** e em **snake_case** (ex.: `usuarios`, `membro_patotas`).
+- Nomes de coluna em **snake_case** (ex.: `presidente_id`, `created_at`).
+- O backend expõe esses campos em camelCase via alias no SQL (ex.: `presidente_id AS "presidenteId"`).
+
+> Nota histórica: no início do projeto a intenção era usar Prisma, por isso versões
+> anteriores deste documento listavam as entidades com nomes conceituais em
+> PascalCase/singular (ex.: `Usuario`, `MembroPatota`). O Prisma foi abandonado em favor
+> de SQL direto via `pg` (node-postgres); este documento reflete os nomes reais das tabelas.
 
 ---
 
 ## Fase 1 — Nucleo
 
-### Usuario
-| Campo | Tipo | Observacao |
+### usuarios
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | Mesmo UUID do Supabase Auth |
-| nome | String | |
-| email | String, unico | |
-| telefone | String, opcional | |
-| dataNascimento | DateTime, opcional | |
-| foto | String (URL), opcional | |
-| createdAt | DateTime | |
-| updatedAt | DateTime | |
+| id | uuid, PK | Mesmo UUID do Supabase Auth |
+| nome | text | |
+| email | text, unico | |
+| telefone | text, opcional | |
+| data_nascimento | timestamp, opcional | |
+| foto | text (URL), opcional | URL publica do Storage (bucket `avatars`) |
+| created_at | timestamp | |
+| updated_at | timestamp | |
 
-### Modalidade (tabela auxiliar)
-| Campo | Tipo | Observacao |
+### modalidades (tabela auxiliar)
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | Int, PK, autoincrement | |
-| nome | String, unico | Ex: Futebol, Futsal, Society |
+| id | int, PK, autoincrement | |
+| nome | text, unico | Ex: Futebol, Futsal, Society |
 
-### Posicao (tabela auxiliar)
-| Campo | Tipo | Observacao |
+### posicoes (tabela auxiliar)
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | Int, PK, autoincrement | |
-| nome | String, unico | Ex: Goleiro, Zagueiro, Meia, Atacante |
+| id | int, PK, autoincrement | |
+| nome | text, unico | Ex: Goleiro, Zagueiro, Meia, Atacante |
 
-### UsuarioModalidade (N:N)
-| Campo | Tipo | Observacao |
+### usuario_modalidades (N:N)
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| usuarioId | UUID, FK → Usuario | |
-| modalidadeId | Int, FK → Modalidade | |
-| PK composta: (usuarioId, modalidadeId) | | |
+| usuario_id | uuid, FK → usuarios | |
+| modalidade_id | int, FK → modalidades | |
+| PK composta: (usuario_id, modalidade_id) | | |
 
-### UsuarioPosicao (N:N)
-| Campo | Tipo | Observacao |
+### usuario_posicoes (N:N)
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| usuarioId | UUID, FK → Usuario | |
-| posicaoId | Int, FK → Posicao | |
-| PK composta: (usuarioId, posicaoId) | | |
+| usuario_id | uuid, FK → usuarios | |
+| posicao_id | int, FK → posicoes | |
+| PK composta: (usuario_id, posicao_id) | | |
 
-### Patota
-| Campo | Tipo | Observacao |
+### patotas
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| nome | String | |
-| descricao | String, opcional | |
-| modalidadeId | Int, FK → Modalidade | |
-| rua | String | |
-| cidade | String | |
-| estado | String | |
-| diaHabitual | Int, opcional | 1=Segunda, 2=Terça, ..., 7=Domingo |
-| horaHabitual | Time, opcional | Formato HH:MM:SS |
-| presidenteId | UUID, FK → Usuario | |
-| createdAt | DateTime | |
-| updatedAt | DateTime | |
+| id | uuid, PK | |
+| nome | text | |
+| descricao | text, opcional | |
+| modalidade_id | int, FK → modalidades | |
+| rua | varchar, opcional | |
+| cidade | text | |
+| estado | text | |
+| dia_habitual | int, opcional | 1=Segunda, 2=Terça, ..., 7=Domingo |
+| hora_habitual | time, opcional | Formato HH:MM:SS |
+| presidente_id | uuid, FK → usuarios | |
+| created_at | timestamp | |
+| updated_at | timestamp | |
 
-### MembroPatota (N:N com metadados)
-| Campo | Tipo | Observacao |
+### membro_patotas (N:N com metadados)
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| usuarioId | UUID, FK → Usuario | |
-| patotaId | UUID, FK → Patota | |
-| role | Enum (PRESIDENTE, JOGADOR) | |
-| dataEntrada | DateTime | |
-| ativo | Boolean, default true | |
+| id | uuid, PK | |
+| usuario_id | uuid, FK → usuarios | |
+| patota_id | uuid, FK → patotas | |
+| role | enum RolePatota (PRESIDENTE, JOGADOR) | default JOGADOR |
+| data_entrada | timestamp | |
+| ativo | boolean, default true | |
 
-### Partida
-| Campo | Tipo | Observacao |
+### partidas
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| patotaId | UUID, FK → Patota | |
-| data | DateTime | |
-| horario | String | |
-| local | String | |
-| vagasTotal | Int | |
-| status | Enum (AGENDADA, EM_ANDAMENTO, FINALIZADA, CANCELADA) | |
-| createdAt | DateTime | |
-| updatedAt | DateTime | |
+| id | uuid, PK | |
+| patota_id | uuid, FK → patotas | |
+| data | timestamp | |
+| horario | text | |
+| local | text | |
+| vagas_total | int | |
+| status | enum StatusPartida (AGENDADA, EM_ANDAMENTO, FINALIZADA, CANCELADA) | default AGENDADA |
+| avaliacoes_encerradas | boolean, default false | Fase 2: finalizar a partida abre as avaliações (false); o presidente encerra setando true |
+| created_at | timestamp | |
+| updated_at | timestamp | |
 
-### Participacao
-| Campo | Tipo | Observacao |
+### participacoes
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| partidaId | UUID, FK → Partida | |
-| usuarioId | UUID, FK → Usuario | |
-| timeId | UUID, FK → Time, opcional | Preenchido quando times sao formados |
-| status | Enum (CONFIRMADO, CANCELADO) | |
+| id | uuid, PK | |
+| partida_id | uuid, FK → partidas | |
+| usuario_id | uuid, FK → usuarios | |
+| time_id | uuid, FK → times, opcional (ON DELETE SET NULL) | Preenchido quando os times são formados (Fase 2) |
+
+> A presença é representada pela existência da linha (confirmar = inserir, cancelar = deletar).
+> A coluna `status` (CONFIRMADO/CANCELADO) prevista originalmente **não foi criada** — o
+> comportamento de confirmar/recusar presença já funciona com base na existência do registro.
+
+### solicitacoes_entrada
+| Coluna | Tipo | Observacao |
+|---|---|---|
+| id | uuid, PK | |
+| usuario_id | uuid, FK → usuarios | |
+| patota_id | uuid, FK → patotas | |
+| status | varchar, default 'PENDENTE' | PENDENTE, ACEITO, RECUSADO |
+| created_at | timestamp | |
+| updated_at | timestamp | |
 
 ---
 
 ## Fase 2 — Avaliacoes
 
-### Time
-| Campo | Tipo | Observacao |
+### times
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| partidaId | UUID, FK → Partida | |
-| nome | String | Ex: "Time A", "Time B" |
+| id | uuid, PK | |
+| partida_id | uuid, FK → partidas (ON DELETE CASCADE) | |
+| nome | text | Ex: "Time A", "Time B" |
 
-### Avaliacao
-| Campo | Tipo | Observacao |
+### avaliacoes
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| partidaId | UUID, FK → Partida | |
-| avaliadorId | UUID, FK → Usuario | |
-| avaliadoId | UUID, FK → Usuario | |
-| nota | Decimal (0-10) | |
-| createdAt | DateTime | |
+| id | uuid, PK | |
+| partida_id | uuid, FK → partidas (ON DELETE CASCADE) | |
+| avaliador_id | uuid, FK → usuarios (ON DELETE CASCADE) | |
+| avaliado_id | uuid, FK → usuarios (ON DELETE CASCADE) | |
+| nota | numeric(4,2) | |
+| created_at | timestamp | |
 
-### MediaUsuario (cache de media geral)
-| Campo | Tipo | Observacao |
+Restrições:
+- CHECK: `nota >= 0 AND nota <= 10`;
+- CHECK: `avaliador_id <> avaliado_id` (sem auto-avaliação);
+- UNIQUE: `(partida_id, avaliador_id, avaliado_id)` (uma avaliação por par, por partida).
+
+> Essas restrições existem no banco como salvaguarda. As mesmas regras devem também ser
+> validadas na camada de aplicação, incluindo a regra de só avaliar companheiros do mesmo time.
+
+> **PENDÊNCIA (Fase 4 — geração automática de times):** o fluxo de avaliações foi
+> implementado na Fase 2 permitindo que cada participante avalie TODOS os outros
+> participantes da partida (menos ele mesmo), porque os times ainda não são formados
+> (`participacoes.time_id` fica nulo). Quando a geração de times for implementada, é
+> OBRIGATÓRIO atualizar o código das avaliações (backend e frontend) para liberar
+> avaliação APENAS entre jogadores do mesmo `time_id`. Ver `partidas/model.js` e a aba
+> Avaliações em `DetalhesPartida`.
+
+### media_usuarios (cache de media geral)
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| usuarioId | UUID, FK → Usuario, unico | |
-| mediaGeral | Decimal | |
-| totalAvaliacoes | Int | |
-| updatedAt | DateTime | |
+| id | uuid, PK | |
+| usuario_id | uuid, FK → usuarios (ON DELETE CASCADE), unico | |
+| media_geral | numeric(4,2), default 0 | |
+| total_avaliacoes | int, default 0 | |
+| updated_at | timestamp | |
 
 ---
 
 ## Fase 3 — Financeiro
 
-### Mensalidade
-| Campo | Tipo | Observacao |
+### mensalidades
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| patotaId | UUID, FK → Patota | |
-| usuarioId | UUID, FK → Usuario | |
-| mesReferencia | String | Formato "YYYY-MM" |
-| valor | Decimal | |
-| status | Enum (PENDENTE, PAGO, ATRASADO) | |
-| dataPagamento | DateTime, opcional | |
+| id | uuid, PK | |
+| patota_id | uuid, FK → patotas | |
+| usuario_id | uuid, FK → usuarios | |
+| mes_referencia | text | Formato "YYYY-MM" |
+| valor | numeric | |
+| status | enum (PENDENTE, PAGO, ATRASADO) | |
+| data_pagamento | timestamp, opcional | |
 
-### MovimentacaoCaixa
-| Campo | Tipo | Observacao |
+### movimentacoes_caixa
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| patotaId | UUID, FK → Patota | |
-| tipo | Enum (ENTRADA, SAIDA) | |
-| descricao | String | |
-| valor | Decimal | |
-| data | DateTime | |
-| createdAt | DateTime | |
+| id | uuid, PK | |
+| patota_id | uuid, FK → patotas | |
+| tipo | enum (ENTRADA, SAIDA) | |
+| descricao | text | |
+| valor | numeric | |
+| data | timestamp | |
+| created_at | timestamp | |
 
 ---
 
 ## Fase 4 — Inteligentes e Notificacoes
 
-### Notificacao
-| Campo | Tipo | Observacao |
+### notificacoes
+| Coluna | Tipo | Observacao |
 |---|---|---|
-| id | UUID, PK | |
-| usuarioId | UUID, FK → Usuario | |
-| titulo | String | |
-| mensagem | String | |
-| lida | Boolean, default false | |
-| tipo | Enum (CONVITE, PARTIDA, PAGAMENTO, GERAL) | |
-| createdAt | DateTime | |
+| id | uuid, PK | |
+| usuario_id | uuid, FK → usuarios | |
+| titulo | text | |
+| mensagem | text | |
+| lida | boolean, default false | |
+| tipo | enum (CONVITE, PARTIDA, PAGAMENTO, GERAL) | |
+| created_at | timestamp | |
+
+> As tabelas das Fases 3 e 4 ainda não foram criadas. Os nomes e tipos acima são o
+> plano; ao implementá-las, seguir as convenções reais (plural, snake_case).
 
 ---
 
 ## Decisoes de design
 
-- **UUID** para entidades principais (compativel com Supabase Auth)
-- **Int autoincrement** para tabelas auxiliares pequenas (Modalidade, Posicao)
-- **Tabelas auxiliares** em vez de enums hardcoded para Modalidade e Posicao — permite adicionar novas sem migration
-- **MembroPatota** como tabela separada — permite historico de entrada/saida e role por patota
-- **MediaUsuario** como cache — evita recalcular a media a cada consulta de perfil
-- **Participacao.timeId** opcional — so e preenchido quando o presidente gera os times
+- **UUID** para entidades principais (compativel com Supabase Auth);
+- **Int autoincrement** para tabelas auxiliares pequenas (`modalidades`, `posicoes`);
+- **Tabelas auxiliares** em vez de enums hardcoded para modalidade e posição — permite adicionar novas sem migration;
+- **membro_patotas** como tabela separada — permite historico de entrada/saida e role por patota;
+- **media_usuarios** como cache — evita recalcular a media a cada consulta de perfil;
+- **participacoes.time_id** opcional — só é preenchido quando o presidente gera os times;
+- **participacoes** sem coluna `status` — presença é a existência do registro;
+- Acesso ao banco via **SQL direto com `pg`** (Prisma foi descartado).

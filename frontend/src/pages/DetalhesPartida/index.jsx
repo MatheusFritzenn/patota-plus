@@ -239,7 +239,13 @@ function DetalhesPartida() {
       )}
 
       {abaAtiva === 'avaliacoes' && (
-        <AbaPlaceholder mensagem="As avaliações estarão disponíveis após a partida ser finalizada, nas próximas atualizações." />
+        <AbaAvaliacoes
+          partidaId={id}
+          userId={userId}
+          ehPresidente={ehPresidente}
+          partidaFinalizada={partidaFinalizada}
+          onMensagem={(titulo, mensagem) => setModalMensagem({ aberto: true, titulo: titulo, mensagem: mensagem })}
+        />
       )}
 
       {/* Modal de confirmação de finalização da partida */}
@@ -388,12 +394,316 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
   )
 }
 
-// Aba placeholder (Times / Avaliações)
+// Aba placeholder (Times)
 function AbaPlaceholder({ mensagem }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
       <p className="text-gray-500 text-lg mb-2">Em breve</p>
       <p className="text-gray-400 text-sm">{mensagem}</p>
+    </div>
+  )
+}
+
+// Avatar reutilizável (foto ou inicial do nome)
+function AvatarJogador({ nome, foto }) {
+  return (
+    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 shrink-0">
+      {foto ? (
+        <img src={foto} alt={nome} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-green-100 flex items-center justify-center">
+          <span className="text-green-600 font-bold text-sm">
+            {nome.charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Aba 5.3 — Avaliações
+function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onMensagem }) {
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [avaliacoesLiberadas, setAvaliacoesLiberadas] = useState(false)
+  const [avaliacoesEncerradas, setAvaliacoesEncerradas] = useState(false)
+  const [participou, setParticipou] = useState(false)
+  const [arrayAvaliaveis, setArrayAvaliaveis] = useState([])
+  const [mapaNotas, setMapaNotas] = useState({})
+  const [salvando, setSalvando] = useState(false)
+  const [arrayResultado, setArrayResultado] = useState([])
+  const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false)
+  const [encerrando, setEncerrando] = useState(false)
+
+  useEffect(() => {
+    carregarAvaliacoes()
+  }, [partidaId, userId])
+
+  async function carregarAvaliacoes() {
+    if (!userId) return
+
+    setCarregando(true)
+    setErro('')
+    try {
+      const resposta = await api.get('/partidas/' + partidaId + '/avaliacoes', {
+        params: { usuarioId: userId }
+      })
+      const dados = resposta.data
+
+      setAvaliacoesLiberadas(dados.avaliacoesLiberadas)
+      setAvaliacoesEncerradas(dados.avaliacoesEncerradas)
+      setParticipou(dados.participou)
+      setArrayAvaliaveis(dados.avaliaveis)
+
+      // Preenche o mapa de notas com as notas já dadas (se houver)
+      const notasIniciais = {}
+      for (const avaliavel of dados.avaliaveis) {
+        if (avaliavel.notaDada !== null && avaliavel.notaDada !== undefined) {
+          notasIniciais[avaliavel.id] = String(avaliavel.notaDada)
+        } else {
+          notasIniciais[avaliavel.id] = ''
+        }
+      }
+      setMapaNotas(notasIniciais)
+
+      // Se encerradas, carrega o resultado (médias)
+      if (dados.avaliacoesEncerradas) {
+        const respostaResultado = await api.get('/partidas/' + partidaId + '/avaliacoes/resultado')
+        setArrayResultado(respostaResultado.data.resultado)
+      }
+
+      setCarregando(false)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar avaliações:', erroRequisicao)
+      setErro('Erro ao carregar as avaliações.')
+      setCarregando(false)
+    }
+  }
+
+  function handleMudarNota(avaliadoId, valor) {
+    const novoMapa = {}
+    for (const chave in mapaNotas) {
+      novoMapa[chave] = mapaNotas[chave]
+    }
+    novoMapa[avaliadoId] = valor
+    setMapaNotas(novoMapa)
+  }
+
+  async function handleSalvarAvaliacoes() {
+    // Monta a lista de avaliações preenchidas e valida no cliente
+    const arrayAvaliacoes = []
+    for (const avaliavel of arrayAvaliaveis) {
+      const valor = mapaNotas[avaliavel.id]
+      if (valor === '' || valor === undefined || valor === null) {
+        continue
+      }
+
+      const nota = Number(valor)
+      if (Number.isNaN(nota) || nota < 0 || nota > 10) {
+        onMensagem('Nota inválida', 'A nota de ' + avaliavel.nome + ' deve ser um número entre 0 e 10.')
+        return
+      }
+
+      const item = {}
+      item.avaliadoId = avaliavel.id
+      item.nota = nota
+      arrayAvaliacoes.push(item)
+    }
+
+    if (arrayAvaliacoes.length === 0) {
+      onMensagem('Nenhuma nota', 'Preencha ao menos uma nota antes de salvar.')
+      return
+    }
+
+    setSalvando(true)
+    try {
+      await api.post('/partidas/' + partidaId + '/avaliacoes', {
+        avaliadorId: userId,
+        avaliacoes: arrayAvaliacoes
+      })
+      setSalvando(false)
+      onMensagem('Avaliações salvas', 'Suas avaliações foram registradas com sucesso.')
+      await carregarAvaliacoes()
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao salvar avaliações:', erroRequisicao)
+      setSalvando(false)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        onMensagem('Não foi possível salvar', erroRequisicao.response.data.erro)
+      } else {
+        onMensagem('Erro', 'Erro ao salvar avaliações. Tente novamente.')
+      }
+    }
+  }
+
+  async function handleEncerrarAvaliacoes() {
+    setEncerrando(true)
+    try {
+      await api.put('/partidas/' + partidaId + '/avaliacoes/encerrar', { usuarioId: userId })
+      setEncerrando(false)
+      setModalEncerrarAberto(false)
+      await carregarAvaliacoes()
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao encerrar avaliações:', erroRequisicao)
+      setEncerrando(false)
+      setModalEncerrarAberto(false)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        onMensagem('Não foi possível encerrar', erroRequisicao.response.data.erro)
+      } else {
+        onMensagem('Erro', 'Erro ao encerrar avaliações. Tente novamente.')
+      }
+    }
+  }
+
+  if (carregando) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-gray-500">Carregando avaliações...</p>
+      </div>
+    )
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-red-500">{erro}</p>
+      </div>
+    )
+  }
+
+  // Partida ainda não finalizada — avaliações não liberadas
+  if (!partidaFinalizada || !avaliacoesLiberadas) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-gray-500 text-lg mb-2">Avaliações indisponíveis</p>
+        <p className="text-gray-400 text-sm">As avaliações serão liberadas quando o presidente finalizar a partida.</p>
+      </div>
+    )
+  }
+
+  // Avaliações encerradas — mostra o resultado (médias por jogador na partida)
+  if (avaliacoesEncerradas) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-sm font-semibold text-gray-700">Resultado das avaliações</h3>
+          <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2 py-0.5 rounded-full">Encerradas</span>
+        </div>
+
+        {arrayResultado.length === 0 ? (
+          <p className="text-gray-500 text-center">Nenhum jogador avaliado nesta partida.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {arrayResultado.map((jogador) => (
+              <div key={jogador.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <AvatarJogador nome={jogador.nome} foto={jogador.foto} />
+                <div className="flex-1">
+                  <p className="text-gray-800 font-medium">{jogador.nome}</p>
+                  <p className="text-sm text-gray-500">
+                    {jogador.totalAvaliacoes} avaliações recebidas
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Média</p>
+                  <p className="text-lg font-bold text-green-700">
+                    {jogador.totalAvaliacoes > 0 ? jogador.mediaPartida.toFixed(2) : '—'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Avaliações abertas
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Cabeçalho com ação do presidente */}
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">Avaliações abertas</h3>
+            <p className="text-sm text-gray-500">Dê uma nota de 0 a 10 para cada companheiro (decimais são permitidos).</p>
+          </div>
+
+          {ehPresidente && (
+            <button
+              onClick={() => setModalEncerrarAberto(true)}
+              className="border border-gray-400 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              Encerrar avaliações
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Formulário de avaliação (somente para quem participou) */}
+      {!participou ? (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+          <p className="text-gray-500">
+            {ehPresidente
+              ? 'Você não participou desta partida, então não avalia jogadores. Como presidente, você pode encerrar as avaliações acima.'
+              : 'Apenas quem participou da partida pode avaliar os companheiros.'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+          {arrayAvaliaveis.length === 0 ? (
+            <p className="text-gray-500 text-center">Não há companheiros para avaliar nesta partida.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {arrayAvaliaveis.map((avaliavel) => (
+                <div key={avaliavel.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                  <AvatarJogador nome={avaliavel.nome} foto={avaliavel.foto} />
+                  <div className="flex-1">
+                    <p className="text-gray-800 font-medium">{avaliavel.nome}</p>
+                    {avaliavel.posicoes.length > 0 && (
+                      <p className="text-sm text-gray-500">{avaliavel.posicoes.join(', ')}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={mapaNotas[avaliavel.id]}
+                      onChange={(evento) => handleMudarNota(avaliavel.id, evento.target.value)}
+                      placeholder="0-10"
+                      className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-center text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleSalvarAvaliacoes}
+                  disabled={salvando}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {salvando ? 'Salvando...' : 'Salvar avaliações'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal de confirmação de encerramento */}
+      <ModalConfirmacao
+        aberto={modalEncerrarAberto}
+        titulo="Encerrar avaliações"
+        mensagem="Ao encerrar, ninguém poderá mais avaliar e as médias dos jogadores serão calculadas. Deseja continuar?"
+        textoBotaoConfirmar={encerrando ? 'Encerrando...' : 'Encerrar'}
+        corBotaoConfirmar="verde"
+        onConfirmar={handleEncerrarAvaliacoes}
+        onCancelar={() => setModalEncerrarAberto(false)}
+      />
     </div>
   )
 }

@@ -411,6 +411,23 @@ function Perfil() {
               />
             </label>
           )}
+
+          {/* Média geral (avaliações) */}
+          <div className="mt-4 w-full max-w-xs bg-green-50 border border-green-100 rounded-2xl px-6 py-4 text-center">
+            <p className="text-sm text-gray-500 mb-1">Média geral</p>
+            {usuario.totalAvaliacoes > 0 ? (
+              <div>
+                <p className="text-3xl font-bold text-green-700">
+                  {Number(usuario.mediaGeral).toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {usuario.totalAvaliacoes} avaliações recebidas
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">Sem avaliações ainda</p>
+            )}
+          </div>
         </div>
 
         {/* Campos */}

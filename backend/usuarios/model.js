@@ -137,8 +137,26 @@ export async function buscarUsuarioPorId(id) {
     arrayPosicoes.push({ posicao: { id: row.id, nome: row.nome } })
   }
 
+  // Busca a média geral do usuário (cache media_usuarios). Se não houver registro
+  // (usuário nunca avaliado), retorna média 0 e nenhuma avaliação.
+  const querySelectMedia = `
+    SELECT media_geral AS "mediaGeral", total_avaliacoes AS "totalAvaliacoes"
+    FROM media_usuarios
+    WHERE usuario_id = $1
+  `
+  const resultadoMedia = await pool.query(querySelectMedia, [id])
+
+  let mediaGeral = 0
+  let totalAvaliacoes = 0
+  if (resultadoMedia.rows.length > 0) {
+    mediaGeral = Number(resultadoMedia.rows[0].mediaGeral)
+    totalAvaliacoes = resultadoMedia.rows[0].totalAvaliacoes
+  }
+
   usuario.modalidades = arrayModalidades
   usuario.posicoes = arrayPosicoes
+  usuario.mediaGeral = mediaGeral
+  usuario.totalAvaliacoes = totalAvaliacoes
 
   return usuario
 }
