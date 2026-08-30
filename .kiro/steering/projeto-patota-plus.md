@@ -27,7 +27,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 | Navegação frontend | React Router |
 | HTTP client | Axios |
 | Backend | Node.js + Express |
-| ORM | Prisma |
+| Acesso ao banco | pg (node-postgres) |
 | Banco de dados | PostgreSQL (hospedado no Supabase) |
 | Autenticação | Supabase SDK no frontend + validação de token via middleware no backend |
 | Deploy/hospedagem | Vercel |
@@ -36,7 +36,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ## Estrutura do workspace
 
-- `frontend/vite-patota-plus/` — aplicação React (Vite)
+- `frontend/` — aplicação React (Vite)
 - `backend/` — API Node.js + Express
 
 ---
@@ -116,7 +116,7 @@ Usuários, Patotas, Partidas, Participações, Times, Avaliações, Médias, Men
 ### Estrutura de pastas do frontend
 
 ```
-frontend/vite-patota-plus/src/
+frontend/src/
 ├── assets/          — todas as imagens e recursos estáticos
 ├── components/      — componentes reutilizáveis (Header, Button, Card, Modal etc.)
 ├── pages/           — telas do sistema (uma pasta por tela)
@@ -176,13 +176,15 @@ backend/
 
 - Node.js
 - Express
-- *(A instalar no início do desenvolvimento: Prisma, @supabase/supabase-js ou middleware de validação de JWT)*
+- pg (node-postgres) — driver de acesso ao PostgreSQL
+- jsonwebtoken — validação do token JWT do Supabase
+- cors, dotenv
 
 ### Decisões de arquitetura
 
 - **Autenticação:** Supabase SDK no frontend gerencia login/cadastro/sessão. O backend recebe o token JWT do Supabase no header `Authorization` e valida via middleware antes de processar requisições protegidas.
-- **Banco de dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via Prisma ORM.
-- **Separação de responsabilidades:** Supabase cuida exclusivamente da autenticação. Toda lógica de negócio e acesso a dados passa pelo backend Express + Prisma.
+- **Banco de dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via `pg` (node-postgres) com queries SQL diretas.
+- **Separação de responsabilidades:** Supabase cuida exclusivamente da autenticação. Toda lógica de negócio e acesso a dados passa pelo backend Express + pg.
 
 ---
 

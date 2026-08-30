@@ -557,7 +557,7 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
             {arraySolicitacoes.map((solicitacao) => (
               <div key={solicitacao.id} className="flex items-center gap-4 p-3 rounded-lg bg-yellow-50 border border-yellow-100">
                 {/* Foto */}
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-yellow-200 flex-shrink-0">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-yellow-200 shrink-0">
                   {solicitacao.foto ? (
                     <img
                       src={solicitacao.foto}
@@ -610,7 +610,7 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
           {arrayMembros.map((membro) => (
             <div key={membro.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               {/* Foto */}
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 flex-shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 shrink-0">
                 {membro.foto ? (
                   <img
                     src={membro.foto}
