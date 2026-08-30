@@ -319,7 +319,7 @@ function Patota() {
       )}
 
       {abaAtiva === 'relatorios' && (
-        <AbaRelatorios />
+        <AbaRelatorios patotaId={id} usuarioId={userId} formatarData={formatarData} formatarHora={formatarHora} />
       )}
 
       {/* Modal de confirmação de exclusão */}
@@ -439,7 +439,7 @@ function formatarData(data) {
   return dia + '/' + mes + '/' + ano
 }
 
-// Card de uma partida (data, horário, local, vagas) — clicável para a Tela 5
+// Card de uma partida (data, horário, local, vagas) — clicável para a tela DetalhesPartida
 function CardPartida({ partida }) {
   return (
     <Link
@@ -661,12 +661,226 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
   )
 }
 
-// Aba Relatórios (placeholder - somente presidente)
-function AbaRelatorios() {
+// Avatar reutilizável para membros/jogadores no relatório
+function Avatar({ nome, foto, tamanho }) {
+  const classeTamanho = tamanho === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
+  const classeTexto = tamanho === 'sm' ? 'text-xs' : 'text-sm'
+
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-      <p className="text-gray-500 text-lg mb-2">Em breve</p>
-      <p className="text-gray-400 text-sm">Os relatórios estarão disponíveis nas próximas atualizações.</p>
+    <div className={'rounded-full overflow-hidden border-2 border-green-200 shrink-0 ' + classeTamanho}>
+      {foto ? (
+        <img src={foto} alt={nome} className="w-full h-full object-cover" />
+      ) : (
+        <div className={'w-full h-full bg-green-100 flex items-center justify-center'}>
+          <span className={'text-green-600 font-bold ' + classeTexto}>
+            {nome.charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Barra de percentual de frequência
+function BarraFrequencia({ percentual }) {
+  let classeCor = 'bg-red-400'
+  if (percentual >= 75) {
+    classeCor = 'bg-green-500'
+  } else if (percentual >= 40) {
+    classeCor = 'bg-yellow-400'
+  }
+
+  const estiloLargura = { width: percentual + '%' }
+
+  return (
+    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+      <div className={'h-2 rounded-full transition-all ' + classeCor} style={estiloLargura}></div>
+    </div>
+  )
+}
+
+// Aba Relatórios (somente presidente)
+function AbaRelatorios({ patotaId, usuarioId, formatarData, formatarHora }) {
+  const [subAba, setSubAba] = useState('presenca')
+
+  const arraySubAbas = [
+    { id: 'presenca', nome: 'Presença' },
+    { id: 'mensalidades', nome: 'Mensalidades' },
+    { id: 'caixa', nome: 'Caixa' }
+  ]
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Sub-abas do relatório */}
+      <div className="flex gap-2 flex-wrap">
+        {arraySubAbas.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setSubAba(item.id)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors cursor-pointer ${subAba === item.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            {item.nome}
+          </button>
+        ))}
+      </div>
+
+      {subAba === 'presenca' && (
+        <RelatorioPresenca patotaId={patotaId} usuarioId={usuarioId} formatarData={formatarData} formatarHora={formatarHora} />
+      )}
+
+      {subAba === 'mensalidades' && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+          <p className="text-gray-500 text-lg mb-2">Em breve</p>
+          <p className="text-gray-400 text-sm">O relatório de mensalidades estará disponível na fase financeira.</p>
+        </div>
+      )}
+
+      {subAba === 'caixa' && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+          <p className="text-gray-500 text-lg mb-2">Em breve</p>
+          <p className="text-gray-400 text-sm">O caixa da patota estará disponível na fase financeira.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Sub-relatório: Presença
+function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) {
+  const [relatorio, setRelatorio] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [partidaExpandida, setPartidaExpandida] = useState(null)
+
+  useEffect(() => {
+    carregarRelatorio()
+  }, [patotaId, usuarioId])
+
+  async function carregarRelatorio() {
+    if (!usuarioId) return
+
+    setCarregando(true)
+    setErro('')
+    try {
+      const resposta = await api.get('/patotas/' + patotaId + '/relatorios/presenca', {
+        params: { usuarioId: usuarioId }
+      })
+      setRelatorio(resposta.data)
+      setCarregando(false)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar relatório de presença:', erroRequisicao)
+      setErro('Erro ao carregar o relatório de presença.')
+      setCarregando(false)
+    }
+  }
+
+  function alternarPartida(partidaId) {
+    if (partidaExpandida === partidaId) {
+      setPartidaExpandida(null)
+    } else {
+      setPartidaExpandida(partidaId)
+    }
+  }
+
+  if (carregando) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-gray-500">Carregando relatório...</p>
+      </div>
+    )
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-red-500">{erro}</p>
+      </div>
+    )
+  }
+
+  if (!relatorio || relatorio.totalPartidas === 0) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-gray-500 text-lg mb-2">Nenhuma partida realizada ainda.</p>
+        <p className="text-gray-400 text-sm">A frequência dos jogadores aparecerá aqui após partidas finalizadas.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Frequência por jogador */}
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-700">Frequência dos jogadores</h3>
+          <span className="text-xs text-gray-500">
+            {relatorio.totalPartidas} partida(s) realizada(s)
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {relatorio.frequencia.map((jogador) => (
+            <div key={jogador.id} className="flex items-center gap-4">
+              <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="md" />
+
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-gray-800 font-medium text-sm">{jogador.nome}</p>
+                  <p className="text-xs text-gray-500">
+                    {jogador.presencas}/{jogador.totalPartidas} · {jogador.percentual}%
+                  </p>
+                </div>
+                <BarraFrequencia percentual={jogador.percentual} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Lista de partidas realizadas com presentes */}
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">Partidas realizadas</h3>
+
+        <div className="flex flex-col gap-3">
+          {relatorio.partidas.map((partida) => (
+            <div key={partida.id} className="rounded-lg border border-gray-100 bg-gray-50">
+              <button
+                onClick={() => alternarPartida(partida.id)}
+                className="w-full flex items-center justify-between p-4 text-left cursor-pointer hover:bg-gray-100 transition-colors rounded-lg"
+              >
+                <div>
+                  <p className="text-gray-800 font-medium">
+                    {formatarData(partida.data)} às {formatarHora(partida.horario) || partida.horario}
+                  </p>
+                  <p className="text-sm text-gray-500">{partida.local}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Presentes</p>
+                  <p className="text-gray-800 font-medium">{partida.totalPresentes}</p>
+                </div>
+              </button>
+
+              {partidaExpandida === partida.id && (
+                <div className="px-4 pb-4">
+                  {partida.presentes.length === 0 ? (
+                    <p className="text-sm text-gray-400">Nenhum jogador presente nesta partida.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-200">
+                      {partida.presentes.map((jogador) => (
+                        <div key={jogador.id} className="flex items-center gap-2 bg-white px-2 py-1 rounded-full border border-gray-100">
+                          <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="sm" />
+                          <span className="text-sm text-gray-700 pr-1">{jogador.nome}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente, removerMembro, membroExiste } from './model.js'
+import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente, removerMembro, membroExiste, buscarRelatorioPresenca } from './model.js'
 
 // POST /patotas — Criar nova patota
 export async function cadastrar(req, res) {
@@ -247,6 +247,37 @@ export async function responderSolicitacaoEntrada(req, res) {
   }
   catch (erro) {
     console.error('Erro ao responder solicitação:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// GET /patotas/:id/relatorios/presenca — Relatório de presença (somente presidente)
+export async function relatorioPresenca(req, res) {
+  try {
+    const patotaId = req.params.id
+    const usuarioId = req.query.usuarioId
+
+    if (!usuarioId) {
+      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
+    }
+
+    const patota = await buscarPatotaPorId(patotaId)
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    // Apenas o presidente pode acessar relatórios
+    const membro = await verificarMembro(usuarioId, patotaId)
+    if (!membro || membro.role !== 'PRESIDENTE') {
+      return res.status(403).json({ erro: 'Apenas o presidente pode acessar os relatórios' })
+    }
+
+    const relatorio = await buscarRelatorioPresenca(patotaId)
+
+    return res.json(relatorio)
+  }
+  catch (erro) {
+    console.error('Erro ao gerar relatório de presença:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }

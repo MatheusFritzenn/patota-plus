@@ -401,3 +401,120 @@ export async function verificarSolicitacaoPendente(usuarioId, patotaId) {
 
   return resultado.rows.length > 0
 }
+
+// Monta o relatório de presença de uma patota:
+// - partidas realizadas (FINALIZADA)
+// - presença de cada membro por partida
+// - frequência de cada membro (quantidade e percentual)
+export async function buscarRelatorioPresenca(patotaId) {
+  // Busca as partidas realizadas (finalizadas) da patota, mais antigas primeiro
+  const querySelectPartidas = `
+    SELECT pa.id, pa.data, pa.horario, pa.local
+    FROM partidas pa
+    WHERE pa.patota_id = $1 AND pa.status = 'FINALIZADA'
+    ORDER BY pa.data ASC
+  `
+  const resultadoPartidas = await pool.query(querySelectPartidas, [patotaId])
+  const arrayPartidas = resultadoPartidas.rows
+
+  // Busca os membros ativos da patota
+  const querySelectMembros = `
+    SELECT u.id, u.nome, u.foto
+    FROM membro_patotas mp
+    JOIN usuarios u ON u.id = mp.usuario_id
+    WHERE mp.patota_id = $1 AND mp.ativo = true
+    ORDER BY u.nome ASC
+  `
+  const resultadoMembros = await pool.query(querySelectMembros, [patotaId])
+  const arrayMembros = resultadoMembros.rows
+
+  const totalPartidas = arrayPartidas.length
+
+  // Monta o conjunto de ids das partidas realizadas para filtrar as participações
+  const arrayIdsPartidas = []
+  for (const partida of arrayPartidas) {
+    arrayIdsPartidas.push(partida.id)
+  }
+
+  // Busca todas as participações confirmadas nessas partidas
+  let arrayParticipacoes = []
+  if (arrayIdsPartidas.length > 0) {
+    const querySelectParticipacoes = `
+      SELECT partida_id AS "partidaId", usuario_id AS "usuarioId"
+      FROM participacoes
+      WHERE partida_id = ANY($1)
+    `
+    const resultadoParticipacoes = await pool.query(querySelectParticipacoes, [arrayIdsPartidas])
+    arrayParticipacoes = resultadoParticipacoes.rows
+  }
+
+  // Índice de presença: mapa usuarioId -> conjunto de partidaId em que esteve presente
+  const mapaPresenca = {}
+  for (const participacao of arrayParticipacoes) {
+    if (!mapaPresenca[participacao.usuarioId]) {
+      mapaPresenca[participacao.usuarioId] = {}
+    }
+    mapaPresenca[participacao.usuarioId][participacao.partidaId] = true
+  }
+
+  // Monta a frequência por membro
+  const arrayFrequencia = []
+  for (const membro of arrayMembros) {
+    let quantidadePresencas = 0
+    const presencasDoMembro = mapaPresenca[membro.id]
+
+    if (presencasDoMembro) {
+      for (const partida of arrayPartidas) {
+        if (presencasDoMembro[partida.id]) {
+          quantidadePresencas = quantidadePresencas + 1
+        }
+      }
+    }
+
+    let percentual = 0
+    if (totalPartidas > 0) {
+      percentual = Math.round((quantidadePresencas / totalPartidas) * 100)
+    }
+
+    const frequenciaMembro = {}
+    frequenciaMembro.id = membro.id
+    frequenciaMembro.nome = membro.nome
+    frequenciaMembro.foto = membro.foto
+    frequenciaMembro.presencas = quantidadePresencas
+    frequenciaMembro.totalPartidas = totalPartidas
+    frequenciaMembro.percentual = percentual
+    arrayFrequencia.push(frequenciaMembro)
+  }
+
+  // Monta os presentes por partida
+  const arrayPartidasComPresenca = []
+  for (const partida of arrayPartidas) {
+    const arrayPresentes = []
+    for (const membro of arrayMembros) {
+      const presencasDoMembro = mapaPresenca[membro.id]
+      if (presencasDoMembro && presencasDoMembro[partida.id]) {
+        const presente = {}
+        presente.id = membro.id
+        presente.nome = membro.nome
+        presente.foto = membro.foto
+        arrayPresentes.push(presente)
+      }
+    }
+
+    const partidaComPresenca = {}
+    partidaComPresenca.id = partida.id
+    partidaComPresenca.data = partida.data
+    partidaComPresenca.horario = partida.horario
+    partidaComPresenca.local = partida.local
+    partidaComPresenca.totalPresentes = arrayPresentes.length
+    partidaComPresenca.presentes = arrayPresentes
+    arrayPartidasComPresenca.push(partidaComPresenca)
+  }
+
+  const relatorio = {}
+  relatorio.totalPartidas = totalPartidas
+  relatorio.frequencia = arrayFrequencia
+  relatorio.partidas = arrayPartidasComPresenca
+
+  return relatorio
+}

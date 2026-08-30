@@ -202,3 +202,20 @@ export async function buscarPartidasPorPatota(patotaId) {
 
   return resultado.rows
 }
+
+// Finaliza uma partida (muda o status de AGENDADA/EM_ANDAMENTO para FINALIZADA)
+export async function finalizarPartida(partidaId) {
+  const queryUpdate = `
+    UPDATE partidas
+    SET status = 'FINALIZADA', updated_at = NOW()
+    WHERE id = $1 AND status <> 'FINALIZADA'
+    RETURNING id, patota_id AS "patotaId", status
+  `
+  const resultado = await pool.query(queryUpdate, [partidaId])
+
+  if (resultado.rows.length === 0) {
+    return null
+  }
+
+  return resultado.rows[0]
+}

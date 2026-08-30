@@ -1,4 +1,4 @@
-import { criarPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, confirmarPresenca, removerParticipacao } from './model.js'
+import { criarPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, confirmarPresenca, removerParticipacao, finalizarPartida } from './model.js'
 
 // POST /partidas — Criar nova partida
 export async function cadastrar(req, res) {
@@ -147,6 +147,45 @@ export async function participar(req, res) {
   }
   catch (erro) {
     console.error('Erro ao confirmar presença:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// PUT /partidas/:id/finalizar — Finaliza a partida (somente presidente da patota)
+export async function finalizar(req, res) {
+  try {
+    const partidaId = req.params.id
+    const usuarioId = req.body.usuarioId
+
+    if (!usuarioId) {
+      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
+    }
+
+    const partida = await buscarPartidaPorId(partidaId)
+
+    if (!partida) {
+      return res.status(404).json({ erro: 'Partida não encontrada' })
+    }
+
+    // Apenas o presidente da patota pode finalizar a partida
+    if (partida.presidenteId !== usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente da patota pode finalizar a partida' })
+    }
+
+    if (partida.status === 'FINALIZADA') {
+      return res.status(409).json({ erro: 'Esta partida já está finalizada' })
+    }
+
+    const resultado = await finalizarPartida(partidaId)
+
+    if (!resultado) {
+      return res.status(409).json({ erro: 'Não foi possível finalizar a partida' })
+    }
+
+    return res.json(resultado)
+  }
+  catch (erro) {
+    console.error('Erro ao finalizar partida:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }

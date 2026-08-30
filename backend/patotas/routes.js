@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { cadastrar, listarPorUsuario, listarDisponiveis, buscarPorId, listarMembros, excluirMembro, atualizar, excluir, solicitar, listarSolicitacoes, responderSolicitacaoEntrada, verificarMembresia } from './controller.js'
+import { cadastrar, listarPorUsuario, listarDisponiveis, buscarPorId, listarMembros, excluirMembro, atualizar, excluir, solicitar, listarSolicitacoes, responderSolicitacaoEntrada, verificarMembresia, relatorioPresenca } from './controller.js'
 
 const router = Router()
 
@@ -15,6 +15,7 @@ router.post('/:id/solicitar', solicitar)
 router.get('/:id/solicitacoes', listarSolicitacoes)
 router.put('/:id/solicitacoes/:solicitacaoId', responderSolicitacaoEntrada)
 router.get('/:id/verificar-membro/:usuarioId', verificarMembresia)
+router.get('/:id/relatorios/presenca', relatorioPresenca)
 
 
 export default router

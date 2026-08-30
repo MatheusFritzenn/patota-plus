@@ -30,6 +30,7 @@ function DetalhesPartida() {
   const [ehPresidente, setEhPresidente] = useState(false)
   const [estaConfirmado, setEstaConfirmado] = useState(false)
   const [participanteParaRemover, setParticipanteParaRemover] = useState(null)
+  const [modalFinalizarAberto, setModalFinalizarAberto] = useState(false)
   const [modalMensagem, setModalMensagem] = useState({ aberto: false, titulo: '', mensagem: '' })
 
   useEffect(() => {
@@ -117,6 +118,30 @@ function DetalhesPartida() {
     }
   }
 
+  async function handleFinalizarPartida() {
+    try {
+      await api.put('/partidas/' + id + '/finalizar', { usuarioId: userId })
+      setModalFinalizarAberto(false)
+
+      // Atualiza o status da partida localmente
+      const partidaAtualizada = {}
+      for (const chave in partida) {
+        partidaAtualizada[chave] = partida[chave]
+      }
+      partidaAtualizada.status = 'FINALIZADA'
+      setPartida(partidaAtualizada)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao finalizar partida:', erroRequisicao)
+      setModalFinalizarAberto(false)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        setModalMensagem({ aberto: true, titulo: 'Não foi possível finalizar', mensagem: erroRequisicao.response.data.erro })
+      } else {
+        setModalMensagem({ aberto: true, titulo: 'Erro', mensagem: 'Erro ao finalizar partida. Tente novamente.' })
+      }
+    }
+  }
+
   async function handleRemoverParticipante() {
     if (!participanteParaRemover) return
 
@@ -166,7 +191,14 @@ function DetalhesPartida() {
         >
           ← Voltar para a patota
         </button>
-        <h1 className="text-2xl font-bold text-gray-800">{partida.patotaNome}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-800">{partida.patotaNome}</h1>
+          {partidaFinalizada && (
+            <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2.5 py-1 rounded-full">
+              Finalizada
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500">
           {formatarData(partida.data)} às {partida.horario} — {partida.local}
         </p>
@@ -198,6 +230,7 @@ function DetalhesPartida() {
           onConfirmar={handleConfirmarPresenca}
           onRecusar={handleRecusarPresenca}
           onRemover={(participante) => setParticipanteParaRemover(participante)}
+          onFinalizar={() => setModalFinalizarAberto(true)}
         />
       )}
 
@@ -208,6 +241,17 @@ function DetalhesPartida() {
       {abaAtiva === 'avaliacoes' && (
         <AbaPlaceholder mensagem="As avaliações estarão disponíveis após a partida ser finalizada, nas próximas atualizações." />
       )}
+
+      {/* Modal de confirmação de finalização da partida */}
+      <ModalConfirmacao
+        aberto={modalFinalizarAberto}
+        titulo="Finalizar partida"
+        mensagem="Ao finalizar, a lista atual de jogadores presentes será registrada e não poderá mais ser alterada. Deseja continuar?"
+        textoBotaoConfirmar="Finalizar"
+        corBotaoConfirmar="verde"
+        onConfirmar={handleFinalizarPartida}
+        onCancelar={() => setModalFinalizarAberto(false)}
+      />
 
       {/* Modal de confirmação de remoção de participante */}
       <ModalConfirmacao
@@ -231,7 +275,7 @@ function DetalhesPartida() {
 }
 
 // Aba 5.1 — Lista de jogadores
-function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, partidaFinalizada, estaConfirmado, ehPresidente, userId, onConfirmar, onRecusar, onRemover }) {
+function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, partidaFinalizada, estaConfirmado, ehPresidente, userId, onConfirmar, onRecusar, onRemover, onFinalizar }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
       {/* Cabeçalho: vagas + ações de presença */}
@@ -248,9 +292,19 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
           </p>
         </div>
 
-        {/* Botões confirmar/recusar (apenas se a partida não está finalizada) */}
+        {/* Ações (apenas se a partida não está finalizada) */}
         {!partidaFinalizada && (
-          <div>
+          <div className="flex items-center gap-3">
+            {/* Presidente pode finalizar a partida */}
+            {ehPresidente && (
+              <button
+                onClick={onFinalizar}
+                className="border border-gray-400 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                Finalizar partida
+              </button>
+            )}
+
             {estaConfirmado ? (
               <button
                 onClick={onRecusar}
@@ -283,7 +337,7 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
           {arrayParticipantes.map((participante) => (
             <div key={participante.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               {/* Foto */}
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 flex-shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 shrink-0">
                 {participante.foto ? (
                   <img
                     src={participante.foto}

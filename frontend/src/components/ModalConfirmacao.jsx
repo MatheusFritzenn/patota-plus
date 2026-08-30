@@ -1,5 +1,11 @@
-function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, onConfirmar, onCancelar }) {
+function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, corBotaoConfirmar, onConfirmar, onCancelar }) {
   if (!aberto) return null
+
+  // Define a classe de cor do botão de confirmação (padrão: vermelho)
+  let classeBotaoConfirmar = 'bg-red-600 hover:bg-red-700'
+  if (corBotaoConfirmar === 'verde') {
+    classeBotaoConfirmar = 'bg-green-600 hover:bg-green-700'
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -27,7 +33,7 @@ function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, onCon
           </button>
           <button
             onClick={onConfirmar}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer"
+            className={'flex-1 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer ' + classeBotaoConfirmar}
           >
             {textoBotaoConfirmar || 'Confirmar'}
           </button>
