@@ -4,6 +4,7 @@ import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
 import ModalMensagem from '../../components/ModalMensagem.jsx'
+import Avatar from '../../components/Avatar.jsx'
 import { Trash2 } from 'lucide-react';
 
 // Dias da semana para exibição
@@ -220,7 +221,7 @@ function Patota() {
 
             <div>
               <p className="text-sm text-gray-500">Membros</p>
-              <p className="text-gray-800 font-medium">{patota.quantidadeMembros} jogador(es)</p>
+              <p className="text-gray-800 font-medium">{patota.quantidadeMembros} jogadores</p>
             </div>
 
             {patota.diaHabitual && (
@@ -375,7 +376,7 @@ function AbaVisaoGeral({ patota, ehPresidente, obterNomeDia, formatarHora, onExc
 
         <div>
           <p className="text-sm text-gray-500">Membros</p>
-          <p className="text-gray-800 font-medium">{patota.quantidadeMembros} jogador(es)</p>
+          <p className="text-gray-800 font-medium">{patota.quantidadeMembros} jogadores</p>
         </div>
 
         {patota.diaHabitual && (
@@ -557,21 +558,7 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
             {arraySolicitacoes.map((solicitacao) => (
               <div key={solicitacao.id} className="flex items-center gap-4 p-3 rounded-lg bg-yellow-50 border border-yellow-100">
                 {/* Foto */}
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-yellow-200 shrink-0">
-                  {solicitacao.foto ? (
-                    <img
-                      src={solicitacao.foto}
-                      alt={solicitacao.nome}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-yellow-100 flex items-center justify-center">
-                      <span className="text-yellow-700 font-bold text-sm">
-                        {solicitacao.nome.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <Avatar nome={solicitacao.nome} foto={solicitacao.foto} tamanho="md" corBorda="amarela" />
 
                 {/* Nome */}
                 <div className="flex-1">
@@ -610,21 +597,7 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
           {arrayMembros.map((membro) => (
             <div key={membro.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               {/* Foto */}
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 shrink-0">
-                {membro.foto ? (
-                  <img
-                    src={membro.foto}
-                    alt={membro.nome}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-green-100 flex items-center justify-center">
-                    <span className="text-green-600 font-bold text-sm">
-                      {membro.nome.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
+              <Avatar nome={membro.nome} foto={membro.foto} tamanho="lg" corBorda="verde" />
 
               {/* Dados */}
               <div className="flex-1">
@@ -655,26 +628,6 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
 
             </div>
           ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Avatar reutilizável para membros/jogadores no relatório
-function Avatar({ nome, foto, tamanho }) {
-  const classeTamanho = tamanho === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
-  const classeTexto = tamanho === 'sm' ? 'text-xs' : 'text-sm'
-
-  return (
-    <div className={'rounded-full overflow-hidden border-2 border-green-200 shrink-0 ' + classeTamanho}>
-      {foto ? (
-        <img src={foto} alt={nome} className="w-full h-full object-cover" />
-      ) : (
-        <div className={'w-full h-full bg-green-100 flex items-center justify-center'}>
-          <span className={'text-green-600 font-bold ' + classeTexto}>
-            {nome.charAt(0).toUpperCase()}
-          </span>
         </div>
       )}
     </div>

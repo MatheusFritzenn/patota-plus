@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
+import Avatar from '../../components/Avatar.jsx'
 
 // Modalidades hardcodadas
 const arrayModalidades = [
@@ -386,18 +387,8 @@ function Perfil() {
 
         {/* Foto */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-green-200 mb-3">
-            {fotoUrl ? (
-              <img
-                src={fotoUrl}
-                alt="Foto do perfil"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-green-100 flex items-center justify-center">
-                <span className="text-3xl text-green-600">U</span>
-              </div>
-            )}
+          <div className="mb-3">
+            <Avatar nome={usuario.nome} foto={fotoUrl} tamanho="xl" corBorda="verde" />
           </div>
           {editando && (
             <label className="text-sm text-green-600 hover:underline cursor-pointer">

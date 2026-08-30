@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import supabase from '../services/supabaseClient.js'
 import api from '../services/api.js'
+import Avatar from './Avatar.jsx'
 import { User } from 'lucide-react';
 
 function Header() {
@@ -59,19 +60,15 @@ function Header() {
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuAberto(!menuAberto)}
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-white cursor-pointer hover:opacity-90 transition-opacity"
+            className="rounded-full cursor-pointer hover:opacity-90 transition-opacity"
           >
-            {fotoUsuario ? (
-              <img
-                src={fotoUsuario}
-                alt="Foto do usuário"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-green-500 flex items-center justify-center">
-                <User />
-              </div>
-            )}
+            <Avatar
+              foto={fotoUsuario}
+              tamanho="md"
+              corBorda="branca"
+              fallback="icone"
+              iconeFallback={<User />}
+            />
           </button>
 
           {/* Menu dropdown */}

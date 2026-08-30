@@ -4,6 +4,7 @@ import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
 import ModalMensagem from '../../components/ModalMensagem.jsx'
+import Avatar from '../../components/Avatar.jsx'
 import { Trash2 } from 'lucide-react'
 
 // Formata a data (timestamp) para o padrão dd/mm/aaaa
@@ -343,21 +344,7 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
           {arrayParticipantes.map((participante) => (
             <div key={participante.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
               {/* Foto */}
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 shrink-0">
-                {participante.foto ? (
-                  <img
-                    src={participante.foto}
-                    alt={participante.nome}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-green-100 flex items-center justify-center">
-                    <span className="text-green-600 font-bold text-sm">
-                      {participante.nome.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
+              <Avatar nome={participante.nome} foto={participante.foto} tamanho="lg" corBorda="verde" />
 
               {/* Dados */}
               <div className="flex-1">
@@ -400,23 +387,6 @@ function AbaPlaceholder({ mensagem }) {
     <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
       <p className="text-gray-500 text-lg mb-2">Em breve</p>
       <p className="text-gray-400 text-sm">{mensagem}</p>
-    </div>
-  )
-}
-
-// Avatar reutilizável (foto ou inicial do nome)
-function AvatarJogador({ nome, foto }) {
-  return (
-    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-200 shrink-0">
-      {foto ? (
-        <img src={foto} alt={nome} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full bg-green-100 flex items-center justify-center">
-          <span className="text-green-600 font-bold text-sm">
-            {nome.charAt(0).toUpperCase()}
-          </span>
-        </div>
-      )}
     </div>
   )
 }
@@ -598,7 +568,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
           <div className="flex flex-col gap-4">
             {arrayResultado.map((jogador) => (
               <div key={jogador.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <AvatarJogador nome={jogador.nome} foto={jogador.foto} />
+                <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="lg" corBorda="verde" />
                 <div className="flex-1">
                   <p className="text-gray-800 font-medium">{jogador.nome}</p>
                   <p className="text-sm text-gray-500">
@@ -658,7 +628,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
             <div className="flex flex-col gap-4">
               {arrayAvaliaveis.map((avaliavel) => (
                 <div key={avaliavel.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <AvatarJogador nome={avaliavel.nome} foto={avaliavel.foto} />
+                  <Avatar nome={avaliavel.nome} foto={avaliavel.foto} tamanho="lg" corBorda="verde" />
                   <div className="flex-1">
                     <p className="text-gray-800 font-medium">{avaliavel.nome}</p>
                     {avaliavel.posicoes.length > 0 && (
