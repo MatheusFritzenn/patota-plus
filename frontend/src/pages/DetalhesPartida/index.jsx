@@ -236,7 +236,14 @@ function DetalhesPartida() {
       )}
 
       {abaAtiva === 'times' && (
-        <AbaPlaceholder mensagem="A formação de times estará disponível nas próximas atualizações." />
+        <AbaTimes
+          partidaId={id}
+          userId={userId}
+          ehPresidente={ehPresidente}
+          partidaFinalizada={partidaFinalizada}
+          totalConfirmados={arrayParticipantes.length}
+          onMensagem={(titulo, mensagem) => setModalMensagem({ aberto: true, titulo: titulo, mensagem: mensagem })}
+        />
       )}
 
       {abaAtiva === 'avaliacoes' && (
@@ -381,12 +388,213 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
   )
 }
 
-// Aba placeholder (Times)
-function AbaPlaceholder({ mensagem }) {
+// Aba 5.2 — Times (geração automática equilibrada)
+function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalConfirmados, onMensagem }) {
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [arrayTimes, setArrayTimes] = useState([])
+  const [gerando, setGerando] = useState(false)
+  const [modalRegenerarAberto, setModalRegenerarAberto] = useState(false)
+  const [modalDesfazerAberto, setModalDesfazerAberto] = useState(false)
+
+  useEffect(() => {
+    carregarTimes()
+  }, [partidaId])
+
+  async function carregarTimes() {
+    setCarregando(true)
+    setErro('')
+    try {
+      const resposta = await api.get('/partidas/' + partidaId + '/times')
+      setArrayTimes(resposta.data.times)
+      setCarregando(false)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar times:', erroRequisicao)
+      setErro('Erro ao carregar os times.')
+      setCarregando(false)
+    }
+  }
+
+  async function handleGerarTimes() {
+    setGerando(true)
+    setModalRegenerarAberto(false)
+    try {
+      const resposta = await api.post('/partidas/' + partidaId + '/times/gerar', {
+        usuarioId: userId
+      })
+      setArrayTimes(resposta.data.times)
+      setGerando(false)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao gerar times:', erroRequisicao)
+      setGerando(false)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        onMensagem('Não foi possível gerar', erroRequisicao.response.data.erro)
+      } else {
+        onMensagem('Erro', 'Erro ao gerar os times. Tente novamente.')
+      }
+    }
+  }
+
+  // Decide se gera direto ou pede confirmação (quando já existem times formados)
+  function handleClicarGerar() {
+    if (arrayTimes.length > 0) {
+      setModalRegenerarAberto(true)
+    } else {
+      handleGerarTimes()
+    }
+  }
+
+  async function handleDesfazerTimes() {
+    setModalDesfazerAberto(false)
+    try {
+      await api.delete('/partidas/' + partidaId + '/times', {
+        params: { usuarioId: userId }
+      })
+      setArrayTimes([])
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao desfazer times:', erroRequisicao)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        onMensagem('Não foi possível desfazer', erroRequisicao.response.data.erro)
+      } else {
+        onMensagem('Erro', 'Erro ao desfazer os times. Tente novamente.')
+      }
+    }
+  }
+
+  if (carregando) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-gray-500">Carregando times...</p>
+      </div>
+    )
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+        <p className="text-red-500">{erro}</p>
+      </div>
+    )
+  }
+
+  const temTimes = arrayTimes.length > 0
+
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-      <p className="text-gray-500 text-lg mb-2">Em breve</p>
-      <p className="text-gray-400 text-sm">{mensagem}</p>
+    <div className="flex flex-col gap-4">
+      {/* Cabeçalho / controles do presidente */}
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">Formação de times</h3>
+            <p className="text-sm text-gray-500">
+              Os times são gerados automaticamente e equilibrados pela média (força) dos jogadores, distribuindo os goleiros entre os times.
+            </p>
+          </div>
+
+          {ehPresidente && !partidaFinalizada && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleClicarGerar}
+                disabled={gerando}
+                className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {gerando ? 'Gerando...' : (temTimes ? 'Regenerar times' : 'Gerar times')}
+              </button>
+              {temTimes && (
+                <button
+                  onClick={() => setModalDesfazerAberto(true)}
+                  className="border border-gray-400 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                >
+                  Desfazer
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Estado vazio */}
+      {!temTimes && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+          <p className="text-gray-500 text-lg mb-2">Times não formados</p>
+          <p className="text-gray-400 text-sm">
+            {partidaFinalizada
+              ? 'Esta partida foi finalizada sem formação de times.'
+              : (ehPresidente
+                ? 'Clique em "Gerar times" para montar dois times equilibrados com os jogadores confirmados.'
+                : 'O presidente ainda não gerou os times desta partida.')}
+          </p>
+        </div>
+      )}
+
+      {/* Grade de times */}
+      {temTimes && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {arrayTimes.map((time) => (
+            <div key={time.id} className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-gray-800 font-semibold">{time.nome}</h4>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Força média</p>
+                  <p className="text-sm font-bold text-green-700">
+                    {time.mediaForca !== null && time.mediaForca !== undefined ? time.mediaForca.toFixed(2) : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {time.jogadores.map((jogador) => (
+                  <div key={jogador.id} className="flex items-center gap-3">
+                    <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="md" corBorda="verde" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-gray-800 font-medium truncate">{jogador.nome}</p>
+                        {jogador.ehGoleiro && (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 font-medium px-2 py-0.5 rounded-full shrink-0">
+                            GOL
+                          </span>
+                        )}
+                      </div>
+                      {jogador.posicoes.length > 0 && (
+                        <p className="text-xs text-gray-500 truncate">{jogador.posicoes.join(', ')}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-gray-700">
+                        {jogador.forca !== null && jogador.forca !== undefined ? jogador.forca.toFixed(2) : '—'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal: confirmar regeneração */}
+      <ModalConfirmacao
+        aberto={modalRegenerarAberto}
+        titulo="Regenerar times"
+        mensagem="Isso vai refazer a divisão atual dos times. Deseja continuar?"
+        textoBotaoConfirmar="Regenerar"
+        corBotaoConfirmar="verde"
+        onConfirmar={handleGerarTimes}
+        onCancelar={() => setModalRegenerarAberto(false)}
+      />
+
+      {/* Modal: confirmar desfazer */}
+      <ModalConfirmacao
+        aberto={modalDesfazerAberto}
+        titulo="Desfazer times"
+        mensagem="A formação atual dos times será removida. Deseja continuar?"
+        textoBotaoConfirmar="Desfazer"
+        onConfirmar={handleDesfazerTimes}
+        onCancelar={() => setModalDesfazerAberto(false)}
+      />
     </div>
   )
 }

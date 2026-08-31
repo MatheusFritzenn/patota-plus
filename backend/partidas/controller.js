@@ -1,4 +1,4 @@
-import { criarPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes } from './model.js'
+import { criarPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes, gerarTimes, buscarTimes, desfazerTimes } from './model.js'
 
 // POST /partidas — Criar nova partida
 export async function cadastrar(req, res) {
@@ -41,16 +41,20 @@ export async function cadastrar(req, res) {
 export async function listarPorPatota(req, res) {
   try {
     const patotaId = req.params.patotaId
+    const usuarioId = req.query.usuarioId
 
-    const arrayPartidas = await buscarPartidasPorPatota(patotaId)
+    const arrayPartidas = await buscarPartidasPorPatota(patotaId, usuarioId)
 
     // Separa entre próximos jogos e jogos finalizados
     const arrayProximos = []
     const arrayFinalizados = []
 
+    // A query traz as partidas da mais recente para a mais antiga (data DESC).
+    // Finalizados: mantém essa ordem (jogo mais recente no topo).
+    // Próximos: monta na ordem inversa (jogo mais próximo no topo).
     for (const partida of arrayPartidas) {
       if (partida.status === 'AGENDADA' || partida.status === 'EM_ANDAMENTO') {
-        arrayProximos.push(partida)
+        arrayProximos.unshift(partida)
       }
       if (partida.status === 'FINALIZADA') {
         arrayFinalizados.push(partida)
@@ -286,7 +290,20 @@ export async function salvarAvaliacoes(req, res) {
       return res.status(403).json({ erro: 'Apenas quem participou da partida pode avaliar' })
     }
 
-    // Valida cada avaliação: nota no intervalo, sem auto-avaliação, avaliado participou
+    // Pela regra de negócio, só é possível avaliar companheiros do MESMO time.
+    // Monta o conjunto de ids avaliáveis (companheiros de time do avaliador).
+    const arrayAvaliaveis = await buscarAvaliaveis(partidaId, avaliadorId, partida.modalidadeId)
+
+    if (arrayAvaliaveis.length === 0) {
+      return res.status(409).json({ erro: 'As avaliações só ficam disponíveis após a formação dos times' })
+    }
+
+    const mapaAvaliaveis = {}
+    for (const avaliavel of arrayAvaliaveis) {
+      mapaAvaliaveis[avaliavel.id] = true
+    }
+
+    // Valida cada avaliação: nota no intervalo, sem auto-avaliação, avaliado é companheiro de time
     const arrayAvaliacoesValidadas = []
     for (const item of arrayAvaliacoesRecebidas) {
       const avaliadoId = item.avaliadoId
@@ -304,9 +321,8 @@ export async function salvarAvaliacoes(req, res) {
         return res.status(400).json({ erro: 'A nota deve ser um número entre 0 e 10' })
       }
 
-      const avaliadoParticipou = await usuarioParticipouDaPartida(partidaId, avaliadoId)
-      if (!avaliadoParticipou) {
-        return res.status(400).json({ erro: 'Só é possível avaliar jogadores que participaram da partida' })
+      if (!mapaAvaliaveis[avaliadoId]) {
+        return res.status(400).json({ erro: 'Só é possível avaliar companheiros do seu próprio time' })
       }
 
       const avaliacaoValidada = {}
@@ -389,6 +405,105 @@ export async function resultadoAvaliacoes(req, res) {
   }
   catch (erro) {
     console.error('Erro ao buscar resultado das avaliações:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// ===================== Times (Fase 4 — geração automática) =====================
+
+// GET /partidas/:id/times — Retorna a formação de times atual (se existir)
+export async function listarTimes(req, res) {
+  try {
+    const partidaId = req.params.id
+
+    const partida = await buscarPartidaPorId(partidaId)
+
+    if (!partida) {
+      return res.status(404).json({ erro: 'Partida não encontrada' })
+    }
+
+    const arrayTimes = await buscarTimes(partidaId)
+
+    const resposta = {
+      times: arrayTimes,
+      totalTimes: arrayTimes.length
+    }
+
+    return res.json(resposta)
+  }
+  catch (erro) {
+    console.error('Erro ao listar times:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// POST /partidas/:id/times/gerar — Gera/regenera os times (somente presidente)
+export async function gerar(req, res) {
+  try {
+    const partidaId = req.params.id
+    const usuarioId = req.body.usuarioId
+
+    if (!usuarioId) {
+      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
+    }
+
+    const partida = await buscarPartidaPorId(partidaId)
+
+    if (!partida) {
+      return res.status(404).json({ erro: 'Partida não encontrada' })
+    }
+
+    // Apenas o presidente da patota pode gerar os times
+    if (partida.presidenteId !== usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente da patota pode gerar os times' })
+    }
+
+    // O sistema sempre forma 2 times, então são necessários ao menos 2 jogadores
+    if (partida.vagasPreenchidas < 2) {
+      return res.status(409).json({ erro: 'É preciso ao menos 2 jogadores confirmados para formar os times' })
+    }
+
+    const arrayTimes = await gerarTimes(partidaId)
+
+    const resposta = {
+      times: arrayTimes,
+      totalTimes: arrayTimes.length
+    }
+
+    return res.status(201).json(resposta)
+  }
+  catch (erro) {
+    console.error('Erro ao gerar times:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// DELETE /partidas/:id/times — Desfaz a formação de times (somente presidente)
+export async function desfazer(req, res) {
+  try {
+    const partidaId = req.params.id
+    const usuarioId = req.query.usuarioId
+
+    if (!usuarioId) {
+      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
+    }
+
+    const partida = await buscarPartidaPorId(partidaId)
+
+    if (!partida) {
+      return res.status(404).json({ erro: 'Partida não encontrada' })
+    }
+
+    if (partida.presidenteId !== usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente da patota pode desfazer os times' })
+    }
+
+    await desfazerTimes(partidaId)
+
+    return res.json({ mensagem: 'Times desfeitos com sucesso' })
+  }
+  catch (erro) {
+    console.error('Erro ao desfazer times:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { cadastrar, listarPorPatota, buscarPorId, listarParticipantes, participar, removerPresenca, finalizar, listarAvaliacoes, salvarAvaliacoes, encerrar, resultadoAvaliacoes } from './controller.js'
+import { cadastrar, listarPorPatota, buscarPorId, listarParticipantes, participar, removerPresenca, finalizar, listarAvaliacoes, salvarAvaliacoes, encerrar, resultadoAvaliacoes, listarTimes, gerar, desfazer } from './controller.js'
 
 const router = Router()
 
@@ -13,6 +13,9 @@ router.get('/:id/avaliacoes/resultado', resultadoAvaliacoes)
 router.get('/:id/avaliacoes', listarAvaliacoes)
 router.post('/:id/avaliacoes', salvarAvaliacoes)
 router.put('/:id/avaliacoes/encerrar', encerrar)
+router.get('/:id/times', listarTimes)
+router.post('/:id/times/gerar', gerar)
+router.delete('/:id/times', desfazer)
 router.get('/:id', buscarPorId)
 
 export default router

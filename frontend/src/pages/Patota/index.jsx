@@ -312,7 +312,7 @@ function Patota() {
       )}
 
       {abaAtiva === 'jogos' && (
-        <AbaJogos patotaId={id} />
+        <AbaJogos patotaId={id} usuarioId={userId} />
       )}
 
       {abaAtiva === 'membros' && (
@@ -440,17 +440,34 @@ function formatarData(data) {
   return dia + '/' + mes + '/' + ano
 }
 
-// Card de uma partida (data, horário, local, vagas) — clicável para a tela DetalhesPartida
+// Card de uma partida (data, horário, local, vagas) — clicável para a tela DetalhesPartida.
+// Quando há avaliação pendente do usuário logado, o card recebe um destaque âmbar
+// e exibe um selo "Avaliação pendente" para lembrar o jogador de avaliar seus companheiros.
 function CardPartida({ partida }) {
+  let classeCard = 'flex items-center justify-between p-4 rounded-lg border transition-colors cursor-pointer '
+  if (partida.avaliacaoPendente) {
+    classeCard = classeCard + 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+  }
+  else {
+    classeCard = classeCard + 'border-gray-100 bg-gray-50 hover:bg-gray-100'
+  }
+
   return (
     <Link
       to={'/partida/' + partida.id}
-      className="flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+      className={classeCard}
     >
       <div>
-        <p className="text-gray-800 font-medium">
-          {formatarData(partida.data)} às {partida.horario}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-gray-800 font-medium">
+            {formatarData(partida.data)} às {partida.horario}
+          </p>
+          {partida.avaliacaoPendente && (
+            <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">
+              Avaliação pendente
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500">{partida.local}</p>
       </div>
       <div className="text-right">
@@ -464,7 +481,7 @@ function CardPartida({ partida }) {
 }
 
 // Aba Jogos
-function AbaJogos({ patotaId }) {
+function AbaJogos({ patotaId, usuarioId }) {
   const [arrayProximos, setArrayProximos] = useState([])
   const [arrayFinalizados, setArrayFinalizados] = useState([])
   const [carregando, setCarregando] = useState(true)
@@ -472,13 +489,15 @@ function AbaJogos({ patotaId }) {
 
   useEffect(() => {
     carregarPartidas()
-  }, [patotaId])
+  }, [patotaId, usuarioId])
 
   async function carregarPartidas() {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await api.get('/partidas/patota/' + patotaId)
+      const resposta = await api.get('/partidas/patota/' + patotaId, {
+        params: { usuarioId: usuarioId }
+      })
       setArrayProximos(resposta.data.proximos)
       setArrayFinalizados(resposta.data.finalizados)
       setCarregando(false)
