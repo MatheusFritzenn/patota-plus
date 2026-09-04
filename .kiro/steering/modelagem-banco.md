@@ -106,6 +106,11 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | usuario_id | uuid, FK → usuarios | |
 | time_id | uuid, FK → times, opcional (ON DELETE SET NULL) | Preenchido quando os times são formados (Fase 2) |
 
+> **PENDÊNCIA (roadmap — posição por partida):** modelar a posição atribuída ao participante
+> no contexto da partida, permitindo que o presidente a remaneje antes da geração dos times.
+> Essa informação deve pertencer à participação/partida e não pode alterar
+> `usuario_posicoes`, que continua representando as posições do perfil do usuário.
+
 > A presença é representada pela existência da linha (confirmar = inserir, cancelar = deletar).
 > A coluna `status` (CONFIRMADO/CANCELADO) prevista originalmente **não foi criada** — o
 > comportamento de confirmar/recusar presença já funciona com base na existência do registro.
@@ -176,20 +181,34 @@ Restrições:
 | id | uuid, PK | |
 | patota_id | uuid, FK → patotas | |
 | usuario_id | uuid, FK → usuarios | |
-| mes_referencia | text | Formato "YYYY-MM" |
-| valor | numeric | |
-| status | enum (PENDENTE, PAGO, ATRASADO) | |
-| data_pagamento | timestamp, opcional | |
+| mes_referencia | date | Primeiro dia do mês de referência. |
+| valor | numeric, default 0 | Valor preservado no momento do registro da mensalidade. |
+| status | enum StatusMensalidade (PENDENTE, PAGO) | Baixa manual; atraso não é calculado nesta fase. |
+| pago_em | timestamp, opcional | Data e hora da baixa manual. |
+| baixa_por | uuid, FK → usuarios, opcional | Presidente que registrou a baixa. |
+| created_at | timestamp | |
+| updated_at | timestamp | |
 
-### movimentacoes_caixa
+Restrições implementadas:
+- UNIQUE: `(patota_id, usuario_id, mes_referencia)`;
+- status limitado pelo enum `StatusMensalidade` a `PENDENTE` ou `PAGO`.
+
+### Alteração em patotas (Fase 3)
+| Coluna | Tipo | Observação |
+|---|---|---|
+| valor_mensalidade | numeric(10,2), default 0 | Valor vigente definido pelo presidente; cada baixa preserva o valor na mensalidade do mês. |
+
+### movimentacoes_financeiras
 | Coluna | Tipo | Observacao |
 |---|---|---|
 | id | uuid, PK | |
 | patota_id | uuid, FK → patotas | |
-| tipo | enum (ENTRADA, SAIDA) | |
-| descricao | text | |
+| tipo | enum TipoMovimentacao (RECEITA, DESPESA) | |
 | valor | numeric | |
-| data | timestamp | |
+| descricao | text | |
+| data_movimentacao | date, default data atual | |
+| mensalidade_id | uuid, FK → mensalidades, opcional | Vincula a receita gerada por uma baixa. |
+| registrado_por | uuid, FK → usuarios, opcional | Usuário que registrou a movimentação. |
 | created_at | timestamp | |
 
 ---
@@ -207,8 +226,7 @@ Restrições:
 | tipo | enum (CONVITE, PARTIDA, PAGAMENTO, GERAL) | |
 | created_at | timestamp | |
 
-> As tabelas das Fases 3 e 4 ainda não foram criadas. Os nomes e tipos acima são o
-> plano; ao implementá-las, seguir as convenções reais (plural, snake_case).
+> A modelagem financeira acima foi conferida diretamente no schema PostgreSQL em 04/09/2026.
 
 ---
 

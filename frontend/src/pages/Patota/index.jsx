@@ -701,18 +701,395 @@ function AbaRelatorios({ patotaId, usuarioId, formatarData, formatarHora }) {
       )}
 
       {subAba === 'mensalidades' && (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-          <p className="text-gray-500 text-lg mb-2">Em breve</p>
-          <p className="text-gray-400 text-sm">O relatório de mensalidades estará disponível na fase financeira.</p>
-        </div>
+        <RelatorioMensalidades patotaId={patotaId} usuarioId={usuarioId} />
       )}
 
       {subAba === 'caixa' && (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-          <p className="text-gray-500 text-lg mb-2">Em breve</p>
-          <p className="text-gray-400 text-sm">O caixa da patota estará disponível na fase financeira.</p>
+        <RelatorioCaixa patotaId={patotaId} usuarioId={usuarioId} />
+      )}
+    </div>
+  )
+}
+
+function obterDataAtual() {
+  const dataAtual = new Date()
+  const ano = dataAtual.getFullYear()
+  const mes = String(dataAtual.getMonth() + 1).padStart(2, '0')
+  const dia = String(dataAtual.getDate()).padStart(2, '0')
+  return ano + '-' + mes + '-' + dia
+}
+
+// Sub-relatório: Caixa
+function RelatorioCaixa({ patotaId, usuarioId }) {
+  const [caixa, setCaixa] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [formularioAberto, setFormularioAberto] = useState(false)
+  const [tipo, setTipo] = useState('RECEITA')
+  const [descricao, setDescricao] = useState('')
+  const [valor, setValor] = useState('')
+  const [dataMovimentacao, setDataMovimentacao] = useState(obterDataAtual())
+  const [cadastrando, setCadastrando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    carregarCaixa()
+  }, [patotaId, usuarioId])
+
+  async function carregarCaixa() {
+    if (!usuarioId) return
+    setCarregando(true)
+    setErro('')
+    try {
+      const resposta = await api.get('/movimentacoes/patota/' + patotaId, {
+        params: { usuarioId: usuarioId }
+      })
+      setCaixa(resposta.data)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar caixa da patota:', erroRequisicao)
+      setErro('Erro ao carregar o caixa da patota.')
+    }
+    finally {
+      setCarregando(false)
+    }
+  }
+
+  function limparFormulario() {
+    setTipo('RECEITA')
+    setDescricao('')
+    setValor('')
+    setDataMovimentacao(obterDataAtual())
+  }
+
+  function fecharFormulario() {
+    limparFormulario()
+    setFormularioAberto(false)
+    setErro('')
+  }
+
+  async function cadastrarMovimentacao(evento) {
+    evento.preventDefault()
+    const valorNumerico = Number(valor)
+    if (!descricao.trim() || !Number.isFinite(valorNumerico) || valorNumerico <= 0 || !dataMovimentacao) {
+      setErro('Preencha corretamente todos os campos da movimentação.')
+      return
+    }
+
+    setCadastrando(true)
+    setErro('')
+    try {
+      await api.post('/movimentacoes/patota/' + patotaId, {
+        usuarioId: usuarioId,
+        tipo: tipo,
+        descricao: descricao.trim(),
+        valor: valorNumerico,
+        dataMovimentacao: dataMovimentacao
+      })
+      limparFormulario()
+      setFormularioAberto(false)
+      await carregarCaixa()
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao cadastrar movimentação:', erroRequisicao)
+      setErro('Erro ao registrar a movimentação.')
+    }
+    finally {
+      setCadastrando(false)
+    }
+  }
+
+  if (carregando && !caixa) {
+    return <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center text-gray-500">Carregando caixa...</div>
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {caixa && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <ResumoCaixa rotulo="Saldo atual" valor={caixa.saldo} tipo="SALDO" />
+          <ResumoCaixa rotulo="Total de receitas" valor={caixa.receitas} tipo="RECEITA" />
+          <ResumoCaixa rotulo="Total de despesas" valor={caixa.despesas} tipo="DESPESA" />
         </div>
       )}
+
+      <div className="bg-white rounded-2xl shadow-md p-5 sm:p-6 border border-gray-100">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">Movimentações</h3>
+            <p className="text-xs text-gray-500 mt-1">Registre receitas e despesas da patota.</p>
+          </div>
+          {!formularioAberto && (
+            <button type="button" onClick={() => setFormularioAberto(true)} className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer">Nova movimentação</button>
+          )}
+        </div>
+
+        {formularioAberto && (
+          <form onSubmit={cadastrarMovimentacao} className="mt-5 pt-5 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="tipo-movimentacao" className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                <select id="tipo-movimentacao" value={tipo} onChange={(evento) => setTipo(evento.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="RECEITA">Receita</option>
+                  <option value="DESPESA">Despesa</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="data-movimentacao" className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                <input id="data-movimentacao" type="date" value={dataMovimentacao} onChange={(evento) => setDataMovimentacao(evento.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+              <div>
+                <label htmlFor="descricao-movimentacao" className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <input id="descricao-movimentacao" type="text" value={descricao} onChange={(evento) => setDescricao(evento.target.value)} placeholder="Ex.: Aluguel da quadra" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+              <div>
+                <label htmlFor="valor-movimentacao" className="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+                <input id="valor-movimentacao" type="number" min="0.01" step="0.01" value={valor} onChange={(evento) => setValor(evento.target.value)} placeholder="0,00" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" onClick={fecharFormulario} disabled={cadastrando} className="border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer">Cancelar</button>
+              <button type="submit" disabled={cadastrando} className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer">{cadastrando ? 'Registrando...' : 'Registrar'}</button>
+            </div>
+          </form>
+        )}
+
+        {erro && <p className="mt-4 text-sm text-red-500">{erro}</p>}
+      </div>
+
+      {caixa && (
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="p-5 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-700">Histórico</h3>
+          </div>
+          {caixa.movimentacoes.length === 0 && <p className="p-6 text-center text-gray-500">Nenhuma movimentação registrada.</p>}
+          <div className="divide-y divide-gray-100">
+            {caixa.movimentacoes.map((movimentacao) => (
+              <LinhaMovimentacao key={movimentacao.id} movimentacao={movimentacao} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ResumoCaixa({ rotulo, valor, tipo }) {
+  let classeValor = 'text-gray-800'
+  if (tipo === 'RECEITA') classeValor = 'text-green-700'
+  if (tipo === 'DESPESA') classeValor = 'text-red-600'
+  if (tipo === 'SALDO' && valor < 0) classeValor = 'text-red-600'
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+      <p className="text-xs text-gray-500 mb-1">{rotulo}</p>
+      <p className={'text-xl font-bold ' + classeValor}>{formatarMoeda(valor)}</p>
+    </div>
+  )
+}
+
+function LinhaMovimentacao({ movimentacao }) {
+  const receita = movimentacao.tipo === 'RECEITA'
+  let classeTipo = 'bg-red-100 text-red-700'
+  let textoTipo = 'Despesa'
+  let prefixoValor = '- '
+  if (receita) {
+    classeTipo = 'bg-green-100 text-green-700'
+    textoTipo = 'Receita'
+    prefixoValor = '+ '
+  }
+
+  return (
+    <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-gray-800 font-medium">{movimentacao.descricao}</p>
+          {movimentacao.mensalidadeId && <span className="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full">Mensalidade</span>}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          {formatarData(movimentacao.dataMovimentacao)}
+          {movimentacao.registradoPorNome && ' · Registrado por ' + movimentacao.registradoPorNome}
+        </p>
+      </div>
+      <span className={'self-start sm:self-auto text-xs font-semibold px-2.5 py-1 rounded-full ' + classeTipo}>{textoTipo}</span>
+      <p className={receita ? 'font-semibold text-green-700 sm:w-32 sm:text-right' : 'font-semibold text-red-600 sm:w-32 sm:text-right'}>{prefixoValor}{formatarMoeda(movimentacao.valor)}</p>
+    </div>
+  )
+}
+
+function obterMesAtual() {
+  const dataAtual = new Date()
+  return dataAtual.getFullYear() + '-' + String(dataAtual.getMonth() + 1).padStart(2, '0')
+}
+
+function formatarMoeda(valor) {
+  return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+// Sub-relatório: Mensalidades
+function RelatorioMensalidades({ patotaId, usuarioId }) {
+  const [mesReferencia, setMesReferencia] = useState(obterMesAtual())
+  const [relatorio, setRelatorio] = useState(null)
+  const [valorMensalidade, setValorMensalidade] = useState('')
+  const [carregando, setCarregando] = useState(true)
+  const [salvandoValor, setSalvandoValor] = useState(false)
+  const [membroAtualizando, setMembroAtualizando] = useState(null)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    carregarRelatorio()
+  }, [patotaId, usuarioId, mesReferencia])
+
+  async function carregarRelatorio() {
+    if (!usuarioId) return
+    setCarregando(true)
+    setErro('')
+    try {
+      const resposta = await api.get('/mensalidades/patota/' + patotaId, {
+        params: { usuarioId: usuarioId, mesReferencia: mesReferencia }
+      })
+      setRelatorio(resposta.data)
+      setValorMensalidade(String(resposta.data.valorMensalidade))
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar relatório de mensalidades:', erroRequisicao)
+      setErro('Erro ao carregar o relatório de mensalidades.')
+    }
+    finally {
+      setCarregando(false)
+    }
+  }
+
+  async function salvarValor(evento) {
+    evento.preventDefault()
+    const valor = Number(valorMensalidade)
+    if (!Number.isFinite(valor) || valor <= 0) {
+      setErro('Informe um valor de mensalidade válido.')
+      return
+    }
+
+    setSalvandoValor(true)
+    setErro('')
+    try {
+      await api.put('/mensalidades/patota/' + patotaId + '/valor', { usuarioId: usuarioId, valor: valor })
+      await carregarRelatorio()
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao salvar valor da mensalidade:', erroRequisicao)
+      setErro('Erro ao salvar o valor da mensalidade.')
+    }
+    finally {
+      setSalvandoValor(false)
+    }
+  }
+
+  async function alternarStatus(mensalidade) {
+    let novoStatus = 'PAGO'
+    if (mensalidade.status === 'PAGO') novoStatus = 'PENDENTE'
+
+    setMembroAtualizando(mensalidade.usuarioId)
+    setErro('')
+    try {
+      await api.put('/mensalidades/patota/' + patotaId + '/membros/' + mensalidade.usuarioId, {
+        usuarioId: usuarioId,
+        mesReferencia: mesReferencia,
+        status: novoStatus
+      })
+      await carregarRelatorio()
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao atualizar mensalidade:', erroRequisicao)
+      setErro('Erro ao atualizar o status da mensalidade.')
+    }
+    finally {
+      setMembroAtualizando(null)
+    }
+  }
+
+  if (carregando && !relatorio) {
+    return <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center text-gray-500">Carregando relatório...</div>
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="bg-white rounded-2xl shadow-md p-5 sm:p-6 border border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
+          <div>
+            <label htmlFor="mes-mensalidades" className="block text-sm font-medium text-gray-700 mb-1">Mês de referência</label>
+            <input id="mes-mensalidades" type="month" value={mesReferencia} onChange={(evento) => setMesReferencia(evento.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
+          <form onSubmit={salvarValor}>
+            <label htmlFor="valor-mensalidade" className="block text-sm font-medium text-gray-700 mb-1">Valor vigente</label>
+            <div className="flex gap-2">
+              <input id="valor-mensalidade" type="number" min="0.01" step="0.01" value={valorMensalidade} onChange={(evento) => setValorMensalidade(evento.target.value)} className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <button type="submit" disabled={salvandoValor} className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer">
+                {salvandoValor ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </form>
+        </div>
+        {erro && <p className="mt-4 text-sm text-red-500">{erro}</p>}
+      </div>
+
+      {relatorio && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <ResumoMensalidade rotulo="Membros" valor={relatorio.quantidadeMembros} />
+            <ResumoMensalidade rotulo="Pagas" valor={relatorio.quantidadePagas} cor="verde" />
+            <ResumoMensalidade rotulo="Pendentes" valor={relatorio.quantidadePendentes} cor="amarelo" />
+            <ResumoMensalidade rotulo="Recebido" valor={formatarMoeda(relatorio.totalRecebido)} />
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            {relatorio.mensalidades.length === 0 && <p className="p-6 text-center text-gray-500">Nenhum membro ativo nesta patota.</p>}
+            <div className="divide-y divide-gray-100">
+              {relatorio.mensalidades.map((mensalidade) => (
+                <LinhaMensalidade key={mensalidade.usuarioId} mensalidade={mensalidade} atualizando={membroAtualizando === mensalidade.usuarioId} onAlternar={alternarStatus} />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function LinhaMensalidade({ mensalidade, atualizando, onAlternar }) {
+  const pago = mensalidade.status === 'PAGO'
+  let classeStatus = 'bg-yellow-100 text-yellow-700'
+  let classeBotao = 'border-green-600 text-green-700 hover:bg-green-50'
+  let textoStatus = 'Pendente'
+  let textoBotao = 'Marcar como paga'
+  if (pago) {
+    classeStatus = 'bg-green-100 text-green-700'
+    classeBotao = 'border-red-500 text-red-600 hover:bg-red-50'
+    textoStatus = 'Pago'
+    textoBotao = 'Reverter para pendente'
+  }
+  if (atualizando) textoBotao = 'Atualizando...'
+
+  return (
+    <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar nome={mensalidade.nome} foto={mensalidade.foto} tamanho="md" />
+        <div className="min-w-0">
+          <p className="text-gray-800 font-medium truncate">{mensalidade.nome}</p>
+          <p className="text-sm text-gray-500">{formatarMoeda(mensalidade.valor)}</p>
+        </div>
+      </div>
+      <span className={'self-start sm:self-auto text-xs font-semibold px-2.5 py-1 rounded-full ' + classeStatus}>{textoStatus}</span>
+      <button type="button" disabled={atualizando} onClick={() => onAlternar(mensalidade)} className={'sm:w-48 border disabled:opacity-50 text-sm font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer ' + classeBotao}>{textoBotao}</button>
+    </div>
+  )
+}
+
+function ResumoMensalidade({ rotulo, valor, cor }) {
+  let classeValor = 'text-gray-800'
+  if (cor === 'verde') classeValor = 'text-green-700'
+  if (cor === 'amarelo') classeValor = 'text-yellow-600'
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+      <p className="text-xs text-gray-500 mb-1">{rotulo}</p>
+      <p className={'text-xl font-bold ' + classeValor}>{valor}</p>
     </div>
   )
 }

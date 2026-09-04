@@ -74,6 +74,25 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ---
 
+## Roadmap imediato
+
+1. **JWT nas requisições protegidas:** enviar o access token do Supabase no header
+   `Authorization`, validá-lo por middleware no backend e disponibilizar a identidade
+   autenticada em `req.usuarioId`. Todas as rotas e controllers protegidos devem ser
+   auditados para remover o `usuarioId` enviado no body, query string ou URL quando ele
+   estiver sendo usado para identificar o solicitante. IDs de usuário continuam permitidos
+   quando representarem o alvo legítimo da operação, como o membro que o presidente deseja
+   remover; nesses casos, `req.usuarioId` identifica quem executa a ação e o parâmetro da
+   rota identifica sobre quem a ação será executada. A autenticação e a autorização nunca
+   devem confiar em um ID de solicitante informado pelo frontend.
+2. **Geração de times por força e posição:** evoluir o algoritmo baseado em regras para
+   equilibrar simultaneamente a média geral e a distribuição de posições entre os times.
+3. **Posição temporária por partida:** permitir que o presidente remaneje a posição dos
+   participantes antes de gerar ou regenerar os times. A escolha vale somente para aquela
+   partida e não altera as posições cadastradas no perfil do usuário.
+
+---
+
 ## Prioridades
 
 - **P1 (Essencial):** Cadastro, Login, Home, Patota (visão geral/jogos/membros), Detalhes da partida, Busca, Perfil, Criar patota, Criar partida.
