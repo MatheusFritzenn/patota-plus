@@ -407,12 +407,12 @@ export async function verificarSolicitacaoPendente(usuarioId, patotaId) {
 // - presença de cada membro por partida
 // - frequência de cada membro (quantidade e percentual)
 export async function buscarRelatorioPresenca(patotaId) {
-  // Busca as partidas realizadas (finalizadas) da patota, mais antigas primeiro
+  // Busca as partidas realizadas (finalizadas) da patota, mais recentes primeiro
   const querySelectPartidas = `
     SELECT pa.id, pa.data, pa.horario, pa.local
     FROM partidas pa
     WHERE pa.patota_id = $1 AND pa.status = 'FINALIZADA'
-    ORDER BY pa.data ASC
+    ORDER BY pa.data DESC, pa.horario DESC
   `
   const resultadoPartidas = await pool.query(querySelectPartidas, [patotaId])
   const arrayPartidas = resultadoPartidas.rows
