@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import Avatar from '../../components/Avatar.jsx'
+import RequisitosSenha from '../../components/RequisitosSenha.jsx'
+import { senhaAtendeRequisitos, mensagemSenhaInvalida } from '../../utils/validacaoSenha.js'
 
 // Modalidades hardcodadas
 const arrayModalidades = [
@@ -51,6 +53,9 @@ function Perfil() {
   const [posicoesSelecionadas, setPosicoesSelecionadas] = useState([])
   const [fotoUrl, setFotoUrl] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmacaoSenha, setConfirmacaoSenha] = useState('')
 
   const [userId, setUserId] = useState(null)
 
@@ -234,6 +239,23 @@ function Perfil() {
     setErro('')
     setSucesso('')
 
+    const preenchendoSenha = senhaAtual || novaSenha || confirmacaoSenha
+
+    if (preenchendoSenha && !senhaAtual) {
+      setErro('Informe a senha atual.')
+      return
+    }
+
+    if (preenchendoSenha && !senhaAtendeRequisitos(novaSenha)) {
+      setErro(mensagemSenhaInvalida)
+      return
+    }
+
+    if (preenchendoSenha && novaSenha !== confirmacaoSenha) {
+      setErro('A nova senha e a confirmação não coincidem.')
+      return
+    }
+
     if (!nome.trim()) {
       setErro('O nome é obrigatório.')
       return
@@ -279,6 +301,38 @@ function Perfil() {
     setSalvando(true)
 
     try {
+      if (preenchendoSenha) {
+        const { data: dadosAutenticacao, error: erroAutenticacao } = await supabase.auth.getUser()
+
+        if (erroAutenticacao || !dadosAutenticacao || !dadosAutenticacao.user || !dadosAutenticacao.user.email) {
+          setErro('Não foi possível validar o usuário autenticado. Entre novamente e tente outra vez.')
+          setSalvando(false)
+          return
+        }
+
+        const { error: erroReautenticacao } = await supabase.auth.signInWithPassword({
+          email: dadosAutenticacao.user.email,
+          password: senhaAtual
+        })
+
+        if (erroReautenticacao) {
+          setErro('A senha atual está incorreta.')
+          setSalvando(false)
+          return
+        }
+
+        const { error: erroAlterarSenha } = await supabase.auth.updateUser({
+          password: novaSenha
+        })
+
+        if (erroAlterarSenha) {
+          console.error('Erro ao alterar senha:', erroAlterarSenha)
+          setErro('Não foi possível alterar a senha. Tente novamente.')
+          setSalvando(false)
+          return
+        }
+      }
+
       const dadosAtualizar = {
         nome: nome,
         telefone: telefone,
@@ -289,6 +343,9 @@ function Perfil() {
 
       const resposta = await api.put('/usuarios/' + userId, dadosAtualizar)
       setUsuario(resposta.data)
+      setSenhaAtual('')
+      setNovaSenha('')
+      setConfirmacaoSenha('')
       setSucesso('Perfil atualizado com sucesso!')
       setEditando(false)
       setSalvando(false)
@@ -333,6 +390,9 @@ function Perfil() {
 
     setErro('')
     setSucesso('')
+    setSenhaAtual('')
+    setNovaSenha('')
+    setConfirmacaoSenha('')
     setEditando(false)
   }
 
@@ -444,6 +504,62 @@ function Perfil() {
             <p className="text-gray-500 px-4 py-2 bg-gray-50 rounded-lg">{usuario.email}</p>
           </div>
 
+          {/* Segurança */}
+          {editando && (
+            <div className="border-b border-gray-200 pb-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="senhaAtual" className="text-sm font-medium text-gray-700">
+                    Senha atual
+                  </label>
+                  <input
+                    id="senhaAtual"
+                    type="password"
+                    value={senhaAtual}
+                    onChange={(e) => setSenhaAtual(e.target.value)}
+                    placeholder="Digite sua senha atual"
+                    autoComplete="current-password"
+                    disabled={salvando}
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="novaSenha" className="text-sm font-medium text-gray-700">
+                    Nova senha
+                  </label>
+                  <input
+                    id="novaSenha"
+                    type="password"
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                    placeholder="Crie uma senha forte"
+                    autoComplete="new-password"
+                    disabled={salvando}
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
+                  />
+                  <RequisitosSenha senha={novaSenha} />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="confirmacaoSenha" className="text-sm font-medium text-gray-700">
+                    Confirme a nova senha
+                  </label>
+                  <input
+                    id="confirmacaoSenha"
+                    type="password"
+                    value={confirmacaoSenha}
+                    onChange={(e) => setConfirmacaoSenha(e.target.value)}
+                    placeholder="Digite a nova senha novamente"
+                    autoComplete="new-password"
+                    disabled={salvando}
+                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Telefone */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Telefone</label>
@@ -544,6 +660,7 @@ function Perfil() {
               </div>
             )}
           </div>
+
         </div>
 
         {/* Mensagens */}
@@ -559,6 +676,7 @@ function Perfil() {
           <div className="flex gap-3 mt-6">
             <button
               onClick={handleCancelar}
+              disabled={salvando}
               className="flex-1 border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             >
               Cancelar

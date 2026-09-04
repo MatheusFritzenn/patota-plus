@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
+import RequisitosSenha from '../../components/RequisitosSenha.jsx'
+import { senhaAtendeRequisitos, mensagemSenhaInvalida } from '../../utils/validacaoSenha.js'
 import './style.css'
 
 // Modalidades hardcodadas (IDs devem corresponder ao banco)
@@ -165,8 +167,8 @@ function Cadastro() {
     setErro('')
 
     // Validações
-    if (senha.length < 6) {
-      setErro('A senha deve ter no mínimo 6 caracteres.')
+    if (!senhaAtendeRequisitos(senha)) {
+      setErro(mensagemSenhaInvalida)
       return
     }
 
@@ -307,12 +309,13 @@ function Cadastro() {
             <input
               id="senha"
               type="password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Crie uma senha forte"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
               className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
+            <RequisitosSenha senha={senha} />
           </div>
 
           {/* Confirmação de senha */}

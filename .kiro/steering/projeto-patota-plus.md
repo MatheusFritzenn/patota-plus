@@ -51,11 +51,14 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 6. **Detalhes da partida** — abas: Lista de jogadores, Times, Avaliações
 7. **Criar/editar partida** — formulário (somente presidente)
 8. **Busca de patotas** — busca com filtros (modalidade, posição, proximidade)
-9. **Perfil do usuário** — dados pessoais, média geral, histórico
+9. **Perfil do usuário** — dados pessoais, alteração de senha, média geral, histórico
 10. **Pagamento de mensalidade** — Pix e cartão
 11. **Criar/editar patota** — formulário de patota
 12. **Notificações** — alertas centralizados
-13. **Configurações** — alteração de senha, e-mail, tema, logout
+
+> **Decisão de escopo:** não haverá tela separada de Configurações. A alteração de
+> senha fica na edição do perfil e o logout no menu do avatar. Alteração de e-mail e
+> preferência de tema foram descartadas.
 
 ---
 
@@ -82,7 +85,9 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 ## Regras de negócio principais
 
 - E-mail é único no sistema.
-- Senha deve ter critérios mínimos de segurança.
+- Senha deve ter no mínimo 8 caracteres, com ao menos uma letra maiúscula, uma
+  letra minúscula, um número e um caractere especial. Essa política vale para
+  cadastro, redefinição e alteração no perfil.
 - Somente o presidente pode: editar patota, criar partidas, gerenciar membros, acessar relatórios, gerar times, registrar movimentações no caixa.
 - Vagas de partida não podem ser excedidas.
 - Avaliações são feitas apenas entre companheiros do mesmo time, após a partida.

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
+import RequisitosSenha from '../../components/RequisitosSenha.jsx'
+import { senhaAtendeRequisitos, mensagemSenhaInvalida } from '../../utils/validacaoSenha.js'
 import './style.css'
 
 function RedefinirSenha() {
@@ -16,8 +18,8 @@ function RedefinirSenha() {
     evento.preventDefault()
     setErro('')
 
-    if (novaSenha.length < 6) {
-      setErro('A senha deve ter no mínimo 6 caracteres.')
+    if (!senhaAtendeRequisitos(novaSenha)) {
+      setErro(mensagemSenhaInvalida)
       return
     }
 
@@ -69,12 +71,13 @@ function RedefinirSenha() {
               <input
                 id="novaSenha"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Crie uma senha forte"
                 value={novaSenha}
                 onChange={(e) => setNovaSenha(e.target.value)}
                 required
                 className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
+              <RequisitosSenha senha={novaSenha} />
             </div>
 
             {/* Confirmação */}

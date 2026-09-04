@@ -81,13 +81,6 @@ function Header() {
               >
                 Meu perfil
               </Link>
-              <Link
-                to="/configuracoes"
-                onClick={() => setMenuAberto(false)}
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 transition-colors"
-              >
-                Configurações
-              </Link>
               <hr className="my-1 border-gray-100" />
               <button
                 onClick={handleSair}
