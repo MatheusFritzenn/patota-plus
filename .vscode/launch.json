@@ -28,6 +28,13 @@
       "port": 9229,
       "restart": true,
       "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "pwa-chrome",
+      "request": "launch",
+      "name": "Debug Frontend (Chrome)",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend"
     }
   ]
 }

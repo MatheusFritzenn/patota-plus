@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
-import './style.css'
+import ibgeApi from '../../services/ibgeApi.js'
 
 // Modalidades hardcodadas (IDs correspondem ao banco)
 const arrayModalidades = [
@@ -32,6 +32,8 @@ function CriarPatota() {
   const [rua, setRua] = useState('')
   const [cidade, setCidade] = useState('')
   const [estado, setEstado] = useState('')
+  const [arrayEstados, setArrayEstados] = useState([])
+  const [arrayCidades, setArrayCidades] = useState([])
   const [diaHabitual, setDiaHabitual] = useState('')
   const [horaHabitual, setHoraHabitual] = useState('')
   const [erro, setErro] = useState('')
@@ -41,10 +43,49 @@ function CriarPatota() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    carregarEstados()
+  }, [])
+
+  useEffect(() => {
+    if (estado) {
+      carregarCidades(estado)
+    } else {
+      setArrayCidades([])
+    }
+  }, [estado])
+
+  useEffect(() => {
     if (modoEdicao) {
       carregarPatota()
     }
   }, [id])
+
+  async function carregarEstados() {
+    try {
+      const resposta = await ibgeApi.get('/estados?orderBy=nome')
+      setArrayEstados(resposta.data)
+    }
+    catch (erro) {
+      console.error('Erro ao carregar estados:', erro)
+      setErro('Erro ao carregar estados.')
+    }
+  }
+
+  async function carregarCidades(estado) {
+    try {
+      const resposta = await ibgeApi.get('/estados/' + estado + '/municipios?orderBy=nome')
+      setArrayCidades(resposta.data)
+    }
+    catch (erro) {
+      console.error('Erro ao carregar cidades:', erro)
+      setErro('Erro ao carregar cidades.')
+    }
+  }
+
+  function alterarEstado(novoEstado) {
+    setCidade('')
+    setEstado(novoEstado)
+  }
 
   async function carregarPatota() {
     try {
@@ -230,36 +271,49 @@ function CriarPatota() {
             />
           </div>
 
-          {/* Cidade */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="cidade" className="text-sm font-medium text-gray-700">
-              Cidade
-            </label>
-            <input
-              id="cidade"
-              type="text"
-              placeholder="Ex: São Paulo"
-              value={cidade}
-              onChange={(e) => setCidade(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
           {/* Estado */}
           <div className="flex flex-col gap-1">
             <label htmlFor="estado" className="text-sm font-medium text-gray-700">
               Estado
             </label>
-            <input
+            <select
               id="estado"
-              type="text"
-              placeholder="Ex: SP"
               value={estado}
-              onChange={(e) => setEstado(e.target.value)}
+              onChange={(e) => alterarEstado(e.target.value)}
               required
               className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+            >
+              <option value="" disabled>Selecione o estado</option>
+              {arrayEstados.map((estadoOpcao) => (
+                <option key={estadoOpcao.id} value={estadoOpcao.sigla}>
+                  {estadoOpcao.nome} ({estadoOpcao.sigla})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cidade */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="cidade" className="text-sm font-medium text-gray-700">
+              Cidade
+            </label>
+            <select
+              id="cidade"
+              value={cidade}
+              onChange={(e) => setCidade(e.target.value)}
+              required
+              disabled={!estado}
+              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value="" disabled>
+                {estado ? 'Selecione a cidade' : 'Selecione primeiro o estado'}
+              </option>
+              {arrayCidades.map((cidadeOpcao) => (
+                <option key={cidadeOpcao.id} value={cidadeOpcao.nome}>
+                  {cidadeOpcao.nome}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Dia habitual */}
