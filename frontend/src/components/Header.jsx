@@ -52,8 +52,17 @@ function Header() {
   return (
     <header className="bg-green-700 text-white py-4 px-6 shadow-md">
       <div className="max-w-4xl mx-auto flex items-center justify-between">
-        <Link to="/home" className="text-xl font-bold hover:opacity-90">
-          Patota+
+        <Link
+          to="/home"
+          className="flex items-center gap-2 text-xl font-bold hover:opacity-90"
+        >
+          <img
+            src="/favicon.png"
+            alt=""
+            aria-hidden="true"
+            className="h-9 w-9 object-contain"
+          />
+          <span>Patota+</span>
         </Link>
 
         {/* Avatar e menu dropdown */}
