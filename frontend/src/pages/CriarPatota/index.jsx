@@ -281,7 +281,7 @@ function CriarPatota() {
               value={estado}
               onChange={(e) => alterarEstado(e.target.value)}
               required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${estado ? 'text-gray-900' : 'text-gray-400'}`}
             >
               <option value="" disabled>Selecione o estado</option>
               {arrayEstados.map((estadoOpcao) => (
@@ -303,7 +303,7 @@ function CriarPatota() {
               onChange={(e) => setCidade(e.target.value)}
               required
               disabled={!estado}
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${cidade ? 'text-gray-900' : 'text-gray-400'}`}
             >
               <option value="" disabled>
                 {estado ? 'Selecione a cidade' : 'Selecione primeiro o estado'}
