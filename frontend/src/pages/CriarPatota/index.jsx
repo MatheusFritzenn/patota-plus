@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import ibgeApi from '../../services/ibgeApi.js'
 
@@ -145,16 +144,6 @@ function CriarPatota() {
       }
     } else {
       // Modo criação: POST
-      const { data } = await supabase.auth.getUser()
-
-      if (!data || !data.user) {
-        setErro('Usuário não autenticado. Faça login novamente.')
-        setCarregando(false)
-        return
-      }
-
-      const presidenteId = data.user.id
-
       try {
         const dadosPatota = {
           nome: nome,
@@ -164,8 +153,7 @@ function CriarPatota() {
           cidade: cidade,
           estado: estado,
           diaHabitual: diaHabitual ? Number(diaHabitual) : null,
-          horaHabitual: horaHabitual || null,
-          presidenteId: presidenteId
+          horaHabitual: horaHabitual || null
         }
 
         await api.post('/patotas', dadosPatota)

@@ -76,7 +76,7 @@ function Perfil() {
     setUserId(data.user.id)
 
     try {
-      const resposta = await api.get('/usuarios/' + data.user.id)
+      const resposta = await api.get('/usuarios/me')
       const dadosUsuario = resposta.data
 
       setUsuario(dadosUsuario)
@@ -226,7 +226,7 @@ function Perfil() {
 
     // Salva a URL da foto no backend
     try {
-      await api.put('/usuarios/' + userId, { foto: novaUrl })
+      await api.put('/usuarios/me', { foto: novaUrl })
     } 
     catch (erroSalvar) {
       console.error('Erro ao salvar URL da foto:', erroSalvar)
@@ -341,7 +341,7 @@ function Perfil() {
         posicoes: posicoesSelecionadas
       }
 
-      const resposta = await api.put('/usuarios/' + userId, dadosAtualizar)
+      const resposta = await api.put('/usuarios/me', dadosAtualizar)
       setUsuario(resposta.data)
       setSenhaAtual('')
       setNovaSenha('')

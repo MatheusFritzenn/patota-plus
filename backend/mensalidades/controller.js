@@ -6,11 +6,6 @@ function mesValido(mesReferencia) {
 }
 
 async function validarPresidente(patotaId, usuarioId, res) {
-  if (!usuarioId) {
-    res.status(400).json({ erro: 'Campo obrigatorio: usuarioId' })
-    return false
-  }
-
   const patota = await buscarPatotaPorId(patotaId)
   if (!patota) {
     res.status(404).json({ erro: 'Patota nao encontrada' })
@@ -29,7 +24,7 @@ async function validarPresidente(patotaId, usuarioId, res) {
 export async function consultarRelatorio(req, res) {
   try {
     const patotaId = req.params.patotaId
-    const usuarioId = req.query.usuarioId
+    const usuarioId = req.usuarioId
     const mesReferencia = req.query.mesReferencia
 
     if (!mesReferencia || !mesValido(mesReferencia)) {
@@ -51,7 +46,7 @@ export async function consultarRelatorio(req, res) {
 export async function alterarValor(req, res) {
   try {
     const patotaId = req.params.patotaId
-    const usuarioId = req.body.usuarioId
+    const usuarioId = req.usuarioId
     const valor = Number(req.body.valor)
 
     if (!Number.isFinite(valor) || valor <= 0) {
@@ -74,7 +69,7 @@ export async function alterarStatus(req, res) {
   try {
     const patotaId = req.params.patotaId
     const membroId = req.params.usuarioId
-    const presidenteId = req.body.usuarioId
+    const presidenteId = req.usuarioId
     const mesReferencia = req.body.mesReferencia
     const status = req.body.status
 

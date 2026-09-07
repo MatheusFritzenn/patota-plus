@@ -76,20 +76,16 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ## Roadmap imediato
 
-1. **JWT nas requisições protegidas:** enviar o access token do Supabase no header
-   `Authorization`, validá-lo por middleware no backend e disponibilizar a identidade
-   autenticada em `req.usuarioId`. Todas as rotas e controllers protegidos devem ser
-   auditados para remover o `usuarioId` enviado no body, query string ou URL quando ele
-   estiver sendo usado para identificar o solicitante. IDs de usuário continuam permitidos
-   quando representarem o alvo legítimo da operação, como o membro que o presidente deseja
-   remover; nesses casos, `req.usuarioId` identifica quem executa a ação e o parâmetro da
-   rota identifica sobre quem a ação será executada. A autenticação e a autorização nunca
-   devem confiar em um ID de solicitante informado pelo frontend.
-2. **Geração de times por força e posição:** evoluir o algoritmo baseado em regras para
+1. **Geração de times por força e posição:** evoluir o algoritmo baseado em regras para
    equilibrar simultaneamente a média geral e a distribuição de posições entre os times.
-3. **Posição temporária por partida:** permitir que o presidente remaneje a posição dos
+2. **Posição temporária por partida:** permitir que o presidente remaneje a posição dos
    participantes antes de gerar ou regenerar os times. A escolha vale somente para aquela
    partida e não altera as posições cadastradas no perfil do usuário.
+
+> **Concluído em 07/09/2026 — JWT nas requisições protegidas:** o frontend envia o access
+> token do Supabase no header `Authorization`; o middleware do backend valida o token e
+> disponibiliza a identidade em `req.usuarioId`. Os IDs mantidos nas URLs representam apenas
+> alvos legítimos de operações administrativas.
 
 ---
 
@@ -201,12 +197,12 @@ backend/
 - Node.js
 - Express
 - pg (node-postgres) — driver de acesso ao PostgreSQL
-- jsonwebtoken — validação do token JWT do Supabase
+- @supabase/supabase-js — validação do token JWT do Supabase via `getClaims`
 - cors, dotenv
 
 ### Decisões de arquitetura
 
-- **Autenticação:** Supabase SDK no frontend gerencia login/cadastro/sessão. O backend recebe o token JWT do Supabase no header `Authorization` e valida via middleware antes de processar requisições protegidas.
+- **Autenticação:** Supabase SDK no frontend gerencia login/cadastro/sessão. O backend recebe o token JWT do Supabase no header `Authorization`, valida-o via `getClaims` em middleware e disponibiliza o UUID autenticado em `req.usuarioId` antes de processar requisições protegidas.
 - **Banco de dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via `pg` (node-postgres) com queries SQL diretas.
 - **Separação de responsabilidades:** Supabase cuida exclusivamente da autenticação. Toda lógica de negócio e acesso a dados passa pelo backend Express + pg.
 

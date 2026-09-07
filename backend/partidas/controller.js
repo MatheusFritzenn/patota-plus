@@ -1,4 +1,5 @@
 import { criarPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes, gerarTimes, buscarTimes, desfazerTimes } from './model.js'
+import { buscarPatotaPorId } from '../patotas/model.js'
 
 // POST /partidas — Criar nova partida
 export async function cadastrar(req, res) {
@@ -17,6 +18,15 @@ export async function cadastrar(req, res) {
 
     if (!Number.isInteger(vagasNumero) || vagasNumero <= 0) {
       return res.status(400).json({ erro: 'A quantidade de vagas deve ser um número inteiro maior que zero' })
+    }
+
+    const patota = await buscarPatotaPorId(patotaId)
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    if (patota.presidenteId !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode criar partidas' })
     }
 
     const dadosPartida = {
@@ -41,7 +51,7 @@ export async function cadastrar(req, res) {
 export async function listarPorPatota(req, res) {
   try {
     const patotaId = req.params.patotaId
-    const usuarioId = req.query.usuarioId
+    const usuarioId = req.usuarioId
 
     const arrayPartidas = await buscarPartidasPorPatota(patotaId, usuarioId)
 
@@ -127,11 +137,7 @@ export async function listarParticipantes(req, res) {
 export async function participar(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.body.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const resultado = await confirmarPresenca(partidaId, usuarioId)
 
@@ -159,11 +165,7 @@ export async function participar(req, res) {
 export async function finalizar(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.body.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const partida = await buscarPartidaPorId(partidaId)
 
@@ -194,11 +196,27 @@ export async function finalizar(req, res) {
   }
 }
 
-// DELETE /partidas/:id/participar/:usuarioId — Recusar/cancelar presença ou presidente remover jogador
+// DELETE /partidas/:id/participar — Cancela a própria presença.
+// DELETE /partidas/:id/participantes/:usuarioId — Presidente remove outro jogador.
 export async function removerPresenca(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.params.usuarioId
+    const solicitanteId = req.usuarioId
+    let usuarioId = solicitanteId
+
+    if (req.params.usuarioId) {
+      const partida = await buscarPartidaPorId(partidaId)
+
+      if (!partida) {
+        return res.status(404).json({ erro: 'Partida não encontrada' })
+      }
+
+      if (partida.presidenteId !== solicitanteId) {
+        return res.status(403).json({ erro: 'Apenas o presidente pode remover outro participante' })
+      }
+
+      usuarioId = req.params.usuarioId
+    }
 
     await removerParticipacao(partidaId, usuarioId)
 
@@ -210,15 +228,11 @@ export async function removerPresenca(req, res) {
   }
 }
 
-// GET /partidas/:id/avaliacoes?usuarioId= — Estado das avaliações + companheiros avaliáveis pelo usuário
+// GET /partidas/:id/avaliacoes — Estado das avaliações + companheiros avaliáveis pelo usuário
 export async function listarAvaliacoes(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.query.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const partida = await buscarPartidaPorId(partidaId)
 
@@ -259,12 +273,8 @@ export async function listarAvaliacoes(req, res) {
 export async function salvarAvaliacoes(req, res) {
   try {
     const partidaId = req.params.id
-    const avaliadorId = req.body.avaliadorId
+    const avaliadorId = req.usuarioId
     const arrayAvaliacoesRecebidas = req.body.avaliacoes
-
-    if (!avaliadorId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: avaliadorId' })
-    }
 
     if (!Array.isArray(arrayAvaliacoesRecebidas) || arrayAvaliacoesRecebidas.length === 0) {
       return res.status(400).json({ erro: 'Campo obrigatório: avaliacoes (lista não vazia)' })
@@ -345,11 +355,7 @@ export async function salvarAvaliacoes(req, res) {
 export async function encerrar(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.body.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const partida = await buscarPartidaPorId(partidaId)
 
@@ -441,11 +447,7 @@ export async function listarTimes(req, res) {
 export async function gerar(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.body.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const partida = await buscarPartidaPorId(partidaId)
 
@@ -482,11 +484,7 @@ export async function gerar(req, res) {
 export async function desfazer(req, res) {
   try {
     const partidaId = req.params.id
-    const usuarioId = req.query.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const partida = await buscarPartidaPorId(partidaId)
 

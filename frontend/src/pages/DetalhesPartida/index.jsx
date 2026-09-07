@@ -56,7 +56,7 @@ function DetalhesPartida() {
       setPartida(dadosPartida)
 
       // Verifica se o usuário é presidente da patota dessa partida
-      const respostaMembresia = await api.get('/patotas/' + dadosPartida.patotaId + '/verificar-membro/' + data.user.id)
+      const respostaMembresia = await api.get('/patotas/' + dadosPartida.patotaId + '/verificar-membro')
       if (respostaMembresia.data.role === 'PRESIDENTE') {
         setEhPresidente(true)
       }
@@ -93,7 +93,7 @@ function DetalhesPartida() {
   async function handleConfirmarPresenca() {
     setErro('')
     try {
-      await api.post('/partidas/' + id + '/participar', { usuarioId: userId })
+      await api.post('/partidas/' + id + '/participar')
       await carregarParticipantes(userId)
     }
     catch (erroRequisicao) {
@@ -110,7 +110,7 @@ function DetalhesPartida() {
   async function handleRecusarPresenca() {
     setErro('')
     try {
-      await api.delete('/partidas/' + id + '/participar/' + userId)
+      await api.delete('/partidas/' + id + '/participar')
       await carregarParticipantes(userId)
     }
     catch (erroRequisicao) {
@@ -121,7 +121,7 @@ function DetalhesPartida() {
 
   async function handleFinalizarPartida() {
     try {
-      await api.put('/partidas/' + id + '/finalizar', { usuarioId: userId })
+      await api.put('/partidas/' + id + '/finalizar')
       setModalFinalizarAberto(false)
 
       // Atualiza o status da partida localmente
@@ -147,7 +147,7 @@ function DetalhesPartida() {
     if (!participanteParaRemover) return
 
     try {
-      await api.delete('/partidas/' + id + '/participar/' + participanteParaRemover.id)
+      await api.delete('/partidas/' + id + '/participantes/' + participanteParaRemover.id)
       setParticipanteParaRemover(null)
       await carregarParticipantes(userId)
     }
@@ -420,9 +420,7 @@ function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalCon
     setGerando(true)
     setModalRegenerarAberto(false)
     try {
-      const resposta = await api.post('/partidas/' + partidaId + '/times/gerar', {
-        usuarioId: userId
-      })
+      const resposta = await api.post('/partidas/' + partidaId + '/times/gerar')
       setArrayTimes(resposta.data.times)
       setGerando(false)
     }
@@ -449,9 +447,7 @@ function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalCon
   async function handleDesfazerTimes() {
     setModalDesfazerAberto(false)
     try {
-      await api.delete('/partidas/' + partidaId + '/times', {
-        params: { usuarioId: userId }
-      })
+      await api.delete('/partidas/' + partidaId + '/times')
       setArrayTimes([])
     }
     catch (erroRequisicao) {
@@ -623,9 +619,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await api.get('/partidas/' + partidaId + '/avaliacoes', {
-        params: { usuarioId: userId }
-      })
+      const resposta = await api.get('/partidas/' + partidaId + '/avaliacoes')
       const dados = resposta.data
 
       setAvaliacoesLiberadas(dados.avaliacoesLiberadas)
@@ -697,7 +691,6 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
     setSalvando(true)
     try {
       await api.post('/partidas/' + partidaId + '/avaliacoes', {
-        avaliadorId: userId,
         avaliacoes: arrayAvaliacoes
       })
       setSalvando(false)
@@ -718,7 +711,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
   async function handleEncerrarAvaliacoes() {
     setEncerrando(true)
     try {
-      await api.put('/partidas/' + partidaId + '/avaliacoes/encerrar', { usuarioId: userId })
+      await api.put('/partidas/' + partidaId + '/avaliacoes/encerrar')
       setEncerrando(false)
       setModalEncerrarAberto(false)
       await carregarAvaliacoes()

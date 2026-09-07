@@ -11,7 +11,7 @@ export async function cadastrar(req, res) {
     const estado = req.body.estado
     const diaHabitual = req.body.diaHabitual
     const horaHabitual = req.body.horaHabitual
-    const presidenteId = req.body.presidenteId
+    const presidenteId = req.usuarioId
 
     if (!nome || !modalidadeId || !rua || !cidade || !estado || !presidenteId) {
       return res.status(400).json({ erro: 'Campos obrigatórios: nome, modalidadeId, rua, cidade, estado, presidenteId' })
@@ -39,10 +39,10 @@ export async function cadastrar(req, res) {
   }
 }
 
-// GET /patotas/usuario/:id — Listar patotas do usuário
+// GET /patotas/minhas — Listar patotas do usuário autenticado
 export async function listarPorUsuario(req, res) {
   try {
-    const usuarioId = req.params.id
+    const usuarioId = req.usuarioId
 
     const arrayPatotas = await buscarPatotasDoUsuario(usuarioId)
 
@@ -54,10 +54,10 @@ export async function listarPorUsuario(req, res) {
   }
 }
 
-// GET /patotas/buscar/:id — Listar patotas disponíveis (que o usuário não participa)
+// GET /patotas/buscar — Listar patotas disponíveis (que o usuário não participa)
 export async function listarDisponiveis(req, res) {
   try {
-    const usuarioId = req.params.id
+    const usuarioId = req.usuarioId
 
     const arrayPatotas = await buscarPatotasDisponiveis(usuarioId)
 
@@ -115,6 +115,20 @@ export async function excluirMembro(req, res) {
   try {
     const patotaId = req.params.id
     const usuarioId = req.params.usuarioId
+    const solicitanteId = req.usuarioId
+
+    const patota = await buscarPatotaPorId(patotaId)
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    if (patota.presidenteId !== solicitanteId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode remover membros' })
+    }
+
+    if (usuarioId === solicitanteId) {
+      return res.status(409).json({ erro: 'O presidente não pode remover a si mesmo da patota' })
+    }
 
     // Valida se o membro existe na patota antes de excluir
     const existe = await membroExiste(patotaId, usuarioId)
@@ -140,6 +154,10 @@ export async function atualizar(req, res) {
     const existente = await buscarPatotaPorId(patotaId)
     if (!existente) {
       return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    if (existente.presidenteId !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode editar a patota' })
     }
 
     const dados = {
@@ -173,6 +191,10 @@ export async function excluir(req, res) {
       return res.status(404).json({ erro: 'Patota não encontrada' })
     }
 
+    if (existente.presidenteId !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode excluir a patota' })
+    }
+
     await excluirPatota(patotaId)
 
     return res.json({ mensagem: 'Patota excluída com sucesso' })
@@ -187,11 +209,7 @@ export async function excluir(req, res) {
 export async function solicitar(req, res) {
   try {
     const patotaId = req.params.id
-    const usuarioId = req.body.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const resultado = await criarSolicitacaoEntrada(usuarioId, patotaId)
 
@@ -216,6 +234,15 @@ export async function listarSolicitacoes(req, res) {
   try {
     const patotaId = req.params.id
 
+    const patota = await buscarPatotaPorId(patotaId)
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    if (patota.presidenteId !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode listar as solicitações' })
+    }
+
     const arraySolicitacoes = await buscarSolicitacoesPendentes(patotaId)
 
     return res.json(arraySolicitacoes)
@@ -232,6 +259,15 @@ export async function responderSolicitacaoEntrada(req, res) {
     const patotaId = req.params.id
     const solicitacaoId = req.params.solicitacaoId
     const decisao = req.body.decisao
+
+    const patota = await buscarPatotaPorId(patotaId)
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    if (patota.presidenteId !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode responder às solicitações' })
+    }
 
     if (!decisao || (decisao !== 'ACEITO' && decisao !== 'RECUSADO')) {
       return res.status(400).json({ erro: 'Campo obrigatório: decisao (ACEITO ou RECUSADO)' })
@@ -255,11 +291,7 @@ export async function responderSolicitacaoEntrada(req, res) {
 export async function relatorioPresenca(req, res) {
   try {
     const patotaId = req.params.id
-    const usuarioId = req.query.usuarioId
-
-    if (!usuarioId) {
-      return res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    }
+    const usuarioId = req.usuarioId
 
     const patota = await buscarPatotaPorId(patotaId)
     if (!patota) {
@@ -282,11 +314,11 @@ export async function relatorioPresenca(req, res) {
   }
 }
 
-// GET /patotas/:id/verificar-membro/:usuarioId — Verifica se usuário é membro
+// GET /patotas/:id/verificar-membro — Verifica se o usuário autenticado é membro
 export async function verificarMembresia(req, res) {
   try {
     const patotaId = req.params.id
-    const usuarioId = req.params.usuarioId
+    const usuarioId = req.usuarioId
 
     const membro = await verificarMembro(usuarioId, patotaId)
     const solicitacaoPendente = await verificarSolicitacaoPendente(usuarioId, patotaId)

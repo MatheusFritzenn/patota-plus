@@ -23,7 +23,7 @@ function BuscarPatotas() {
     }
 
     try {
-      const resposta = await api.get('/patotas/buscar/' + data.user.id)
+      const resposta = await api.get('/patotas/buscar')
       setArrayPatotas(resposta.data)
       setCarregando(false)
     } 

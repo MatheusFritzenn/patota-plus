@@ -22,7 +22,7 @@ function MinhasPatotas() {
     }
 
     try {
-      const resposta = await api.get('/patotas/usuario/' + data.user.id)
+      const resposta = await api.get('/patotas/minhas')
       setArrayPatotas(resposta.data)
       setCarregando(false)
     } 

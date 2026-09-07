@@ -33,7 +33,7 @@ function Header() {
     const { data } = await supabase.auth.getUser()
     if (data && data.user) {
       try {
-        const resposta = await api.get('/usuarios/' + data.user.id)
+        const resposta = await api.get('/usuarios/me')
         if (resposta.data && resposta.data.foto) {
           setFotoUsuario(resposta.data.foto)
         }

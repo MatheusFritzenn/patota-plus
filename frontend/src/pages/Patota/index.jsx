@@ -57,7 +57,7 @@ function Patota() {
       setPatota(respostaPatota.data)
 
       // Verifica membresia do usuário
-      const respostaMembresia = await api.get('/patotas/' + id + '/verificar-membro/' + data.user.id)
+      const respostaMembresia = await api.get('/patotas/' + id + '/verificar-membro')
       const membresia = respostaMembresia.data
 
       setEhMembro(membresia.ehMembro)
@@ -125,7 +125,7 @@ function Patota() {
   async function handleSolicitar() {
     setErro('')
     try {
-      await api.post('/patotas/' + id + '/solicitar', { usuarioId: userId })
+      await api.post('/patotas/' + id + '/solicitar')
       setSolicitacaoPendente(true)
     } 
     catch (erroRequisicao) {
@@ -495,9 +495,7 @@ function AbaJogos({ patotaId, usuarioId }) {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await api.get('/partidas/patota/' + patotaId, {
-        params: { usuarioId: usuarioId }
-      })
+      const resposta = await api.get('/partidas/patota/' + patotaId)
       setArrayProximos(resposta.data.proximos)
       setArrayFinalizados(resposta.data.finalizados)
       setCarregando(false)
@@ -740,9 +738,7 @@ function RelatorioCaixa({ patotaId, usuarioId }) {
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await api.get('/movimentacoes/patota/' + patotaId, {
-        params: { usuarioId: usuarioId }
-      })
+      const resposta = await api.get('/movimentacoes/patota/' + patotaId)
       setCaixa(resposta.data)
     }
     catch (erroRequisicao) {
@@ -779,7 +775,6 @@ function RelatorioCaixa({ patotaId, usuarioId }) {
     setErro('')
     try {
       await api.post('/movimentacoes/patota/' + patotaId, {
-        usuarioId: usuarioId,
         tipo: tipo,
         descricao: descricao.trim(),
         valor: valorNumerico,
@@ -945,7 +940,7 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     setErro('')
     try {
       const resposta = await api.get('/mensalidades/patota/' + patotaId, {
-        params: { usuarioId: usuarioId, mesReferencia: mesReferencia }
+        params: { mesReferencia: mesReferencia }
       })
       setRelatorio(resposta.data)
       setValorMensalidade(String(resposta.data.valorMensalidade))
@@ -970,7 +965,7 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     setSalvandoValor(true)
     setErro('')
     try {
-      await api.put('/mensalidades/patota/' + patotaId + '/valor', { usuarioId: usuarioId, valor: valor })
+      await api.put('/mensalidades/patota/' + patotaId + '/valor', { valor: valor })
       await carregarRelatorio()
     }
     catch (erroRequisicao) {
@@ -990,7 +985,6 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     setErro('')
     try {
       await api.put('/mensalidades/patota/' + patotaId + '/membros/' + mensalidade.usuarioId, {
-        usuarioId: usuarioId,
         mesReferencia: mesReferencia,
         status: novoStatus
       })
@@ -1111,9 +1105,7 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
     setCarregando(true)
     setErro('')
     try {
-      const resposta = await api.get('/patotas/' + patotaId + '/relatorios/presenca', {
-        params: { usuarioId: usuarioId }
-      })
+      const resposta = await api.get('/patotas/' + patotaId + '/relatorios/presenca')
       setRelatorio(resposta.data)
       setCarregando(false)
     }

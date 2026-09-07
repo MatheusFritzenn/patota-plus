@@ -2,11 +2,6 @@ import { buscarCaixaPatota, criarMovimentacao } from './model.js'
 import { buscarPatotaPorId, verificarMembro } from '../patotas/model.js'
 
 async function validarPresidente(patotaId, usuarioId, res) {
-  if (!usuarioId) {
-    res.status(400).json({ erro: 'Campo obrigatório: usuarioId' })
-    return false
-  }
-
   const patota = await buscarPatotaPorId(patotaId)
   if (!patota) {
     res.status(404).json({ erro: 'Patota não encontrada' })
@@ -33,7 +28,7 @@ function dataValida(dataMovimentacao) {
 export async function consultarCaixa(req, res) {
   try {
     const patotaId = req.params.patotaId
-    const usuarioId = req.query.usuarioId
+    const usuarioId = req.usuarioId
     const autorizado = await validarPresidente(patotaId, usuarioId, res)
     if (!autorizado) return
 
@@ -49,7 +44,7 @@ export async function consultarCaixa(req, res) {
 export async function cadastrarMovimentacao(req, res) {
   try {
     const patotaId = req.params.patotaId
-    const usuarioId = req.body.usuarioId
+    const usuarioId = req.usuarioId
     const tipo = req.body.tipo
     const descricao = String(req.body.descricao || '').trim()
     const valor = Number(req.body.valor)

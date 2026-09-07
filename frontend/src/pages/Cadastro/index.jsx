@@ -217,7 +217,7 @@ function Cadastro() {
     setCarregando(true)
 
     // Passo 1: Criar usuário no Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: email,
       password: senha
     })
@@ -228,14 +228,10 @@ function Cadastro() {
       return
     }
 
-    const userId = data.user.id
-
-    // Passo 2: Salvar perfil no backend
+    // Passo 2: Salvar perfil no backend usando a sessão criada pelo Supabase
     try {
       const dadosUsuario = {
-        id: userId,
         nome: nome,
-        email: email,
         telefone: telefone,
         dataNascimento: dataNascimento,
         modalidades: modalidadesSelecionadas,
