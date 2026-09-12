@@ -77,13 +77,16 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 ## Roadmap imediato
 
 1. **Geração de times por força e posição:** evoluir o algoritmo baseado em regras para
-   equilibrar simultaneamente a média geral e a distribuição de posições entre os times.
-2. **Posição temporária por partida:** permitir que o presidente remaneje a posição dos
-   participantes antes de gerar ou regenerar os times. A escolha vale somente para aquela
-   partida e não altera as posições cadastradas no perfil do usuário.
-3. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
+   equilibrar simultaneamente a média geral e a distribuição de posições entre os times,
+   usando a posição temporária quando ela estiver definida.
+2. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
    registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
    localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
+
+> **Concluído em 12/09/2026 — atribuição de posição temporária:** o
+> presidente pode remanejar cada participante na aba de times antes da geração ou
+> regeneração. O valor fica em `participacoes.posicao_id` e não altera o perfil. A integração
+> dessa posição ao algoritmo de geração permanece como etapa separada do roadmap.
 
 > **Concluído em 07/09/2026 — JWT nas requisições protegidas:** o frontend envia o access
 > token do Supabase no header `Authorization`; o middleware do backend valida o token e

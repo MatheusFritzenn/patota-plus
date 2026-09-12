@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { cadastrar, listarPorPatota, buscarPorId, listarParticipantes, participar, removerPresenca, finalizar, listarAvaliacoes, salvarAvaliacoes, encerrar, resultadoAvaliacoes, listarTimes, gerar, desfazer } from './controller.js'
+import { cadastrar, listarPorPatota, buscarPorId, listarParticipantes, alterarPosicaoTemporaria, participar, removerPresenca, finalizar, listarAvaliacoes, salvarAvaliacoes, encerrar, resultadoAvaliacoes, listarTimes, gerar, desfazer } from './controller.js'
 import { autenticar } from '../middlewares/autenticacao.js'
 
 const router = Router()
@@ -8,6 +8,7 @@ router.use(autenticar)
 router.post('/', cadastrar)
 router.get('/patota/:patotaId', listarPorPatota)
 router.get('/:id/participantes', listarParticipantes)
+router.put('/:id/participantes/:usuarioId/posicao-temporaria', alterarPosicaoTemporaria)
 router.post('/:id/participar', participar)
 router.delete('/:id/participar', removerPresenca)
 router.delete('/:id/participantes/:usuarioId', removerPresenca)

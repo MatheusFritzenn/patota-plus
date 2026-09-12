@@ -109,11 +109,11 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | partida_id | uuid, FK → partidas | |
 | usuario_id | uuid, FK → usuarios | |
 | time_id | uuid, FK → times, opcional (ON DELETE SET NULL) | Preenchido quando os times são formados (Fase 2) |
+| posicao_id | int, FK → posicoes, opcional (ON DELETE SET NULL) | Posição temporária atribuída pelo presidente exclusivamente para esta partida |
 
-> **PENDÊNCIA (roadmap — posição por partida):** modelar a posição atribuída ao participante
-> no contexto da partida, permitindo que o presidente a remaneje antes da geração dos times.
-> Essa informação deve pertencer à participação/partida e não pode alterar
-> `usuario_posicoes`, que continua representando as posições do perfil do usuário.
+> **Implementado em 12/09/2026 — posição por partida:** `participacoes.posicao_id` armazena
+> apenas o remanejamento daquela partida e a alteração nunca modifica `usuario_posicoes`.
+> A utilização desse campo pelo algoritmo de geração de times permanece pendente.
 
 > A presença é representada pela existência da linha (confirmar = inserir, cancelar = deletar).
 > A coluna `status` (CONFIRMADO/CANCELADO) prevista originalmente **não foi criada** — o
@@ -239,5 +239,6 @@ Restrições implementadas:
 - **membro_patotas** como tabela separada — permite historico de entrada/saida e role por patota;
 - **media_usuarios** como cache — evita recalcular a media a cada consulta de perfil;
 - **participacoes.time_id** opcional — só é preenchido quando o presidente gera os times;
+- **participacoes.posicao_id** opcional — registra a posição atribuída somente no contexto da partida;
 - **participacoes** sem coluna `status` — presença é a existência do registro;
 - Acesso ao banco via **SQL direto com `pg`** (Prisma foi descartado).

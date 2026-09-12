@@ -23,6 +23,7 @@ function DetalhesPartida() {
 
   const [partida, setPartida] = useState(null)
   const [arrayParticipantes, setArrayParticipantes] = useState([])
+  const [arrayPosicoesDisponiveis, setArrayPosicoesDisponiveis] = useState([])
   const [vagasRestantes, setVagasRestantes] = useState(0)
   const [abaAtiva, setAbaAtiva] = useState('lista-jogadores')
   const [carregando, setCarregando] = useState(true)
@@ -78,6 +79,8 @@ function DetalhesPartida() {
     const dados = resposta.data
 
     setArrayParticipantes(dados.participantes)
+    const arrayPosicoesResposta = dados.posicoesDisponiveis || []
+    setArrayPosicoesDisponiveis(arrayPosicoesResposta)
     setVagasRestantes(dados.vagasRestantes)
 
     // Verifica se o usuário atual já está confirmado
@@ -238,10 +241,11 @@ function DetalhesPartida() {
       {abaAtiva === 'times' && (
         <AbaTimes
           partidaId={id}
-          userId={userId}
           ehPresidente={ehPresidente}
           partidaFinalizada={partidaFinalizada}
-          totalConfirmados={arrayParticipantes.length}
+          arrayParticipantes={arrayParticipantes}
+          arrayPosicoesDisponiveis={arrayPosicoesDisponiveis}
+          onAtualizarParticipantes={() => carregarParticipantes(userId)}
           onMensagem={(titulo, mensagem) => setModalMensagem({ aberto: true, titulo: titulo, mensagem: mensagem })}
         />
       )}
@@ -363,7 +367,12 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
                     </span>
                   )}
                 </div>
-                {participante.posicoes.length > 0 && (
+                {participante.posicaoTemporariaNome && (
+                  <p className="text-sm text-green-700">
+                    Posição nesta partida: {participante.posicaoTemporariaNome}
+                  </p>
+                )}
+                {!participante.posicaoTemporariaNome && participante.posicoes.length > 0 && (
                   <p className="text-sm text-gray-500">{participante.posicoes.join(', ')}</p>
                 )}
               </div>
@@ -389,13 +398,14 @@ function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, par
 }
 
 // Aba 5.2 — Times (geração automática equilibrada)
-function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalConfirmados, onMensagem }) {
+function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipantes, arrayPosicoesDisponiveis, onAtualizarParticipantes, onMensagem }) {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [arrayTimes, setArrayTimes] = useState([])
   const [gerando, setGerando] = useState(false)
   const [modalRegenerarAberto, setModalRegenerarAberto] = useState(false)
   const [modalDesfazerAberto, setModalDesfazerAberto] = useState(false)
+  const [salvandoPosicaoId, setSalvandoPosicaoId] = useState(null)
 
   useEffect(() => {
     carregarTimes()
@@ -460,6 +470,34 @@ function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalCon
     }
   }
 
+  async function handleAlterarPosicao(participanteId, valor) {
+    setSalvandoPosicaoId(participanteId)
+
+    let posicaoId = null
+    if (valor !== '') {
+      posicaoId = Number(valor)
+    }
+
+    try {
+      await api.put('/partidas/' + partidaId + '/participantes/' + participanteId + '/posicao-temporaria', {
+        posicaoId: posicaoId
+      })
+      await onAtualizarParticipantes()
+      await carregarTimes()
+      setSalvandoPosicaoId(null)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao alterar posição temporária:', erroRequisicao)
+      setSalvandoPosicaoId(null)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        onMensagem('Não foi possível remanejar', erroRequisicao.response.data.erro)
+      }
+      else {
+        onMensagem('Erro', 'Erro ao alterar a posição do jogador. Tente novamente.')
+      }
+    }
+  }
+
   if (carregando) {
     return (
       <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
@@ -512,6 +550,40 @@ function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalCon
         </div>
       </div>
 
+      {ehPresidente && !partidaFinalizada && arrayParticipantes.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700">Posições nesta partida</h3>
+            <p className="text-sm text-gray-500">
+              Selecione uma posição temporária antes de gerar ou regenerar os times. A opção padrão mantém as posições do perfil.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {arrayParticipantes.map((participante) => (
+              <label key={participante.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3">
+                <span className="text-sm font-medium text-gray-800">{participante.nome}</span>
+                <span className="text-xs text-gray-500">
+                  Perfil: {participante.posicoes.length > 0 ? participante.posicoes.join(', ') : 'sem posição cadastrada'}
+                </span>
+                <select
+                  value={participante.posicaoTemporariaId || ''}
+                  onChange={(evento) => handleAlterarPosicao(participante.id, evento.target.value)}
+                  disabled={salvandoPosicaoId !== null}
+                  className="mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                >
+                  <option value="">Usar posição do perfil</option>
+                  {arrayPosicoesDisponiveis.map((posicao) => (
+                    <option key={posicao.id} value={posicao.id}>{posicao.nome}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+
+        </div>
+      )}
+
       {/* Estado vazio */}
       {!temTimes && (
         <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
@@ -554,7 +626,12 @@ function AbaTimes({ partidaId, userId, ehPresidente, partidaFinalizada, totalCon
                           </span>
                         )}
                       </div>
-                      {jogador.posicoes.length > 0 && (
+                      {jogador.posicaoTemporariaNome && (
+                        <p className="text-xs text-green-700 truncate">
+                          {jogador.posicaoTemporariaNome} (nesta partida)
+                        </p>
+                      )}
+                      {!jogador.posicaoTemporariaNome && jogador.posicoes.length > 0 && (
                         <p className="text-xs text-gray-500 truncate">{jogador.posicoes.join(', ')}</p>
                       )}
                     </div>

@@ -57,9 +57,12 @@ export async function buscarPartidaPorId(partidaId) {
 // Busca os participantes confirmados de uma partida, com nome, foto e posições
 export async function buscarParticipantes(partidaId, modalidadeId) {
   const querySelectParticipantes = `
-    SELECT u.id, u.nome, u.foto
+    SELECT u.id, u.nome, u.foto,
+           pt.posicao_id AS "posicaoTemporariaId",
+           posicao_temporaria.nome AS "posicaoTemporariaNome"
     FROM participacoes pt
     JOIN usuarios u ON u.id = pt.usuario_id
+    LEFT JOIN posicoes posicao_temporaria ON posicao_temporaria.id = pt.posicao_id
     WHERE pt.partida_id = $1
     ORDER BY u.nome ASC
   `
@@ -94,12 +97,56 @@ export async function buscarParticipantes(partidaId, modalidadeId) {
       id: participante.id,
       nome: participante.nome,
       foto: participante.foto,
-      posicoes: arrayPosicoes
+      posicoes: arrayPosicoes,
+      posicaoTemporariaId: participante.posicaoTemporariaId,
+      posicaoTemporariaNome: participante.posicaoTemporariaNome
     }
     arrayParticipantes.push(participanteCompleto)
   }
 
   return arrayParticipantes
+}
+
+// Lista as posições válidas para a modalidade da partida.
+export async function buscarPosicoesDaModalidade(modalidadeId) {
+  const posicoesPorModalidade = {
+    1: [1, 2, 3, 4, 5, 6],
+    2: [1, 7, 8, 9],
+    3: [1, 7, 8, 9]
+  }
+  const arrayIdsPosicoes = posicoesPorModalidade[modalidadeId] || []
+
+  if (arrayIdsPosicoes.length === 0) {
+    return []
+  }
+
+  const querySelectPosicoes = `
+    SELECT id, nome
+    FROM posicoes
+    WHERE id = ANY($1)
+    ORDER BY id ASC
+  `
+  const resultado = await pool.query(querySelectPosicoes, [arrayIdsPosicoes])
+
+  return resultado.rows
+}
+
+// Define ou remove a posição temporária de um participante nesta partida.
+// A posição do perfil, armazenada em usuario_posicoes, não é alterada.
+export async function atualizarPosicaoTemporaria(partidaId, usuarioId, posicaoId) {
+  const queryUpdatePosicao = `
+    UPDATE participacoes
+    SET posicao_id = $3
+    WHERE partida_id = $1 AND usuario_id = $2
+    RETURNING usuario_id AS "usuarioId", posicao_id AS "posicaoTemporariaId"
+  `
+  const resultado = await pool.query(queryUpdatePosicao, [partidaId, usuarioId, posicaoId])
+
+  if (resultado.rows.length === 0) {
+    return null
+  }
+
+  return resultado.rows[0]
 }
 
 // Verifica se um usuário já é participante confirmado da partida
@@ -766,6 +813,8 @@ export async function buscarTimes(partidaId) {
       SELECT u.id, u.nome, u.foto,
              mu.media_geral AS "mediaGeral",
              mu.total_avaliacoes AS "totalAvaliacoes",
+             pt.posicao_id AS "posicaoTemporariaId",
+             posicao_temporaria.nome AS "posicaoTemporariaNome",
              EXISTS (
                SELECT 1 FROM usuario_posicoes up
                WHERE up.usuario_id = u.id AND up.posicao_id = 1
@@ -773,6 +822,7 @@ export async function buscarTimes(partidaId) {
       FROM participacoes pt
       JOIN usuarios u ON u.id = pt.usuario_id
       LEFT JOIN media_usuarios mu ON mu.usuario_id = u.id
+      LEFT JOIN posicoes posicao_temporaria ON posicao_temporaria.id = pt.posicao_id
       WHERE pt.partida_id = $1 AND pt.time_id = $2
       ORDER BY u.nome ASC
     `
@@ -808,6 +858,8 @@ export async function buscarTimes(partidaId) {
       jogador.foto = linha.foto
       jogador.ehGoleiro = linha.ehGoleiro
       jogador.posicoes = arrayPosicoes
+      jogador.posicaoTemporariaId = linha.posicaoTemporariaId
+      jogador.posicaoTemporariaNome = linha.posicaoTemporariaNome
       jogador.forca = forca
       arrayJogadores.push(jogador)
     }
