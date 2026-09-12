@@ -81,6 +81,9 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 2. **Posição temporária por partida:** permitir que o presidente remaneje a posição dos
    participantes antes de gerar ou regenerar os times. A escolha vale somente para aquela
    partida e não altera as posições cadastradas no perfil do usuário.
+3. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
+   registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
+   localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
 
 > **Concluído em 07/09/2026 — JWT nas requisições protegidas:** o frontend envia o access
 > token do Supabase no header `Authorization`; o middleware do backend valida o token e

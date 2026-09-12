@@ -74,6 +74,10 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | created_at | timestamp | |
 | updated_at | timestamp | |
 
+> **PENDÊNCIA (roadmap — geolocalização):** definir e adicionar os dados geográficos do
+> local padrão de jogos da patota. Eles devem permitir calcular a distância até a localização
+> do usuário e ordenar os resultados da busca da menor para a maior distância.
+
 ### membro_patotas (N:N com metadados)
 | Coluna | Tipo | Observacao |
 |---|---|---|
@@ -154,13 +158,10 @@ Restrições:
 > Essas restrições existem no banco como salvaguarda. As mesmas regras devem também ser
 > validadas na camada de aplicação, incluindo a regra de só avaliar companheiros do mesmo time.
 
-> **PENDÊNCIA (Fase 4 — geração automática de times):** o fluxo de avaliações foi
-> implementado na Fase 2 permitindo que cada participante avalie TODOS os outros
-> participantes da partida (menos ele mesmo), porque os times ainda não são formados
-> (`participacoes.time_id` fica nulo). Quando a geração de times for implementada, é
-> OBRIGATÓRIO atualizar o código das avaliações (backend e frontend) para liberar
-> avaliação APENAS entre jogadores do mesmo `time_id`. Ver `partidas/model.js` e a aba
-> Avaliações em `DetalhesPartida`.
+> **Implementado:** as avaliações são liberadas somente após a formação dos times. O
+> backend e o frontend listam exclusivamente os companheiros com o mesmo `time_id` do
+> avaliador, e o endpoint de gravação valida essa condição antes de registrar cada nota.
+> Participantes sem time atribuído não possuem jogadores disponíveis para avaliar.
 
 ### media_usuarios (cache de media geral)
 | Coluna | Tipo | Observacao |
