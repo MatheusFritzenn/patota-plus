@@ -113,7 +113,20 @@ Convenções reais do banco (PostgreSQL no Supabase):
 
 > **Implementado em 12/09/2026 — posição por partida:** `participacoes.posicao_id` armazena
 > apenas o remanejamento daquela partida e a alteração nunca modifica `usuario_posicoes`.
-> A utilização desse campo pelo algoritmo de geração de times permanece pendente.
+> Desde 13/09/2026, o algoritmo de geração usa esse campo com prioridade sobre as
+> posições do perfil. Sem remanejamento, considera as posições de `usuario_posicoes`
+> válidas para a modalidade. A geração grava apenas `time_id`, preservando `posicao_id`
+> e o perfil; não exige nova migration. As regras de equilíbrio estão no steering do projeto.
+
+> **PENDÊNCIA — próxima revisão da formação por composição:** o algoritmo deverá
+> escolher uma posição de atuação para jogadores com múltiplas posições, conforme a
+> necessidade da composição de referência. Essa escolha automática não deve alterar
+> `usuario_posicoes` nem sobrescrever `participacoes.posicao_id`, reservado à decisão
+> do presidente. Ainda não foi decidido se/como persistir a posição automática ou a
+> identificação de jogador extra, nem sua apresentação ao usuário. Conferir o schema
+> e decidir essa representação na implementação; nenhuma nova coluna ou migration
+> foi criada nesta atualização documental. Regras completas na seção "Próxima
+> implementação — formação por composição" de `projeto-patota-plus.md`.
 
 > A presença é representada pela existência da linha (confirmar = inserir, cancelar = deletar).
 > A coluna `status` (CONFIRMADO/CANCELADO) prevista originalmente **não foi criada** — o

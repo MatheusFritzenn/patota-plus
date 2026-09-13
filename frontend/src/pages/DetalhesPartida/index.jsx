@@ -524,7 +524,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
           <div>
             <h3 className="text-sm font-semibold text-gray-700">Formação de times</h3>
             <p className="text-sm text-gray-500">
-              Os times são gerados automaticamente e equilibrados pela média (força) dos jogadores, distribuindo os goleiros entre os times.
+              Os times são equilibrados pela quantidade de jogadores, pelas posições e pela força média. A posição temporária tem prioridade sobre as posições do perfil.
             </p>
           </div>
 
@@ -555,7 +555,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-gray-700">Posições nesta partida</h3>
             <p className="text-sm text-gray-500">
-              Selecione uma posição temporária antes de gerar ou regenerar os times. A opção padrão mantém as posições do perfil.
+              Selecione uma posição temporária antes de gerar ou regenerar os times. A opção padrão mantém as posições do perfil. Após uma alteração, regenere os times para aplicar o novo equilíbrio.
             </p>
           </div>
 
@@ -596,6 +596,12 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
                 : 'O presidente ainda não gerou os times desta partida.')}
           </p>
         </div>
+      )}
+
+      {temTimes && (
+        <p className="text-xs text-gray-500">
+          A força média inclui uma estimativa para quem ainda não foi avaliado: a média dos jogadores avaliados da partida, ou 5 quando ninguém tem avaliação.
+        </p>
       )}
 
       {/* Grade de times */}

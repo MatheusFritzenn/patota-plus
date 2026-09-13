@@ -76,22 +76,132 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ## Roadmap imediato
 
-1. **Geração de times por força e posição:** evoluir o algoritmo baseado em regras para
-   equilibrar simultaneamente a média geral e a distribuição de posições entre os times,
-   usando a posição temporária quando ela estiver definida.
+1. **Revisão da geração de times por composição e força (definida, ainda não implementada):**
+   aplicar as regras da seção "Próxima implementação — formação por composição" abaixo.
+   Definir primeiro as posições necessárias, alocar jogadores versáteis conforme a
+   necessidade e equilibrar a força preservando essa composição. Substituir o corte de
+   22 participantes por um teto de divisões completas avaliadas.
 2. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
    registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
    localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
 
+> **Implementação atual em 13/09/2026 — geração por força e posição (será revisada):** sempre forma dois times
+> com diferença de tamanho de no máximo um jogador. A posição temporária substitui
+> as posições do perfil; sem remanejamento, todas as posições do perfil válidas para a
+> modalidade contam como opções de atuação, sem atribuir uma escalação individual.
+> O algoritmo determinístico prioriza a distribuição de goleiros, depois a cobertura
+> das posições (soma dos quadrados das diferenças de quantidade por posição) e depois
+> a menor diferença de força média. Uma distribuição inicial por força é refinada por
+> até 100 trocas entre os times, aceitando apenas melhorias nessa ordem de critérios.
+> Para até 22 participantes, uma busca completa compara todas as divisões de tamanho
+> válido, eliminando apenas a repetição por inversão dos times. Assim, encontra a melhor
+> distribuição de goleiros, depois de posições e, entre as equivalentes, a menor diferença
+> de força média (tolerância decimal de 0,000000001). Acima de 22, mantém a aproximação
+> por trocas, sem garantia de ótimo global, para limitar o custo no servidor.
+> Jogadores sem avaliação
+> recebem a média dos avaliados da partida, ou 5 se ninguém foi avaliado; a força média
+> exibida usa a mesma estimativa. Alterações de posição exigem regenerar a formação.
+> Na exibição, os jogadores são ordenados por posição: Goleiro, Fixo, Ala e Pivô
+> no futsal/society; Goleiro, Lateral, Zagueiro, Volante, Meia e Atacante no campo.
+> A posição temporária tem prioridade; com várias posições no perfil, usa-se a mais
+> defensiva para ordenar. Sem posição, o jogador aparece no final; empates seguem por nome.
+
 > **Concluído em 12/09/2026 — atribuição de posição temporária:** o
 > presidente pode remanejar cada participante na aba de times antes da geração ou
 > regeneração. O valor fica em `participacoes.posicao_id` e não altera o perfil. A integração
-> dessa posição ao algoritmo de geração permanece como etapa separada do roadmap.
+> dessa posição ao algoritmo de geração foi concluída em 13/09/2026.
 
 > **Concluído em 07/09/2026 — JWT nas requisições protegidas:** o frontend envia o access
 > token do Supabase no header `Authorization`; o middleware do backend valida o token e
 > disponibiliza a identidade em `req.usuarioId`. Os IDs mantidos nas URLs representam apenas
 > alvos legítimos de operações administrativas.
+
+---
+
+## Próxima implementação — formação por composição
+
+**Status:** regras acordadas para implementação futura. O código atual ainda usa a
+busca completa até 22 participantes descrita acima; esta documentação não significa
+que a revisão já foi implementada.
+
+### Composição de referência por time
+
+| Modalidade | Composição | Total por time |
+|---|---|---:|
+| Futsal e Society | 1 goleiro, 1 fixo, 2 alas e 1 pivô | 5 |
+| Futebol de campo | 1 goleiro, 2 zagueiros, 2 laterais, 2 volantes, 1 meia e 3 atacantes | 11 |
+
+"Meia" corresponde ao meio-campo informado pelo usuário e ao nome usado no cadastro.
+Esses totais são referências de composição, não limites de participantes da partida.
+
+### Distribuição inicial e jogadores com múltiplas posições
+
+- Formar dois times e preservar a diferença de tamanho de no máximo um jogador.
+- Distribuir as posições antes de otimizar força, começando sempre pelo goleiro.
+- A posição temporária definida pelo presidente prevalece sobre o perfil.
+- Sem posição temporária, considerar todas as posições do perfil válidas para a
+  modalidade como possibilidades. Identificar uma posição de atuação para a formação,
+  priorizando a mais necessitada em relação à composição de referência.
+- Contabilizar primeiro os participantes com posição definida (temporária ou única)
+  para orientar a alocação dos jogadores versáteis. Um jogador ocupa somente uma vaga
+  de posição na composição, mesmo quando seu perfil oferece várias opções.
+- Necessidade não é apenas quantidade absoluta: para os dois times de futsal/society,
+  são desejados 2 fixos e 4 alas. Havendo 2 fixos e 3 alas entre os demais participantes,
+  Matheus, que pode atuar como fixo ou ala, deve ser identificado como ala na formação.
+- A escolha automática vale para a formação e não altera o perfil nem sobrescreve a
+  posição temporária atribuída pelo presidente.
+
+### Jogadores extras
+
+- Acima do padrão de 5 jogadores por time no futsal/society ou 11 no campo, distribuir
+  os jogadores extras apenas pela força, sem contar suas posições no equilíbrio da
+  composição de referência.
+- Incluir todos os participantes nos times e no cálculo de força média. Ser extra não
+  exclui o jogador da partida. Preservar o equilíbrio de tamanho também nessa etapa.
+- Preservar a força neutra: média dos jogadores avaliados da partida, ou 5 quando
+  nenhum foi avaliado; não registrar essa estimativa como avaliação real.
+
+### Busca por menor diferença de força
+
+- Após a distribuição inicial, manter a composição por posição de cada time e variar
+  os jogadores dentro dela, trocando jogadores por outros da mesma posição de atuação.
+  Considerar também combinações que exigem várias trocas simultâneas.
+- Os extras são a exceção à restrição de posição: sua distribuição considera somente
+  força, sem modificar as vagas por posição da composição de referência.
+- Calcular as divisões possíveis já respeitando a composição definida. Não contar
+  como possibilidades válidas divisões que violam essa estrutura. A inversão dos nomes
+  dos times, quando equivalente, não representa uma nova divisão.
+- Usar **350.000 divisões completas avaliadas** como teto inicial, em constante com
+  nome explícito. Não usar corte por quantidade de participantes nem orçamento por
+  passos intermediários de exploração. Validar o desempenho com reservas na implementação.
+- Encerrar quando todas as divisões válidas tiverem sido avaliadas ou o teto for
+  atingido; devolver a melhor formação completa encontrada, mantendo a inicial como
+  alternativa disponível. O teto não é uma quantidade obrigatória de avaliações.
+- Uma busca concluída garante a menor diferença de força dentro da composição e das
+  posições de atuação escolhidas. Se atingir o teto, garante apenas a melhor encontrada.
+  Não prometer ótimo global entre todas as possíveis escolhas iniciais de posições.
+- Preservar determinismo e código explícito, com funções e critérios nomeados para
+  facilitar a leitura e a apresentação do TCC. O teto não garante tempo fixo em segundos.
+
+### Detalhes ainda a resolver na implementação
+
+Não foram definidos nesta conversa: desempate entre posições igualmente necessitadas;
+escolha de quais participantes compõem a referência e quais são extras; adaptação
+quando faltam jogadores para a composição ou há participantes sem posição; e como
+persistir/exibir a posição escolhida automaticamente. Não tratar esses detalhes como
+regras já acordadas. Conferir as pendências na modelagem antes de decidir por migration.
+
+---
+
+## Roadmap após a conclusão do projeto
+
+1. **Testes automáticos no GitHub (CI):** assim que o projeto estiver pronto,
+   configurar uma rotina no GitHub Actions para executar os testes a cada push e
+   pull request. Usar inicialmente `npm ci` e `npm test` no backend, incluindo os
+   testes de formação de times e os demais testes existentes nesse momento.
+   A rotina deve sinalizar falhas para detectar regressões nas regras cobertas.
+   Esta configuração fica reservada para depois da conclusão das funcionalidades
+   previstas do projeto, conforme decisão do usuário.
 
 ---
 

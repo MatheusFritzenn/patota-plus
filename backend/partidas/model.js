@@ -549,23 +549,31 @@ export async function buscarResultadoAvaliacoes(partidaId) {
 
 // Busca os participantes confirmados de uma partida com os insumos usados na formação:
 // - forca: média geral do jogador (cache media_usuarios); null se nunca avaliado
-// - ehGoleiro: se o jogador tem a posição de goleiro cadastrada
-async function buscarParticipantesParaFormacao(partidaId) {
+// - posições do perfil filtradas pela modalidade e posição temporária da partida
+async function buscarParticipantesParaFormacao(partidaId, client) {
   const querySelect = `
     SELECT u.id, u.nome, u.foto,
            mu.media_geral AS "mediaGeral",
            mu.total_avaliacoes AS "totalAvaliacoes",
-           EXISTS (
-             SELECT 1 FROM usuario_posicoes up
-             WHERE up.usuario_id = u.id AND up.posicao_id = 1
-           ) AS "ehGoleiro"
+           pt.posicao_id AS "posicaoTemporariaId",
+           ARRAY(
+             SELECT up.posicao_id FROM usuario_posicoes up
+             WHERE up.usuario_id = u.id
+               AND up.posicao_id = ANY(CASE
+                 WHEN p.modalidade_id = 1 THEN ARRAY[1, 2, 3, 4, 5, 6]
+                 WHEN p.modalidade_id IN (2, 3) THEN ARRAY[1, 7, 8, 9]
+                 ELSE ARRAY[]::integer[] END)
+             ORDER BY up.posicao_id
+           ) AS "posicoesIds"
     FROM participacoes pt
     JOIN usuarios u ON u.id = pt.usuario_id
+    JOIN partidas pa ON pa.id = pt.partida_id
+    JOIN patotas p ON p.id = pa.patota_id
     LEFT JOIN media_usuarios mu ON mu.usuario_id = u.id
     WHERE pt.partida_id = $1
     ORDER BY u.nome ASC
   `
-  const resultado = await pool.query(querySelect, [partidaId])
+  const resultado = await client.query(querySelect, [partidaId])
 
   const arrayParticipantes = []
   for (const linha of resultado.rows) {
@@ -573,7 +581,8 @@ async function buscarParticipantesParaFormacao(partidaId) {
     participante.id = linha.id
     participante.nome = linha.nome
     participante.foto = linha.foto
-    participante.ehGoleiro = linha.ehGoleiro
+    participante.posicaoTemporariaId = linha.posicaoTemporariaId
+    participante.posicoesIds = linha.posicoesIds
 
     // Só considera a média como força quando o jogador tem avaliações.
     // Quem nunca foi avaliado fica com força indefinida (null) para receber
@@ -590,134 +599,367 @@ async function buscarParticipantesParaFormacao(partidaId) {
   return arrayParticipantes
 }
 
-// Quantidade de times formados. O sistema sempre divide os jogadores em 2 times.
-const QUANTIDADE_TIMES = 2
-
-// Algoritmo de balanceamento. Recebe a lista de participantes e retorna um array
-// com os 2 times formados, cada um com seus jogadores.
-//
-// Estratégia (explicável, sem "caixa preta"):
-// 1. Jogadores sem avaliação recebem uma força neutra = média das forças
-//    conhecidas do grupo (ou 5 se ninguém tiver avaliação), para não serem
-//    penalizados nem favorecidos.
-// 2. Goleiros são distribuídos primeiro, um por time, começando pelos mais
-//    fortes. Isso evita um time com dois goleiros e outro sem nenhum.
-// 3. Os demais são ordenados por força (desc) e alocados de forma gulosa:
-//    cada jogador vai para o time com menor força acumulada no momento
-//    (desempate pela menor quantidade de jogadores). Isso mantém a soma de
-//    forças e o tamanho dos times equilibrados.
+// Etapas da formação. As funções auxiliares abaixo detalham cada uma delas.
+// A ordem dos critérios permanece: goleiros, posições e força média.
 export function balancearTimes(arrayParticipantes) {
-  // Calcula a força neutra a partir das forças conhecidas
-  let somaConhecidas = 0
-  let qtdConhecidas = 0
-  for (const participante of arrayParticipantes) {
-    if (participante.forca !== null && participante.forca !== undefined) {
-      somaConhecidas = somaConhecidas + participante.forca
-      qtdConhecidas = qtdConhecidas + 1
-    }
-  }
+  // 1. Define a força usada quando um participante ainda não foi avaliado.
+  const forcaNeutra = calcularForcaNeutra(arrayParticipantes)
 
-  let forcaNeutra = 5
-  if (qtdConhecidas > 0) {
-    forcaNeutra = somaConhecidas / qtdConhecidas
-  }
+  // 2. Prepara cópias dos jogadores, usando a posição temporária quando existir.
+  const arrayJogadores = prepararJogadoresParaFormacao(arrayParticipantes, forcaNeutra)
 
-  // Aplica a força efetiva (usa a neutra para quem não tem avaliação)
-  const arrayComForca = []
-  for (const participante of arrayParticipantes) {
-    const copia = {}
-    copia.id = participante.id
-    copia.nome = participante.nome
-    copia.foto = participante.foto
-    copia.ehGoleiro = participante.ehGoleiro
-    copia.forca = participante.forca
-    if (copia.forca === null || copia.forca === undefined) {
-      copia.forcaEfetiva = forcaNeutra
-    }
-    else {
-      copia.forcaEfetiva = copia.forca
-    }
-    arrayComForca.push(copia)
-  }
+  // 3. Coloca goleiros primeiro, depois os mais fortes, com desempate pelo ID.
+  arrayJogadores.sort(compararJogadoresParaFormacao)
 
-  // Inicializa os times
-  const arrayTimes = []
-  let indice = 0
-  while (indice < QUANTIDADE_TIMES) {
-    const time = {}
-    time.numero = indice + 1
-    time.jogadores = []
-    time.somaForca = 0
-    arrayTimes.push(time)
-    indice = indice + 1
-  }
+  // 4. Distribui os jogadores respeitando o limite de tamanho de cada time.
+  const arrayTimes = criarTimesVazios()
+  distribuirJogadoresNosTimes(arrayJogadores, arrayTimes)
 
-  // Função auxiliar: encontra o time "mais fraco" no momento
-  // (menor soma de força; desempate pela menor quantidade de jogadores)
-  function encontrarTimeMaisFraco() {
-    let timeMaisFraco = arrayTimes[0]
-    for (const time of arrayTimes) {
-      if (time.somaForca < timeMaisFraco.somaForca) {
-        timeMaisFraco = time
-      }
-      else if (time.somaForca === timeMaisFraco.somaForca && time.jogadores.length < timeMaisFraco.jogadores.length) {
-        timeMaisFraco = time
-      }
-    }
-    return timeMaisFraco
-  }
+  // 5. Experimenta trocas e mantém somente as que melhoram o equilíbrio.
+  melhorarTimesPorTrocas(arrayTimes)
 
-  // Função auxiliar: adiciona um jogador a um time
-  function adicionarJogador(time, jogador) {
-    time.jogadores.push(jogador)
-    time.somaForca = time.somaForca + jogador.forcaEfetiva
-  }
-
-  // Separa goleiros e linha
-  const arrayGoleiros = []
-  const arrayLinha = []
-  for (const jogador of arrayComForca) {
-    if (jogador.ehGoleiro) {
-      arrayGoleiros.push(jogador)
-    }
-    else {
-      arrayLinha.push(jogador)
-    }
-  }
-
-  // Ordena por força efetiva (desc)
-  arrayGoleiros.sort(function (a, b) {
-    return b.forcaEfetiva - a.forcaEfetiva
-  })
-  arrayLinha.sort(function (a, b) {
-    return b.forcaEfetiva - a.forcaEfetiva
-  })
-
-  // 1) Distribui os goleiros: um por time (mais fortes primeiro). Goleiros
-  //    excedentes entram na fila de linha para o balanceamento guloso.
-  let indiceGoleiro = 0
-  for (const goleiro of arrayGoleiros) {
-    if (indiceGoleiro < arrayTimes.length) {
-      adicionarJogador(arrayTimes[indiceGoleiro], goleiro)
-      indiceGoleiro = indiceGoleiro + 1
-    }
-    else {
-      arrayLinha.push(goleiro)
-    }
-  }
-
-  // Reordena a linha (pode ter recebido goleiros excedentes)
-  arrayLinha.sort(function (a, b) {
-    return b.forcaEfetiva - a.forcaEfetiva
-  })
-
-  // 2) Distribui os jogadores de linha de forma gulosa
-  for (const jogador of arrayLinha) {
-    const time = encontrarTimeMaisFraco()
-    adicionarJogador(time, jogador)
+  // 6. Até 22 jogadores, compara todas as divisões para encontrar a melhor
+  // combinação de posições e, entre as equivalentes, a menor diferença de força.
+  if (arrayJogadores.length <= 22) {
+    return encontrarMelhorDivisaoCompleta(arrayJogadores, arrayTimes)
   }
 
   return arrayTimes
+}
+
+function copiarFormacao(arrayTimes) {
+  const arrayCopia = criarTimesVazios()
+  for (let indice = 0; indice < arrayTimes.length; indice += 1) {
+    for (const jogador of arrayTimes[indice].jogadores) {
+      adicionarJogadorAoTime(arrayCopia[indice], jogador)
+    }
+  }
+  return arrayCopia
+}
+
+// Experimenta cada jogador em um dos dois times, respeitando seus tamanhos.
+// Diferentemente das trocas isoladas, encontra melhorias que exigem mover
+// vários jogadores juntos. As prioridades são as mesmas da avaliação existente.
+function encontrarMelhorDivisaoCompleta(arrayJogadores, arrayFormacaoInicial) {
+  let arrayMelhorFormacao = copiarFormacao(arrayFormacaoInicial)
+  let melhorAvaliacao = avaliarEquilibrioDosTimes(arrayMelhorFormacao)
+  const arrayTimesEmMontagem = criarTimesVazios()
+  const limiteJogadoresPorTime = Math.ceil(arrayJogadores.length / 2)
+
+  function experimentarDivisoes(indiceJogador) {
+    // Todos os jogadores foram alocados: compara a formação completa.
+    if (indiceJogador === arrayJogadores.length) {
+      const avaliacaoCandidata = avaliarEquilibrioDosTimes(arrayTimesEmMontagem)
+      if (formacaoCandidataEhMelhor(avaliacaoCandidata, melhorAvaliacao)) {
+        melhorAvaliacao = avaliacaoCandidata
+        arrayMelhorFormacao = copiarFormacao(arrayTimesEmMontagem)
+      }
+      return
+    }
+
+    const jogador = arrayJogadores[indiceJogador]
+    for (const time of arrayTimesEmMontagem) {
+      if (time.jogadores.length >= limiteJogadoresPorTime) {
+        continue
+      }
+
+      // Guarda a soma para restaurá-la sem acumular resíduos de subtrações.
+      const somaAntesDaSimulacao = time.somaForca
+      adicionarJogadorAoTime(time, jogador)
+      experimentarDivisoes(indiceJogador + 1)
+      time.jogadores.pop()
+      time.somaForca = somaAntesDaSimulacao
+    }
+  }
+
+  if (arrayJogadores.length > 0) {
+    // O primeiro jogador (goleiro, quando disponível) fica no Time 1.
+    // Inverter os nomes dos times não muda o equilíbrio: evita divisões repetidas.
+    adicionarJogadorAoTime(arrayTimesEmMontagem[0], arrayJogadores[0])
+    experimentarDivisoes(1)
+  }
+
+  return arrayMelhorFormacao
+}
+
+function calcularForcaNeutra(arrayParticipantes) {
+  let somaForcasConhecidas = 0 // Soma da força dos jogadores já avaliados.
+  let quantidadeJogadoresAvaliados = 0
+  for (const participante of arrayParticipantes) {
+    if (Number.isFinite(participante.forca)) {
+      somaForcasConhecidas += participante.forca
+      quantidadeJogadoresAvaliados += 1
+    }
+  }
+
+  if (quantidadeJogadoresAvaliados === 0) {
+    return 5
+  }
+
+  return somaForcasConhecidas / quantidadeJogadoresAvaliados
+}
+
+function identificarPosicoesParaFormacao(participante) {
+  const arrayPosicoes = []
+
+  // A posição temporária substitui todas as posições do perfil nesta partida.
+  if (participante.posicaoTemporariaId !== null && participante.posicaoTemporariaId !== undefined) {
+    arrayPosicoes.push(participante.posicaoTemporariaId)
+    return arrayPosicoes
+  }
+
+  // Sem remanejamento, cada posição do perfil representa uma opção de atuação.
+  // A consulta ao banco já filtrou essas posições pela modalidade da partida.
+  if (Array.isArray(participante.posicoesIds)) {
+    for (const posicaoId of participante.posicoesIds) {
+      if (!arrayPosicoes.includes(posicaoId)) {
+        arrayPosicoes.push(posicaoId)
+      }
+    }
+  }
+
+  return arrayPosicoes
+}
+
+function prepararJogadoresParaFormacao(arrayParticipantes, forcaNeutra) {
+  const arrayJogadores = []
+  for (const participante of arrayParticipantes) {
+    const arrayPosicoes = identificarPosicoesParaFormacao(participante)
+
+    const jogador = {
+      id: participante.id,
+      nome: participante.nome,
+      foto: participante.foto,
+      forca: participante.forca,
+      forcaEfetiva: forcaNeutra,
+      posicoesIds: arrayPosicoes,
+      ehGoleiro: arrayPosicoes.includes(1) // ID 1 corresponde a Goleiro.
+    }
+
+    if (Number.isFinite(participante.forca)) {
+      jogador.forcaEfetiva = participante.forca
+    }
+    arrayJogadores.push(jogador)
+  }
+  return arrayJogadores
+}
+
+// O sort coloca o primeiro jogador antes do segundo quando retornamos -1.
+function compararJogadoresParaFormacao(primeiroJogador, segundoJogador) {
+  if (primeiroJogador.ehGoleiro && !segundoJogador.ehGoleiro) {
+    return -1
+  }
+  if (!primeiroJogador.ehGoleiro && segundoJogador.ehGoleiro) {
+    return 1
+  }
+
+  if (primeiroJogador.forcaEfetiva > segundoJogador.forcaEfetiva) {
+    return -1
+  }
+  if (primeiroJogador.forcaEfetiva < segundoJogador.forcaEfetiva) {
+    return 1
+  }
+
+  // Forças iguais: o ID garante uma ordem independente da lista recebida.
+  return String(primeiroJogador.id).localeCompare(String(segundoJogador.id))
+}
+
+function contarJogadoresPorPosicao(time) {
+  const contagemPorPosicao = new Map()
+
+  for (const jogador of time.jogadores) {
+    for (const posicaoId of jogador.posicoesIds) {
+      if (!contagemPorPosicao.has(posicaoId)) {
+        contagemPorPosicao.set(posicaoId, 0)
+      }
+      const quantidadeAtual = contagemPorPosicao.get(posicaoId)
+      contagemPorPosicao.set(posicaoId, quantidadeAtual + 1)
+    }
+  }
+
+  return contagemPorPosicao
+}
+
+function obterQuantidadeNaPosicao(contagemPorPosicao, posicaoId) {
+  if (!contagemPorPosicao.has(posicaoId)) {
+    return 0
+  }
+  return contagemPorPosicao.get(posicaoId)
+}
+
+function calcularDesequilibrioPosicoes(contagemTimeA, contagemTimeB) {
+  // Reúne as posições presentes em qualquer um dos times, sem repetições.
+  const arrayPosicoes = Array.from(contagemTimeA.keys())
+  for (const posicaoId of contagemTimeB.keys()) {
+    if (!arrayPosicoes.includes(posicaoId)) {
+      arrayPosicoes.push(posicaoId)
+    }
+  }
+
+  let desequilibrioPosicoes = 0
+  for (const posicaoId of arrayPosicoes) {
+    const quantidadeTimeA = obterQuantidadeNaPosicao(contagemTimeA, posicaoId)
+    const quantidadeTimeB = obterQuantidadeNaPosicao(contagemTimeB, posicaoId)
+    const diferenca = quantidadeTimeA - quantidadeTimeB
+
+    // O quadrado evita que diferenças opostas se anulem e penaliza concentrações.
+    desequilibrioPosicoes += diferenca * diferenca
+  }
+  return desequilibrioPosicoes
+}
+
+function calcularForcaMedia(time) {
+  if (time.jogadores.length === 0) {
+    return 0
+  }
+  return time.somaForca / time.jogadores.length
+}
+
+function avaliarEquilibrioDosTimes(arrayTimes) {
+  const timeA = arrayTimes[0]
+  const timeB = arrayTimes[1]
+  const contagemTimeA = contarJogadoresPorPosicao(timeA)
+  const contagemTimeB = contarJogadoresPorPosicao(timeB)
+
+  const goleirosTimeA = obterQuantidadeNaPosicao(contagemTimeA, 1)
+  const goleirosTimeB = obterQuantidadeNaPosicao(contagemTimeB, 1)
+  const mediaTimeA = calcularForcaMedia(timeA)
+  const mediaTimeB = calcularForcaMedia(timeB)
+
+  return {
+    diferencaGoleiros: Math.abs(goleirosTimeA - goleirosTimeB),
+    desequilibrioPosicoes: calcularDesequilibrioPosicoes(contagemTimeA, contagemTimeB),
+    diferencaForcaMedia: Math.abs(mediaTimeA - mediaTimeB)
+  }
+}
+
+function formacaoCandidataEhMelhor(avaliacaoCandidata, avaliacaoAtual) {
+  // Primeiro critério: menor diferença na quantidade de goleiros.
+  if (avaliacaoCandidata.diferencaGoleiros !== avaliacaoAtual.diferencaGoleiros) {
+    return avaliacaoCandidata.diferencaGoleiros < avaliacaoAtual.diferencaGoleiros
+  }
+
+  // Segundo critério: menor concentração de jogadores nas mesmas posições.
+  if (avaliacaoCandidata.desequilibrioPosicoes !== avaliacaoAtual.desequilibrioPosicoes) {
+    return avaliacaoCandidata.desequilibrioPosicoes < avaliacaoAtual.desequilibrioPosicoes
+  }
+
+  // Terceiro critério: forças médias mais próximas. Ignora resíduos decimais
+  // muito pequenos produzidos pelas somas e subtrações do JavaScript.
+  const toleranciaDecimal = 0.000000001
+  const diferencaEntreAvaliacoes = Math.abs(
+    avaliacaoCandidata.diferencaForcaMedia - avaliacaoAtual.diferencaForcaMedia
+  )
+  if (diferencaEntreAvaliacoes > toleranciaDecimal) {
+    return avaliacaoCandidata.diferencaForcaMedia < avaliacaoAtual.diferencaForcaMedia
+  }
+
+  // Um empate não justifica mudar a formação.
+  return false
+}
+
+function criarTimesVazios() {
+  return [
+    { numero: 1, jogadores: [], somaForca: 0 },
+    { numero: 2, jogadores: [], somaForca: 0 }
+  ]
+}
+
+function adicionarJogadorAoTime(time, jogador) {
+  time.jogadores.push(jogador)
+  time.somaForca += jogador.forcaEfetiva
+}
+
+function removerUltimoJogadorDoTime(time) {
+  const jogadorRemovido = time.jogadores.pop()
+  time.somaForca -= jogadorRemovido.forcaEfetiva
+}
+
+function distribuirJogadoresNosTimes(arrayJogadores, arrayTimes) {
+  const limiteJogadoresPorTime = Math.ceil(arrayJogadores.length / 2)
+  for (const jogador of arrayJogadores) {
+    let timeEscolhido = null
+    let melhorAvaliacao = null
+    for (const time of arrayTimes) {
+      if (time.jogadores.length >= limiteJogadoresPorTime) {
+        continue
+      }
+
+      // Simula a entrada neste time e depois desfaz a simulação.
+      adicionarJogadorAoTime(time, jogador)
+      const avaliacaoCandidata = avaliarEquilibrioDosTimes(arrayTimes)
+      removerUltimoJogadorDoTime(time)
+
+      if (melhorAvaliacao === null) {
+        timeEscolhido = time
+        melhorAvaliacao = avaliacaoCandidata
+      }
+      else if (formacaoCandidataEhMelhor(avaliacaoCandidata, melhorAvaliacao)) {
+        timeEscolhido = time
+        melhorAvaliacao = avaliacaoCandidata
+      }
+    }
+
+    // Efetiva a entrada somente no time que produziu a melhor avaliação.
+    adicionarJogadorAoTime(timeEscolhido, jogador)
+  }
+}
+
+function trocarJogadoresEntreTimes(arrayTimes, indiceJogadorTimeA, indiceJogadorTimeB) {
+  const timeA = arrayTimes[0]
+  const timeB = arrayTimes[1]
+  const jogadorTimeA = timeA.jogadores[indiceJogadorTimeA]
+  const jogadorTimeB = timeB.jogadores[indiceJogadorTimeB]
+
+  timeA.jogadores[indiceJogadorTimeA] = jogadorTimeB
+  timeB.jogadores[indiceJogadorTimeB] = jogadorTimeA
+  timeA.somaForca += jogadorTimeB.forcaEfetiva - jogadorTimeA.forcaEfetiva
+  timeB.somaForca += jogadorTimeA.forcaEfetiva - jogadorTimeB.forcaEfetiva
+}
+
+function encontrarMelhorTroca(arrayTimes) {
+  const timeA = arrayTimes[0]
+  const timeB = arrayTimes[1]
+  let melhorAvaliacao = avaliarEquilibrioDosTimes(arrayTimes)
+  let melhorTroca = null
+
+  // Experimenta cada par: um jogador do Time 1 e um do Time 2.
+  for (let indiceA = 0; indiceA < timeA.jogadores.length; indiceA += 1) {
+    for (let indiceB = 0; indiceB < timeB.jogadores.length; indiceB += 1) {
+      trocarJogadoresEntreTimes(arrayTimes, indiceA, indiceB)
+      const avaliacaoCandidata = avaliarEquilibrioDosTimes(arrayTimes)
+
+      // Trocar o mesmo par novamente restaura os jogadores aos times anteriores.
+      trocarJogadoresEntreTimes(arrayTimes, indiceA, indiceB)
+
+      if (formacaoCandidataEhMelhor(avaliacaoCandidata, melhorAvaliacao)) {
+        melhorAvaliacao = avaliacaoCandidata
+        melhorTroca = {
+          indiceJogadorTimeA: indiceA,
+          indiceJogadorTimeB: indiceB
+        }
+      }
+    }
+  }
+
+  return melhorTroca
+}
+
+function melhorarTimesPorTrocas(arrayTimes) {
+  // Cada rodada efetiva no máximo uma troca. O limite evita trabalho excessivo.
+  const limiteRodadas = 100
+  for (let rodada = 0; rodada < limiteRodadas; rodada += 1) {
+    const melhorTroca = encontrarMelhorTroca(arrayTimes)
+    if (melhorTroca === null) {
+      break
+    }
+
+    trocarJogadoresEntreTimes(
+      arrayTimes,
+      melhorTroca.indiceJogadorTimeA,
+      melhorTroca.indiceJogadorTimeB
+    )
+  }
 }
 
 // Gera (ou regenera) os times de uma partida e persiste o resultado.
@@ -730,7 +972,7 @@ export async function gerarTimes(partidaId) {
     await client.query('BEGIN')
 
     // Busca os participantes com os insumos de formação
-    const arrayParticipantes = await buscarParticipantesParaFormacao(partidaId)
+    const arrayParticipantes = await buscarParticipantesParaFormacao(partidaId, client)
 
     // Calcula os times em memória (sempre 2 times)
     const arrayTimesCalculados = balancearTimes(arrayParticipantes)
@@ -775,9 +1017,52 @@ export async function gerarTimes(partidaId) {
 }
 
 // Busca os times de uma partida com seus jogadores (nome, foto, posições e força).
-// Retorna também a soma e a média de força de cada time (útil para a UI mostrar
+// Retorna também a média de força de cada time (útil para a UI mostrar
 // o quão equilibrada ficou a divisão).
+function ordenarJogadoresParaExibicao(arrayJogadores, modalidadeId) {
+  let arrayOrdemPosicoes = []
+  if (modalidadeId === 1) {
+    arrayOrdemPosicoes = ['Goleiro', 'Lateral', 'Zagueiro', 'Volante', 'Meia', 'Atacante']
+  }
+  else if (modalidadeId === 2 || modalidadeId === 3) {
+    arrayOrdemPosicoes = ['Goleiro', 'Fixo', 'Ala', 'Pivô']
+  }
+
+  function identificarOrdemDoJogador(jogador) {
+    let arrayPosicoes = jogador.posicoes
+    if (jogador.posicaoTemporariaNome) {
+      arrayPosicoes = [jogador.posicaoTemporariaNome]
+    }
+
+    // A primeira posição encontrada é a mais defensiva dentre as opções do perfil.
+    for (let indice = 0; indice < arrayOrdemPosicoes.length; indice += 1) {
+      if (arrayPosicoes.includes(arrayOrdemPosicoes[indice])) {
+        return indice
+      }
+    }
+
+    // Sem posição reconhecida para a modalidade, aparece depois dos demais.
+    return arrayOrdemPosicoes.length
+  }
+
+  arrayJogadores.sort(function (primeiroJogador, segundoJogador) {
+    const ordemPrimeiro = identificarOrdemDoJogador(primeiroJogador)
+    const ordemSegundo = identificarOrdemDoJogador(segundoJogador)
+    // Empates preservam a ordem por nome recebida da consulta.
+    return ordemPrimeiro - ordemSegundo
+  })
+}
+
 export async function buscarTimes(partidaId) {
+  // Mesma força neutra usada pelo balanceamento, inclusive na média exibida.
+  const queryForcaNeutra = `
+    SELECT COALESCE(AVG(mu.media_geral), 5) AS "forcaNeutra"
+    FROM participacoes pt
+    JOIN media_usuarios mu ON mu.usuario_id = pt.usuario_id
+    WHERE pt.partida_id = $1 AND mu.total_avaliacoes > 0
+  `
+  const resultadoForcaNeutra = await pool.query(queryForcaNeutra, [partidaId])
+  const forcaNeutra = Number(resultadoForcaNeutra.rows[0].forcaNeutra)
   // Descobre a modalidade da partida (para filtrar as posições exibidas)
   const queryModalidade = `
     SELECT p.modalidade_id AS "modalidadeId"
@@ -815,10 +1100,11 @@ export async function buscarTimes(partidaId) {
              mu.total_avaliacoes AS "totalAvaliacoes",
              pt.posicao_id AS "posicaoTemporariaId",
              posicao_temporaria.nome AS "posicaoTemporariaNome",
-             EXISTS (
+             CASE WHEN pt.posicao_id IS NOT NULL THEN pt.posicao_id = 1
+             ELSE EXISTS (
                SELECT 1 FROM usuario_posicoes up
                WHERE up.usuario_id = u.id AND up.posicao_id = 1
-             ) AS "ehGoleiro"
+             ) END AS "ehGoleiro"
       FROM participacoes pt
       JOIN usuarios u ON u.id = pt.usuario_id
       LEFT JOIN media_usuarios mu ON mu.usuario_id = u.id
@@ -830,7 +1116,6 @@ export async function buscarTimes(partidaId) {
 
     const arrayJogadores = []
     let somaForca = 0
-    let qtdComForca = 0
     for (const linha of resultadoJogadores.rows) {
       // Posições do jogador filtradas pela modalidade
       const querySelectPosicoes = `
@@ -848,9 +1133,12 @@ export async function buscarTimes(partidaId) {
       let forca = null
       if (linha.totalAvaliacoes && linha.totalAvaliacoes > 0) {
         forca = Number(Number(linha.mediaGeral).toFixed(2))
-        somaForca = somaForca + forca
-        qtdComForca = qtdComForca + 1
       }
+      let forcaEfetiva = forcaNeutra
+      if (forca !== null) {
+        forcaEfetiva = forca
+      }
+      somaForca += forcaEfetiva
 
       const jogador = {}
       jogador.id = linha.id
@@ -861,13 +1149,16 @@ export async function buscarTimes(partidaId) {
       jogador.posicaoTemporariaId = linha.posicaoTemporariaId
       jogador.posicaoTemporariaNome = linha.posicaoTemporariaNome
       jogador.forca = forca
+      jogador.forcaEfetiva = forcaEfetiva
       arrayJogadores.push(jogador)
     }
 
     let mediaForca = null
-    if (qtdComForca > 0) {
-      mediaForca = Number((somaForca / qtdComForca).toFixed(2))
+    if (arrayJogadores.length > 0) {
+      mediaForca = Number((somaForca / arrayJogadores.length).toFixed(2))
     }
+
+    ordenarJogadoresParaExibicao(arrayJogadores, modalidadeId)
 
     const timeCompleto = {}
     timeCompleto.id = time.id
