@@ -123,6 +123,16 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | created_at | timestamp | |
 | updated_at | timestamp | |
 
+> **PENDÊNCIA (roadmap — edição e sugestões de partidas):** reutilizar os campos
+> existentes de `partidas` para editar data, horário, local e vagas, sem criar outra
+> partida. Impedir redução de `vagas_total` abaixo do total de registros em
+> `participacoes`. Para o cadastro, obter o local textual de `patotas` e usar
+> `dia_habitual` (1=segunda a 7=domingo) e `hora_habitual` para sugerir a próxima data
+> e horário. Esses campos habituais são opcionais no schema atual. As sugestões
+> serão valores iniciais editáveis; não substituirão os dados de partidas existentes.
+> Essas tarefas não exigem novos campos no modelo atual. As regras e decisões
+> pendentes estão no roadmap de `projeto-patota-plus.md`.
+
 ### participacoes
 | Coluna | Tipo | Observacao |
 |---|---|---|

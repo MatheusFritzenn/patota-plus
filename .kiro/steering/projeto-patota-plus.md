@@ -49,7 +49,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 4. **Home** — minhas patotas, buscar e criar
 5. **Tela da patota** — abas: Visão Geral, Jogos, Membros, Relatórios (presidente)
 6. **Detalhes da partida** — abas: Lista de jogadores, Times, Avaliações
-7. **Criar partida** — formulário (somente presidente)
+7. **Criar/editar partida** — formulário compartilhado (somente presidente; edição pendente)
 8. **Busca de patotas** — filtro por modalidade e ordenação por proximidade
 9. **Perfil do usuário** — dados pessoais, alteração de senha e média geral
 10. **Mensalidades** — relatório e baixa manual pelo presidente
@@ -82,6 +82,20 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
    O filtro por modalidade e a ordenação por proximidade devem funcionar em conjunto.
    Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
    abaixo.
+2. **Editar informações de uma partida (pendente):** reutilizar a tela existente de
+   cadastro em modo de edição, carregando os dados salvos e permitindo ao presidente
+   alterar data, horário, local e quantidade de vagas. Disponibilizar o acesso pelos
+   detalhes da partida e validar a autorização também no backend. Manter vagas como
+   inteiro positivo e impedir redução abaixo da quantidade de participantes confirmados.
+   Antes da implementação, definir em quais status a edição será permitida.
+3. **Sugerir os dados habituais da patota ao criar partida (pendente):** preencher
+   local e horário com os dados cadastrados na patota e sugerir a data da próxima
+   ocorrência do dia habitual. Exemplo: em 21/09/2026, para a patota "Amigos do Dinho"
+   com jogos às sextas-feiras, sugerir 25/09/2026. Permitir alterações manuais nas
+   sugestões; dados habituais ausentes devem continuar disponíveis para preenchimento.
+   Na edição, carregar os valores salvos da partida, sem substituí-los pelos padrões
+   da patota. Antes da implementação, definir o fuso de referência e se o próprio
+   dia habitual entra na sugestão quando seu horário ainda não passou.
 
 > **Implementado no código em 21/09/2026 — geração por composição e força:** define
 > uma posição de atuação por participante, monta a composição e compara divisões que
@@ -279,7 +293,7 @@ Esses totais são referências de composição, não limites de participantes da
 
 ## Prioridades
 
-- **P1 (Essencial):** Cadastro, Login, Home, Patota (visão geral/jogos/membros), Detalhes da partida, Busca com filtro por modalidade, Perfil, Criar patota, Criar partida.
+- **P1 (Essencial):** Cadastro, Login, Home, Patota (visão geral/jogos/membros), Detalhes da partida, Busca com filtro por modalidade, Perfil, Criar patota, Criar/editar partida com sugestões dos dados habituais.
 - **P2 (Importante):** Avaliações, Relatórios, mensalidades com baixa manual, Caixa, Geolocalização.
 - **P3 (Diferenciais):** Formação automática de equipes.
 
@@ -291,7 +305,7 @@ Esses totais são referências de composição, não limites de participantes da
 - Senha deve ter no mínimo 8 caracteres, com ao menos uma letra maiúscula, uma
   letra minúscula, um número e um caractere especial. Essa política vale para
   cadastro, redefinição e alteração no perfil.
-- Somente o presidente pode: editar patota, criar partidas, gerenciar membros, acessar relatórios, gerar times, registrar movimentações no caixa.
+- Somente o presidente pode: editar patota, criar/editar partidas, gerenciar membros, acessar relatórios, gerar times, registrar movimentações no caixa.
 - Vagas de partida não podem ser excedidas.
 - Avaliações são feitas apenas entre companheiros do mesmo time, após a partida.
 - Média geral = média das médias por partida.
