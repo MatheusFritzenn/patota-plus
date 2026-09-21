@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { balancearTimes, gerarTimes, buscarTimes } from '../partidas/model.js'
+import { balancearTimes as calcularFormacao, LIMITE_DIVISOES_COMPLETAS_AVALIADAS, gerarTimes, buscarTimes, desfazerTimes } from '../partidas/model.js'
 import pool from '../db.js'
+
+function balancearTimes(arrayParticipantes, modalidadeId = 2) {
+  return calcularFormacao(arrayParticipantes, modalidadeId).times
+}
 
 function jogador(id, forca, arrayPosicoes, posicaoTemporariaId = null) {
   return { id: id, forca: forca, posicoesIds: arrayPosicoes, posicaoTemporariaId: posicaoTemporariaId }
@@ -9,7 +13,7 @@ function jogador(id, forca, arrayPosicoes, posicaoTemporariaId = null) {
 
 function contarPosicao(time, posicaoId) {
   return time.jogadores.filter(function (item) {
-    return item.posicoesIds.includes(posicaoId)
+    return !item.extraFormacao && item.posicaoFormacaoId === posicaoId
   }).length
 }
 
@@ -25,9 +29,16 @@ test('caso da imagem aproxima as médias sem concentrar goleiros ou posições',
   assert.ok(diferenca <= 0.055555556)
   for (const time of arrayTimes) {
     assert.equal(contarPosicao(time, 1), 1)
+    assert.equal(contarPosicao(time, 7), 1)
     assert.equal(contarPosicao(time, 8), 2)
     assert.equal(contarPosicao(time, 9), 1)
   }
+  const matheus = arrayTimes.flatMap(function (time) {
+    return time.jogadores
+  }).find(function (item) {
+    return item.id === 'Matheus'
+  })
+  assert.equal(matheus.posicaoFormacaoId, 8)
 })
 
 test('encontra melhoria que exige mais de uma troca ao mesmo tempo', function () {
@@ -38,54 +49,6 @@ test('encontra melhoria que exige mais de uma troca ao mesmo tempo', function ()
   const arrayTimes = balancearTimes(arrayEntrada)
   // Trocas isoladas paravam numa diferença de soma 0,3; o ótimo é 0,1.
   assert.ok(Math.abs(Math.abs(arrayTimes[0].somaForca - arrayTimes[1].somaForca) - 0.1) < 0.000000001)
-})
-
-test('nenhuma divisão de tamanho válido supera o resultado nos três critérios', function () {
-  const arrayBase = [
-    jogador('a', 10, [1], 8), jogador('b', 9, [8], 1),
-    jogador('c', 1, [1]), jogador('d', 2, [7, 8]),
-    jogador('e', 7, [7]), jogador('f', 5, [9]),
-    jogador('g', null, []), jogador('h', 0, [8])
-  ]
-  // Oráculo independente: enumera subconjuntos por máscara, sem usar os
-  // auxiliares de avaliação nem a recursão do código de produção.
-  for (const quantidade of [7, 8]) {
-    const arrayEntrada = arrayBase.slice(0, quantidade)
-    const arrayTimes = balancearTimes(arrayEntrada)
-    const arrayJogadores = arrayTimes.flatMap(function (time) { return time.jogadores })
-
-    function pontuar(arrayGrupoA, arrayGrupoB) {
-      let diferencaGoleiros = 0
-      let desequilibrio = 0
-      for (const posicao of [1, 7, 8, 9]) {
-        const quantidadeA = arrayGrupoA.filter(function (item) { return item.posicoesIds.includes(posicao) }).length
-        const quantidadeB = arrayGrupoB.filter(function (item) { return item.posicoesIds.includes(posicao) }).length
-        const diferenca = quantidadeA - quantidadeB
-        desequilibrio += diferenca * diferenca
-        if (posicao === 1) diferencaGoleiros = Math.abs(diferenca)
-      }
-      const somaA = arrayGrupoA.reduce(function (soma, item) { return soma + item.forcaEfetiva }, 0)
-      const somaB = arrayGrupoB.reduce(function (soma, item) { return soma + item.forcaEfetiva }, 0)
-      return [diferencaGoleiros, desequilibrio, Math.abs(somaA / arrayGrupoA.length - somaB / arrayGrupoB.length)]
-    }
-
-    const arrayObtida = pontuar(arrayTimes[0].jogadores, arrayTimes[1].jogadores)
-    for (let mascara = 1; mascara < 2 ** quantidade - 1; mascara += 1) {
-      const arrayGrupoA = []
-      const arrayGrupoB = []
-      for (let indice = 0; indice < quantidade; indice += 1) {
-        if (mascara & (1 << indice)) arrayGrupoA.push(arrayJogadores[indice])
-        else arrayGrupoB.push(arrayJogadores[indice])
-      }
-      if (Math.abs(arrayGrupoA.length - arrayGrupoB.length) > 1) continue
-      const arrayAlternativa = pontuar(arrayGrupoA, arrayGrupoB)
-      for (let criterio = 0; criterio < 3; criterio += 1) {
-        if (Math.abs(arrayObtida[criterio] - arrayAlternativa[criterio]) < 0.000000001) continue
-        assert.ok(arrayObtida[criterio] < arrayAlternativa[criterio])
-        break
-      }
-    }
-  }
 })
 
 test('distribui cada posição e encontra forças iguais com perfis complementares', function () {
@@ -110,25 +73,17 @@ test('posição temporária substitui o perfil, inclusive entrada e saída do go
     jogador('a', 5, [1], 9), jogador('b', 5, [8], 1),
     jogador('c', 5, [1]), jogador('d', 5, [9])
   ])
-  const arrayJogadores = arrayTimes.flatMap(function (time) { return time.jogadores })
-  const remanejado = arrayJogadores.find(function (item) { return item.id === 'a' })
+  const arrayJogadores = arrayTimes.flatMap(function (time) {
+    return time.jogadores
+  })
+  const remanejado = arrayJogadores.find(function (item) {
+    return item.id === 'a'
+  })
   assert.deepEqual(remanejado.posicoesIds, [9])
   assert.equal(remanejado.ehGoleiro, false)
   for (const time of arrayTimes) {
     assert.equal(contarPosicao(time, 1), 1)
     assert.equal(contarPosicao(time, 9), 1)
-  }
-})
-
-test('considera todas as opções do perfil sem duplicar o jogador', function () {
-  const arrayTimes = balancearTimes([
-    jogador('a', 5, [7, 8, 8]), jogador('b', 5, [7]),
-    jogador('c', 5, [8]), jogador('d', 5, [])
-  ])
-  for (const time of arrayTimes) {
-    assert.equal(contarPosicao(time, 7), 1)
-    assert.equal(contarPosicao(time, 8), 1)
-    assert.equal(time.jogadores.length, 2)
   }
 })
 
@@ -168,7 +123,7 @@ test('resultado independe da ordem da entrada e não altera os participantes', f
 })
 
 test('mantém tamanhos, unicidade e distribuição de goleiros para listas variadas', function () {
-  for (let quantidade = 2; quantidade <= 31; quantidade += 1) {
+  for (const quantidade of [2, 3, 5, 9, 10, 11, 22, 23, 31]) {
     for (const quantidadeGoleiros of [0, 1, 2, 3, quantidade]) {
       const arrayEntrada = []
       for (let indice = 0; indice < quantidade; indice += 1) {
@@ -180,7 +135,9 @@ test('mantém tamanhos, unicidade e distribuição de goleiros para listas varia
       }
       const arrayTimes = balancearTimes(arrayEntrada)
       const arrayIds = arrayTimes.flatMap(function (time) {
-        return time.jogadores.map(function (item) { return item.id })
+        return time.jogadores.map(function (item) {
+          return item.id
+        })
       })
       assert.equal(arrayIds.length, quantidade)
       assert.equal(new Set(arrayIds).size, quantidade)
@@ -208,11 +165,15 @@ test('geração lê pela conexão transacional e desfaz alterações se a grava�
         }
         return { rows: [] }
       },
-      release: function () { liberado = true }
+      release: function () {
+        liberado = true
+      }
     }
   })
-  contexto.mock.method(pool, 'query', async function () { assert.fail('Leitura fora da transação') })
-  await assert.rejects(gerarTimes('partida'), /falha simulada/)
+  contexto.mock.method(pool, 'query', async function () {
+    assert.fail('Leitura fora da transação')
+  })
+  await assert.rejects(gerarTimes('partida', 2), /falha simulada/)
   assert.equal(arrayComandos[0], 'BEGIN')
   assert.equal(arrayComandos.at(-1), 'ROLLBACK')
   assert.equal(liberado, true)
@@ -244,7 +205,9 @@ test('regeneração substitui os times e associa cada participante uma única ve
         }
         return { rows: [] }
       },
-      release: function () { liberado = true }
+      release: function () {
+        liberado = true
+      }
     }
   })
   contexto.mock.method(pool, 'query', async function (queryComando) {
@@ -253,20 +216,233 @@ test('regeneração substitui os times e associa cada participante uma única ve
     }
     return { rows: [] }
   })
-  await gerarTimes('partida')
+  await gerarTimes('partida', 2)
   assert.equal(totalTimes, 2)
   assert.equal(arrayAssociacoes.length, 4)
-  const arrayIds = arrayAssociacoes.map(function (arrayValores) { return arrayValores[2] })
+  const arrayIds = arrayAssociacoes.map(function (arrayValores) {
+    return arrayValores[2]
+  })
   assert.equal(new Set(arrayIds).size, 4)
-  const arrayAssociacaoB = arrayAssociacoes.find(function (arrayValores) { return arrayValores[2] === 'b' })
-  const arrayAssociacaoC = arrayAssociacoes.find(function (arrayValores) { return arrayValores[2] === 'c' })
+  const arrayAssociacaoB = arrayAssociacoes.find(function (arrayValores) {
+    return arrayValores[2] === 'b'
+  })
+  const arrayAssociacaoC = arrayAssociacoes.find(function (arrayValores) {
+    return arrayValores[2] === 'c'
+  })
   assert.notEqual(arrayAssociacaoB[0], arrayAssociacaoC[0])
-  assert.ok(arrayComandos.some(function (queryComando) { return queryComando.includes('DELETE FROM times') }))
+  assert.ok(arrayComandos.some(function (queryComando) {
+    return queryComando.includes('DELETE FROM times')
+  }))
   assert.ok(arrayComandos.every(function (queryComando) {
     return !queryComando.includes('SET posicao_id') && !queryComando.includes('UPDATE usuario_posicoes')
   }))
   assert.equal(arrayComandos.at(-1), 'COMMIT')
   assert.equal(liberado, true)
+  const arrayAssociacaoA = arrayAssociacoes.find(function (arrayValores) {
+    return arrayValores[2] === 'a'
+  })
+  assert.equal(arrayAssociacaoA[3], 9)
+  assert.equal(arrayAssociacaoA[4], false)
+  assert.equal(arrayAssociacaoB[3], 1)
+})
+
+function montarReferencia(modalidadeId, extras = 0) {
+  let arrayPosicoes = [1, 7, 8, 8, 9]
+  if (modalidadeId === 1) {
+    arrayPosicoes = [1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 6]
+  }
+  const arrayEntrada = []
+  for (let indice = 0; indice < arrayPosicoes.length * 2; indice += 1) {
+    arrayEntrada.push(jogador(String(indice).padStart(3, '0'), (indice * 7 % 101) / 10, [arrayPosicoes[indice % arrayPosicoes.length]]))
+  }
+  for (let indice = 0; indice < extras; indice += 1) {
+    arrayEntrada.push(jogador('extra-' + indice, indice % 11, [1, 8]))
+  }
+  return arrayEntrada
+}
+
+test('conta apenas divisões válidas e elimina inversões equivalentes', function () {
+  for (const modalidade of [1, 2, 3]) {
+    const resultado = calcularFormacao(montarReferencia(modalidade), modalidade)
+    let esperado = 24 // 2 goleiros x 2 fixos x 6 pares de alas x 2 pivôs / 2
+    if (modalidade === 1) {
+      esperado = 8640
+    }
+    assert.equal(resultado.divisoesAvaliadas, esperado)
+    assert.equal(resultado.buscaConcluida, true)
+    for (const time of resultado.times) {
+      assert.equal(contarPosicao(time, 1), 1)
+      if (modalidade === 1) {
+        assert.equal(time.jogadores.length, 11)
+        for (const posicao of [2, 3, 4]) {
+          assert.equal(contarPosicao(time, posicao), 2)
+        }
+        assert.equal(contarPosicao(time, 5), 1)
+        assert.equal(contarPosicao(time, 6), 3)
+      }
+      else {
+        assert.equal(contarPosicao(time, 7), 1)
+        assert.equal(contarPosicao(time, 8), 2)
+        assert.equal(contarPosicao(time, 9), 1)
+      }
+    }
+  }
+})
+
+test('busca completa com mais de 22 participantes e reservas preserva referência', function () {
+  const resultado = calcularFormacao(montarReferencia(1, 2), 1)
+  assert.equal(resultado.divisoesAvaliadas, 17280)
+  assert.equal(resultado.buscaConcluida, true)
+  for (const time of resultado.times) {
+    assert.equal(time.jogadores.length, 12)
+    assert.equal(time.jogadores.filter(function (item) {
+      return item.extraFormacao
+    }).length, 1)
+    assert.equal(contarPosicao(time, 1), 1)
+    assert.equal(contarPosicao(time, 6), 3)
+  }
+})
+
+test('teto limita divisões completas, mantendo todos os participantes e a composição', function () {
+  const resultado = calcularFormacao(montarReferencia(2, 20), 2)
+  assert.equal(resultado.divisoesAvaliadas, LIMITE_DIVISOES_COMPLETAS_AVALIADAS)
+  assert.equal(resultado.buscaConcluida, false)
+  const arrayIds = resultado.times.flatMap(function (time) {
+    return time.jogadores.map(function (item) {
+      return item.id
+    })
+  })
+  assert.equal(arrayIds.length, 30)
+  assert.equal(new Set(arrayIds).size, 30)
+  for (const time of resultado.times) {
+    assert.equal(time.jogadores.length, 15)
+    assert.equal(contarPosicao(time, 1), 1)
+    assert.equal(contarPosicao(time, 7), 1)
+    assert.equal(contarPosicao(time, 8), 2)
+    assert.equal(contarPosicao(time, 9), 1)
+  }
+})
+
+test('oráculo independente confirma ótimo e contagem dentro da composição escolhida', function () {
+  const arrayCenarios = [
+    montarReferencia(2), montarReferencia(2, 3),
+    [jogador('a', 10, [1]), jogador('b', 0, [8, 7]), jogador('c', 7, [8]),
+      jogador('d', 2, []), jogador('e', null, [9]), jogador('f', 3, [9]), jogador('g', 6, [8])]
+  ]
+  for (const arrayEntrada of arrayCenarios) {
+    const resultado = calcularFormacao(arrayEntrada, 2)
+    const arrayTimes = resultado.times
+    const arrayJogadores = arrayTimes.flatMap(function (time) {
+      return time.jogadores
+    })
+    function assinatura(arrayGrupo) {
+      return arrayGrupo.map(function (item) {
+        if (item.extraFormacao) {
+          return 'extra'
+        }
+        return String(item.posicaoFormacaoId)
+      }).sort().join(',')
+    }
+    function diferenca(arrayGrupoA, arrayGrupoB) {
+      const somaA = arrayGrupoA.reduce(function (soma, item) {
+        return soma + item.forcaEfetiva
+      }, 0)
+      const somaB = arrayGrupoB.reduce(function (soma, item) {
+        return soma + item.forcaEfetiva
+      }, 0)
+      return Math.abs(somaA / arrayGrupoA.length - somaB / arrayGrupoB.length)
+    }
+    const assinaturaA = assinatura(arrayTimes[0].jogadores)
+    const assinaturaB = assinatura(arrayTimes[1].jogadores)
+    const obtida = diferenca(arrayTimes[0].jogadores, arrayTimes[1].jogadores)
+    let totalValidas = 0
+    for (let mascara = 0; mascara < 2 ** arrayJogadores.length; mascara += 1) {
+      const arrayA = []
+      const arrayB = []
+      for (let indice = 0; indice < arrayJogadores.length; indice += 1) {
+        if (mascara & (1 << indice)) {
+          arrayA.push(arrayJogadores[indice])
+        }
+        else {
+          arrayB.push(arrayJogadores[indice])
+        }
+      }
+      if (assinatura(arrayA) !== assinaturaA || assinatura(arrayB) !== assinaturaB) {
+        continue
+      }
+      totalValidas += 1
+      assert.ok(obtida <= diferenca(arrayA, arrayB) + 0.000000001)
+    }
+    if (assinaturaA === assinaturaB) {
+      totalValidas /= 2
+    }
+    assert.equal(resultado.divisoesAvaliadas, totalValidas)
+    assert.equal(resultado.buscaConcluida, true)
+  }
+})
+
+test('filtra modalidade, resolve empates pela referência e prioriza goleiro disponível', function () {
+  const arrayTimes = balancearTimes([
+    jogador('a', 5, [8, 7, 2, 7]), jogador('b', 5, [1, 9]),
+    jogador('c', 5, [6]), jogador('d', 5, [1], 8)
+  ])
+  const arrayJogadores = arrayTimes.flatMap(function (time) {
+    return time.jogadores
+  })
+  assert.equal(arrayJogadores.find(function (item) {
+    return item.id === 'a'
+  }).posicaoFormacaoId, 7)
+  assert.equal(arrayJogadores.find(function (item) {
+    return item.id === 'b'
+  }).posicaoFormacaoId, 1)
+  assert.equal(arrayJogadores.find(function (item) {
+    return item.id === 'c'
+  }).posicaoFormacaoId, null)
+  assert.equal(arrayJogadores.find(function (item) {
+    return item.id === 'd'
+  }).posicaoFormacaoId, 8)
+  assert.ok(arrayJogadores.every(function (item) {
+    return !item.extraFormacao
+  }))
+})
+
+test('escolha dos extras é estável por ID e independe da força', function () {
+  const arrayEntrada = montarReferencia(2, 3)
+  const arrayOriginal = balancearTimes(arrayEntrada).flatMap(function (time) {
+    return time.jogadores
+  })
+  for (const item of arrayEntrada) {
+    item.forca = 10 - (item.forca || 0)
+  }
+  const arrayAlterada = balancearTimes(arrayEntrada.reverse()).flatMap(function (time) {
+    return time.jogadores
+  })
+  function extrairExtras(arrayJogadores) {
+    return arrayJogadores.filter(function (item) {
+      return item.extraFormacao
+    }).map(function (item) {
+      return item.id
+    }).sort()
+  }
+  assert.deepEqual(extrairExtras(arrayOriginal), extrairExtras(arrayAlterada))
+  assert.equal(extrairExtras(arrayOriginal).length, 3)
+})
+
+test('desfazer limpa posição de formação e extras, preservando remanejamento e perfil', async function (contexto) {
+  const arrayComandos = []
+  contexto.mock.method(pool, 'connect', async function () {
+    return {
+      query: async function (queryComando) {
+        arrayComandos.push(queryComando)
+        return { rows: [] }
+      },
+      release: function () {}
+    }
+  })
+  await desfazerTimes('partida')
+  assert.ok(arrayComandos[1].includes('posicao_formacao_id = NULL, extra_formacao = NULL'))
+  assert.ok(!arrayComandos[1].includes('posicao_id ='))
+  assert.equal(arrayComandos.at(-1), 'COMMIT')
 })
 
 test('média exibida inclui a força neutra dos jogadores sem avaliação', async function (contexto) {

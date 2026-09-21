@@ -524,7 +524,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
           <div>
             <h3 className="text-sm font-semibold text-gray-700">Formação de times</h3>
             <p className="text-sm text-gray-500">
-              Os times são equilibrados pela quantidade de jogadores, pelas posições e pela força média. A posição temporária tem prioridade sobre as posições do perfil.
+              A formação define uma posição para cada jogador e busca equilibrar a força mantendo a composição dos times. A posição temporária tem prioridade sobre o perfil.
             </p>
           </div>
 
@@ -601,6 +601,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
       {temTimes && (
         <p className="text-xs text-gray-500">
           A força média inclui uma estimativa para quem ainda não foi avaliado: a média dos jogadores avaliados da partida, ou 5 quando ninguém tem avaliação.
+          {' '}Extras também jogam e entram na força média, mas não ocupam vagas da composição de referência.
         </p>
       )}
 
@@ -632,12 +633,20 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
                           </span>
                         )}
                       </div>
-                      {jogador.posicaoTemporariaNome && (
+                      {jogador.extraFormacao === true && (
+                        <p className="text-xs text-gray-500">Extra — distribuído pela força</p>
+                      )}
+                      {jogador.extraFormacao === false && (
+                        <p className="text-xs text-green-700 truncate">
+                          {jogador.posicaoFormacaoNome || 'Sem posição definida'}
+                        </p>
+                      )}
+                      {jogador.extraFormacao == null && jogador.posicaoTemporariaNome && (
                         <p className="text-xs text-green-700 truncate">
                           {jogador.posicaoTemporariaNome} (nesta partida)
                         </p>
                       )}
-                      {!jogador.posicaoTemporariaNome && jogador.posicoes.length > 0 && (
+                      {jogador.extraFormacao == null && !jogador.posicaoTemporariaNome && jogador.posicoes.length > 0 && (
                         <p className="text-xs text-gray-500 truncate">{jogador.posicoes.join(', ')}</p>
                       )}
                     </div>

@@ -75,12 +75,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ## Roadmap imediato
 
-1. **Revisão da geração de times por composição e força (definida, ainda não implementada):**
-   aplicar as regras da seção "Próxima implementação — formação por composição" abaixo.
-   Definir primeiro as posições necessárias, alocar jogadores versáteis conforme a
-   necessidade e equilibrar a força preservando essa composição. Substituir o corte de
-   22 participantes por um teto de divisões completas avaliadas.
-2. **Filtro por modalidade, geolocalização da patota e busca por proximidade:** adicionar
+1. **Filtro por modalidade, geolocalização da patota e busca por proximidade:** adicionar
    à busca o filtro obrigatório por modalidade. Ao criar ou editar uma patota,
    registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
    localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
@@ -88,26 +83,12 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
    Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
    abaixo.
 
-> **Implementação atual em 13/09/2026 — geração por força e posição (será revisada):** sempre forma dois times
-> com diferença de tamanho de no máximo um jogador. A posição temporária substitui
-> as posições do perfil; sem remanejamento, todas as posições do perfil válidas para a
-> modalidade contam como opções de atuação, sem atribuir uma escalação individual.
-> O algoritmo determinístico prioriza a distribuição de goleiros, depois a cobertura
-> das posições (soma dos quadrados das diferenças de quantidade por posição) e depois
-> a menor diferença de força média. Uma distribuição inicial por força é refinada por
-> até 100 trocas entre os times, aceitando apenas melhorias nessa ordem de critérios.
-> Para até 22 participantes, uma busca completa compara todas as divisões de tamanho
-> válido, eliminando apenas a repetição por inversão dos times. Assim, encontra a melhor
-> distribuição de goleiros, depois de posições e, entre as equivalentes, a menor diferença
-> de força média (tolerância decimal de 0,000000001). Acima de 22, mantém a aproximação
-> por trocas, sem garantia de ótimo global, para limitar o custo no servidor.
-> Jogadores sem avaliação
-> recebem a média dos avaliados da partida, ou 5 se ninguém foi avaliado; a força média
-> exibida usa a mesma estimativa. Alterações de posição exigem regenerar a formação.
-> Na exibição, os jogadores são ordenados por posição: Goleiro, Fixo, Ala e Pivô
-> no futsal/society; Goleiro, Lateral, Zagueiro, Volante, Meia e Atacante no campo.
-> A posição temporária tem prioridade; com várias posições no perfil, usa-se a mais
-> defensiva para ordenar. Sem posição, o jogador aparece no final; empates seguem por nome.
+> **Implementado no código em 21/09/2026 — geração por composição e força:** define
+> uma posição de atuação por participante, monta a composição e compara divisões que
+> preservam suas vagas. O limite é de 350.000 divisões completas válidas, sem corte por
+> participantes. As decisões e a garantia da busca estão na seção "Formação por composição".
+> As colunas da posição da formação e da identificação de extras foram adicionadas
+> e conferidas no Supabase em 21/09/2026.
 
 > **Concluído em 12/09/2026 — atribuição de posição temporária:** o
 > presidente pode remanejar cada participante na aba de times antes da geração ou
@@ -168,11 +149,10 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ---
 
-## Próxima implementação — formação por composição
+## Formação por composição
 
-**Status:** regras acordadas para implementação futura. O código atual ainda usa a
-busca completa até 22 participantes descrita acima; esta documentação não significa
-que a revisão já foi implementada.
+**Status:** implementado em 21/09/2026, com schema atualizado no Supabase e testes
+automatizados. Substitui a busca antiga com corte de 22 participantes.
 
 ### Composição de referência por time
 
@@ -233,13 +213,45 @@ Esses totais são referências de composição, não limites de participantes da
 - Preservar determinismo e código explícito, com funções e critérios nomeados para
   facilitar a leitura e a apresentação do TCC. O teto não garante tempo fixo em segundos.
 
-### Detalhes ainda a resolver na implementação
+### Decisões tomadas na implementação
 
-Não foram definidos nesta conversa: desempate entre posições igualmente necessitadas;
-escolha de quais participantes compõem a referência e quais são extras; adaptação
-quando faltam jogadores para a composição ou há participantes sem posição; e como
-persistir/exibir a posição escolhida automaticamente. Não tratar esses detalhes como
-regras já acordadas. Conferir as pendências na modelagem antes de decidir por migration.
+- Contabilizar todas as posições únicas primeiro. Ordenar versáteis pela menor quantidade
+  de opções válidas e depois pelo ID. Se o jogador puder ser goleiro e faltarem goleiros
+  para os dois times, escolher goleiro. Nas demais escolhas, priorizar a menor ocupação
+  proporcional: quantidade já atribuída dividida pela quantidade desejada nos dois times.
+  Empates seguem a ordem da referência: goleiro, zagueiro, lateral, volante, meia, atacante
+  no campo; goleiro, fixo, ala, pivô nas demais modalidades.
+- Preencher até o dobro das vagas de cada posição por ordem de ID, sem privilegiar notas.
+  Se faltarem posições, completar o total da referência com os demais participantes por ID,
+  preservando a posição escolhida. Sem opção válida, manter posição indefinida. Não inventar
+  uma posição que o jogador não ofereceu. A composição é adaptada aos jogadores disponíveis.
+- Somente o excedente ao total de referência (10 ou 22) é extra. A escolha de quem é extra
+  fica fixa durante a busca. Extras continuam na partida; não significam banco de reservas.
+- Distribuir os grupos de posição começando pelo goleiro. Dentro de cada grupo, ordenar por
+  força decrescente e ID; priorizar menos jogadores da posição, depois menor tamanho e menor
+  soma de força, respeitando os tamanhos finais. Extras ignoram o critério de posição.
+- Fixar as quantidades por posição e de extras de cada time após a distribuição inicial.
+  Enumerar combinações dentro desses grupos; a primeira é a formação inicial. Só eliminar
+  inversão dos times quando todos os grupos tiverem quantidades iguais nos dois times.
+  Comparar médias com tolerância de 0,000000001 e manter a formação anterior nos empates.
+- O resultado interno informa `divisoesAvaliadas` e `buscaConcluida`. A contagem prévia de
+  possibilidades satura acima do teto; não enumera todas as combinações para contá-las.
+- Persistir `participacoes.posicao_formacao_id` e `extra_formacao` separadamente de
+  `posicao_id`. A geração/regeneração grava os dois campos com o time na mesma transação;
+  desfazer limpa os três. Mudar a posição temporária exige regenerar para alterar a formação.
+- Exibir a posição salva com o rótulo "na formação" e identificar extras. Ordenar jogadores
+  pela posição da formação (goleiro, lateral, zagueiro, volante, meia, atacante no campo),
+  depois os sem posição e por último extras; empates seguem por nome. Formações anteriores
+  à atualização do schema mantêm a exibição antiga até a regeneração, sem atribuição retroativa.
+- Testes cobrem referência das três modalidades, versatilidade, remanejamento, falta de
+  posições, força neutra, determinismo, contagem de divisões, ótimo por oráculo independente,
+  reservas acima de 22 participantes, teto e persistência transacional.
+- Na medição local realizada durante a implementação em 21/09/2026, sem banco:
+  futsal/society com 14 jogadores avaliou 144 divisões em cerca de 7 ms;
+  com 30, atingiu 350.000 em 27 ms. Campo com 24 avaliou 17.280 em 2 ms; com 40, atingiu
+  350.000 em 25 ms. Valores dependem da máquina e dos participantes, sem garantia de tempo
+  fixo e sem incluir consultas/gravações. O teste PostgreSQL optativo usa tabelas temporárias
+  para validar o ciclo de geração, leitura, regeneração e desfazer sem modificar dados reais.
 
 ---
 
@@ -252,6 +264,16 @@ regras já acordadas. Conferir as pendências na modelagem antes de decidir por 
    A rotina deve sinalizar falhas para detectar regressões nas regras cobertas.
    Esta configuração fica reservada para depois da conclusão das funcionalidades
    previstas do projeto, conforme decisão do usuário.
+2. **Migration inicial e seed do banco:** somente quando o projeto estiver totalmente
+   finalizado, conferir o schema real do Supabase e gerar uma migration inicial capaz de
+   recriar a estrutura final em um banco vazio: tabelas, tipos, relacionamentos, índices,
+   restrições e demais objetos necessários à aplicação. Preparar um seed separado com
+   os dados básicos, como modalidades e posições, preservando os IDs usados pelo código.
+   Documentar os pré-requisitos do ambiente Supabase e validar a recriação em um ambiente
+   separado antes da entrega. Essa migration representa o estado final, sem reconstruir
+   o histórico das alterações. Por decisão do usuário, os arquivos de migrations
+   incrementais não serão mantidos durante o desenvolvimento; manter a modelagem
+   canônica atualizada a cada alteração no banco.
 
 ---
 

@@ -525,7 +525,7 @@ export async function gerar(req, res) {
       return res.status(409).json({ erro: 'É preciso ao menos 2 jogadores confirmados para formar os times' })
     }
 
-    const arrayTimes = await gerarTimes(partidaId)
+    const arrayTimes = await gerarTimes(partidaId, partida.modalidadeId)
 
     const resposta = {
       times: arrayTimes,

@@ -16,6 +16,12 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > PascalCase/singular (ex.: `Usuario`, `MembroPatota`). O Prisma foi abandonado em favor
 > de SQL direto via `pg` (node-postgres); este documento reflete os nomes reais das tabelas.
 
+> **Decisão sobre migrations:** durante o desenvolvimento, não manter arquivos de
+> migrations incrementais. Ao finalizar completamente o projeto, gerar uma migration
+> inicial a partir do schema real e um seed separado com os dados básicos, validando a
+> recriação em um ambiente vazio. A migration representará o estado final, sem recuperar
+> o histórico de alterações. A tarefa está no roadmap de `projeto-patota-plus.md`.
+
 ---
 
 ## Fase 1 — Nucleo
@@ -78,15 +84,15 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > local padrão de jogos da patota. Eles devem permitir calcular a distância até a localização
 > do usuário e ordenar os resultados da busca da menor para a maior distância.
 
-> **DECISÃO PARA A MIGRATION FUTURA — geolocalização:** adicionar `cep` (oito dígitos,
+> **DECISÃO PARA A ALTERAÇÃO FUTURA DO SCHEMA — geolocalização:** adicionar `cep` (oito dígitos,
 > obrigatório), `numero` (aceitando `S/N`), `complemento` (opcional) e uma coluna geográfica
 > para o local padrão. A coluna geográfica deverá usar PostGIS, com tipo
 > `geography(POINT, 4326)` e índice GiST; o PostGIS deverá ser instalado em schema dedicado.
 > Manter rua, cidade e estado para exibição. O backend obterá o ponto por geocodificação do
 > endereço somente na criação ou alteração da patota e fará as consultas de distância por SQL
 > direto via `pg`. A localização momentânea do usuário será recebida apenas como parâmetro da
-> busca e não será persistida. Conferir os nomes definitivos e o schema escolhido ao criar a
-> migration; nenhuma dessas colunas existe no banco enquanto esta pendência estiver aberta.
+> busca e não será persistida. Conferir os nomes definitivos e o schema escolhido ao aplicar
+> a alteração; nenhuma dessas colunas existe no banco enquanto esta pendência estiver aberta.
 
 > **DECISÃO DE BUSCA:** o único filtro obrigatório para o TCC será a modalidade. Esse filtro
 > deverá ser combinável com a ordenação por proximidade e não exige alteração adicional na
@@ -125,23 +131,30 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | usuario_id | uuid, FK → usuarios | |
 | time_id | uuid, FK → times, opcional (ON DELETE SET NULL) | Preenchido quando os times são formados (Fase 2) |
 | posicao_id | int, FK → posicoes, opcional (ON DELETE SET NULL) | Posição temporária atribuída pelo presidente exclusivamente para esta partida |
+| posicao_formacao_id | int, FK → posicoes, opcional (ON DELETE SET NULL) | Posição de atuação escolhida na última formação; adicionada em 21/09/2026 |
+| extra_formacao | boolean, opcional | true = extra; false = composição; NULL = sem formação nova; adicionada em 21/09/2026 |
 
 > **Implementado em 12/09/2026 — posição por partida:** `participacoes.posicao_id` armazena
 > apenas o remanejamento daquela partida e a alteração nunca modifica `usuario_posicoes`.
 > Desde 13/09/2026, o algoritmo de geração usa esse campo com prioridade sobre as
 > posições do perfil. Sem remanejamento, considera as posições de `usuario_posicoes`
-> válidas para a modalidade. A geração grava apenas `time_id`, preservando `posicao_id`
-> e o perfil; não exige nova migration. As regras de equilíbrio estão no steering do projeto.
+> válidas para a modalidade. A revisão de 21/09/2026 também grava a posição da formação
+> e a identificação de extras, preservando `posicao_id` e o perfil.
 
-> **PENDÊNCIA — próxima revisão da formação por composição:** o algoritmo deverá
-> escolher uma posição de atuação para jogadores com múltiplas posições, conforme a
-> necessidade da composição de referência. Essa escolha automática não deve alterar
-> `usuario_posicoes` nem sobrescrever `participacoes.posicao_id`, reservado à decisão
-> do presidente. Ainda não foi decidido se/como persistir a posição automática ou a
-> identificação de jogador extra, nem sua apresentação ao usuário. Conferir o schema
-> e decidir essa representação na implementação; nenhuma nova coluna ou migration
-> foi criada nesta atualização documental. Regras completas na seção "Próxima
-> implementação — formação por composição" de `projeto-patota-plus.md`.
+> **Revisão implementada no código em 21/09/2026:** os dois campos acima foram
+> adicionados ao banco. O arquivo SQL incremental foi removido por decisão do usuário.
+> A posição escolhida automaticamente ocupa `posicao_formacao_id`; `extra_formacao`
+> indica se o participante excede o total da referência, sem excluí-lo do time ou da
+> força média. A geração grava os campos e `time_id` na mesma transação; desfazer limpa
+> todos, sem alterar `posicao_id` nem `usuario_posicoes`. Ambos começam em NULL para
+> preservar formações antigas; a regeneração preenche o novo estado. A interface lê a
+> posição salva, mesmo que o perfil ou o remanejamento mude depois. Regras completas na
+> seção "Formação por composição" de `projeto-patota-plus.md`.
+>
+> **Conferido no banco em 21/09/2026:** após a reativação do projeto Supabase, o schema
+> e os IDs das posições foram conferidos e as colunas foram adicionadas. A leitura das duas
+> novas colunas foi validada, assim como o ciclo de formação em tabelas temporárias no
+> PostgreSQL, preservando os dados reais das partidas.
 
 > A presença é representada pela existência da linha (confirmar = inserir, cancelar = deletar).
 > A coluna `status` (CONFIRMADO/CANCELADO) prevista originalmente **não foi criada** — o
