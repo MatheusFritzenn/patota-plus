@@ -78,6 +78,21 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > local padrão de jogos da patota. Eles devem permitir calcular a distância até a localização
 > do usuário e ordenar os resultados da busca da menor para a maior distância.
 
+> **DECISÃO PARA A MIGRATION FUTURA — geolocalização:** adicionar `cep` (oito dígitos,
+> obrigatório), `numero` (aceitando `S/N`), `complemento` (opcional) e uma coluna geográfica
+> para o local padrão. A coluna geográfica deverá usar PostGIS, com tipo
+> `geography(POINT, 4326)` e índice GiST; o PostGIS deverá ser instalado em schema dedicado.
+> Manter rua, cidade e estado para exibição. O backend obterá o ponto por geocodificação do
+> endereço somente na criação ou alteração da patota e fará as consultas de distância por SQL
+> direto via `pg`. A localização momentânea do usuário será recebida apenas como parâmetro da
+> busca e não será persistida. Conferir os nomes definitivos e o schema escolhido ao criar a
+> migration; nenhuma dessas colunas existe no banco enquanto esta pendência estiver aberta.
+
+> **DECISÃO DE BUSCA:** o único filtro obrigatório para o TCC será a modalidade. Esse filtro
+> deverá ser combinável com a ordenação por proximidade e não exige alteração adicional na
+> modelagem, pois utiliza `patotas.modalidade_id`. Filtro por posição e busca textual ficam
+> fora do escopo atual.
+
 ### membro_patotas (N:N com metadados)
 | Coluna | Tipo | Observacao |
 |---|---|---|
@@ -227,18 +242,11 @@ Restrições implementadas:
 
 ---
 
-## Fase 4 — Inteligentes e Notificacoes
+## Fase 4 — Inteligentes
 
-### notificacoes
-| Coluna | Tipo | Observacao |
-|---|---|---|
-| id | uuid, PK | |
-| usuario_id | uuid, FK → usuarios | |
-| titulo | text | |
-| mensagem | text | |
-| lida | boolean, default false | |
-| tipo | enum (CONVITE, PARTIDA, PAGAMENTO, GERAL) | |
-| created_at | timestamp | |
+Notificações foram retiradas do escopo do TCC. A antiga proposta da tabela
+`notificacoes` não deve orientar migrations; poderá ser remodelada se o recurso for
+retomado após a conclusão do projeto.
 
 > A modelagem financeira acima foi conferida diretamente no schema PostgreSQL em 04/09/2026.
 

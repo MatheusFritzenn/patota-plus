@@ -45,16 +45,15 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 1. **Cadastro** — registro de novo usuário com dados pessoais, modalidades e posições
 2. **Login** — autenticação via Supabase
-3. **Recuperação de senha** — redefinição via e-mail ou SMS
-4. **Home** — minhas patotas, buscar, criar, recomendações
+3. **Recuperação de senha** — redefinição via e-mail
+4. **Home** — minhas patotas, buscar e criar
 5. **Tela da patota** — abas: Visão Geral, Jogos, Membros, Relatórios (presidente)
 6. **Detalhes da partida** — abas: Lista de jogadores, Times, Avaliações
-7. **Criar/editar partida** — formulário (somente presidente)
-8. **Busca de patotas** — busca com filtros (modalidade, posição, proximidade)
-9. **Perfil do usuário** — dados pessoais, alteração de senha, média geral, histórico
-10. **Pagamento de mensalidade** — Pix e cartão
+7. **Criar partida** — formulário (somente presidente)
+8. **Busca de patotas** — filtro por modalidade e ordenação por proximidade
+9. **Perfil do usuário** — dados pessoais, alteração de senha e média geral
+10. **Mensalidades** — relatório e baixa manual pelo presidente
 11. **Criar/editar patota** — formulário de patota
-12. **Notificações** — alertas centralizados
 
 > **Decisão de escopo:** não haverá tela separada de Configurações. A alteração de
 > senha fica na edição do perfil e o logout no menu do avatar. Alteração de e-mail e
@@ -66,10 +65,10 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 | Fase | Escopo |
 |---|---|
-| Fase 1 — Núcleo | Autenticação, cadastro, perfil, patotas, partidas, participantes, vagas, busca, filtros |
+| Fase 1 — Núcleo | Autenticação, cadastro, perfil, patotas, partidas, participantes, vagas e busca por modalidade |
 | Fase 2 — Avaliações | Presença, relatório de presença, avaliações pós-partida, médias, histórico |
-| Fase 3 — Financeiro | Mensalidades, relatório de pagamentos, caixa da patota, pagamento online |
-| Fase 4 — Inteligentes | Formação automática de equipes, recomendação de patotas |
+| Fase 3 — Financeiro | Mensalidades, baixa manual, relatório de pagamentos e caixa da patota |
+| Fase 4 — Inteligentes | Formação automática de equipes |
 | Fase 5 — Finalização | Melhorias de interface, validações, testes, correções, deploy |
 
 ---
@@ -81,9 +80,13 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
    Definir primeiro as posições necessárias, alocar jogadores versáteis conforme a
    necessidade e equilibrar a força preservando essa composição. Substituir o corte de
    22 participantes por um teto de divisões completas avaliadas.
-2. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
+2. **Filtro por modalidade, geolocalização da patota e busca por proximidade:** adicionar
+   à busca o filtro obrigatório por modalidade. Ao criar ou editar uma patota,
    registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
    localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
+   O filtro por modalidade e a ordenação por proximidade devem funcionar em conjunto.
+   Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
+   abaixo.
 
 > **Implementação atual em 13/09/2026 — geração por força e posição (será revisada):** sempre forma dois times
 > com diferença de tamanho de no máximo um jogador. A posição temporária substitui
@@ -115,6 +118,53 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 > token do Supabase no header `Authorization`; o middleware do backend valida o token e
 > disponibiliza a identidade em `req.usuarioId`. Os IDs mantidos nas URLs representam apenas
 > alvos legítimos de operações administrativas.
+
+---
+
+## Próxima implementação — geolocalização e proximidade
+
+**Status:** solução técnica definida, ainda não implementada.
+
+### Cadastro do local da patota
+
+- Adicionar ao endereço da patota `cep`, `numero` e `complemento`. O CEP será obrigatório,
+  armazenado somente com os oito dígitos; o complemento será opcional. O número deverá
+  aceitar `S/N` quando o local não possuir numeração.
+- Usar a API gratuita ViaCEP para auxiliar o preenchimento de rua, cidade e estado. Permitir
+  correção manual, pois o CEP não identifica necessariamente o local exato e o ViaCEP não
+  fornece coordenadas geográficas.
+- Ao criar uma patota ou alterar seu endereço, o backend deverá enviar o endereço completo
+  para o Nominatim/OpenStreetMap e converter o endereço em latitude e longitude. A chamada
+  ficará isolada em um service do backend e usará o Axios já instalado, para permitir a troca
+  futura do provedor sem alterar controllers e models.
+- O Nominatim será usado somente no baixo volume previsto para o TCC: consulta disparada pelo
+  envio do formulário, sem autocomplete, com identificação da aplicação, atribuição ao
+  OpenStreetMap, cache do resultado e limite global de no máximo uma requisição por segundo.
+  As coordenadas salvas evitam repetir a geocodificação durante as buscas. Se esse perfil de
+  uso mudar ou a política do serviço deixar de atendê-lo, substituir o provedor.
+- Ativar o PostGIS em um schema dedicado no Supabase e armazenar o ponto do local em uma
+  coluna `geography(POINT, 4326)` da tabela `patotas`, com índice espacial GiST. Ao construir
+  o ponto, informar longitude antes de latitude.
+- Manter também os campos textuais do endereço para exibição ao usuário. Não é necessário
+  adicionar mapa, Leaflet, React Leaflet ou biblioteca JavaScript de cálculo de distância
+  nesta fase.
+
+### Busca por proximidade
+
+- Disponibilizar um filtro por modalidade na tela de busca. Este é o único filtro de busca
+  obrigatório para a conclusão do TCC; filtro por posição e campo de texto livre ficam fora
+  do escopo atual. Quando selecionado, o filtro deve ser aplicado junto da proximidade.
+- Solicitar a posição atual somente quando o usuário acessar ou acionar a busca por
+  proximidade, usando `navigator.geolocation.getCurrentPosition` no frontend. A API exige
+  HTTPS e consentimento do usuário.
+- Enviar latitude e longitude ao backend Express apenas como parâmetros da busca. Não
+  persistir a localização do usuário.
+- Fazer o model de patotas calcular no PostgreSQL/PostGIS a distância em linha reta entre o
+  ponto recebido e cada patota, retornar a distância em quilômetros e ordenar do menor para
+  o maior valor. Usar funções espaciais como `ST_Distance` e, quando houver filtro por raio,
+  `ST_DWithin`; o acesso continuará sendo SQL direto via `pg`.
+- Exibir a distância junto de cada resultado. Se o usuário negar a permissão ou a localização
+  falhar, manter a busca disponível sem ordenação por proximidade e informar essa condição.
 
 ---
 
@@ -207,9 +257,9 @@ regras já acordadas. Conferir as pendências na modelagem antes de decidir por 
 
 ## Prioridades
 
-- **P1 (Essencial):** Cadastro, Login, Home, Patota (visão geral/jogos/membros), Detalhes da partida, Busca, Perfil, Criar patota, Criar partida.
-- **P2 (Importante):** Avaliações, Relatórios, Pagamento de mensalidades, Caixa, Geolocalização.
-- **P3 (Diferenciais):** Formação automática de equipes, Recomendações.
+- **P1 (Essencial):** Cadastro, Login, Home, Patota (visão geral/jogos/membros), Detalhes da partida, Busca com filtro por modalidade, Perfil, Criar patota, Criar partida.
+- **P2 (Importante):** Avaliações, Relatórios, mensalidades com baixa manual, Caixa, Geolocalização.
+- **P3 (Diferenciais):** Formação automática de equipes.
 
 ---
 
@@ -237,13 +287,22 @@ regras já acordadas. Conferir as pendências na modelagem antes de decidir por 
 - Reserva/pagamento de quadras
 - Streaming
 - IA avançada / Machine Learning
+- Processamento de pagamento online
+- Notificações
+- Recomendações de patotas na Home
+- Recuperação de senha por SMS
+- Edição de partidas e campo de observações da partida
+- Filtro de busca por posição e busca por texto livre
+- Histórico detalhado no perfil e médias separadas por patota
+- Consulta individual de mensalidade pelo membro
+- Foto da patota e indicadores rápidos na Home
 - Gestão profissional de clubes
 
 ---
 
 ## Modelo de dados (entidades principais)
 
-Usuários, Patotas, Partidas, Participações, Times, Avaliações, Médias, Mensalidades, Movimentações financeiras, Transações de pagamento, Notificações.
+Usuários, Patotas, Partidas, Participações, Times, Avaliações, Médias, Mensalidades e Movimentações financeiras.
 
 ---
 
