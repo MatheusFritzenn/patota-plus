@@ -205,7 +205,7 @@ function CriarPatota() {
       if (modoEdicao) {
         navigate('/patota/' + patotaAlvoId)
       } else {
-        navigate('/home')
+        navigate('/minhas-patotas')
       }
     } catch (erroRequisicao) {
       console.error('Erro ao salvar patota ou emblema:', erroRequisicao)
@@ -235,7 +235,7 @@ function CriarPatota() {
     )
   }
 
-  let rotaCancelar = '/home'
+  let rotaCancelar = '/minhas-patotas'
   if (modoEdicao) rotaCancelar = '/patota/' + id
   if (patotaCriadaId) rotaCancelar = '/patota/' + patotaCriadaId
   const formularioEdicao = modoEdicao || !!patotaCriadaId

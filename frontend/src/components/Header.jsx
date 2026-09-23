@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import supabase from '../services/supabaseClient.js'
 import api from '../services/api.js'
 import Avatar from './Avatar.jsx'
-import { User } from 'lucide-react';
+import { Menu, User } from 'lucide-react'
 
-function Header() {
+function Header({ menuLateralAberto, aoAbrirMenuLateral, aoFecharMenuLateral }) {
   const [menuAberto, setMenuAberto] = useState(false)
   const [fotoUsuario, setFotoUsuario] = useState(null)
   const menuRef = useRef(null)
@@ -50,20 +50,33 @@ function Header() {
   }
 
   return (
-    <header className="bg-green-700 text-white py-4 px-6 shadow-md">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
-        <Link
-          to="/home"
-          className="flex items-center gap-2 text-xl font-bold hover:opacity-90"
-        >
-          <img
-            src="/favicon.png"
-            alt=""
-            aria-hidden="true"
-            className="h-9 w-9 object-contain"
-          />
-          <span>Patota+</span>
-        </Link>
+    <header className="relative z-50 h-16 bg-green-700 px-4 text-white shadow-md sm:px-6">
+      <div className="flex h-full items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Abrir menu de navegação"
+            aria-controls="navegacao-lateral"
+            aria-expanded={menuLateralAberto}
+            onClick={aoAbrirMenuLateral}
+            className="rounded-lg p-2 hover:bg-green-600 cursor-pointer md:hidden"
+          >
+            <Menu size={22} aria-hidden="true" />
+          </button>
+          <Link
+            to="/minhas-patotas"
+            onClick={aoFecharMenuLateral}
+            className="flex items-center gap-2 text-xl font-bold hover:opacity-90"
+          >
+            <img
+              src="/favicon.png"
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 object-contain"
+            />
+            <span>Patota+</span>
+          </Link>
+        </div>
 
         {/* Avatar e menu dropdown */}
         <div className="relative" ref={menuRef}>

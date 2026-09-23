@@ -28,7 +28,7 @@ function Login() {
     }
 
     setCarregando(false)
-    navigate('/home')
+    navigate('/minhas-patotas')
   }
 
   return (

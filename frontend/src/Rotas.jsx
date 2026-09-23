@@ -3,7 +3,6 @@ import Login from './pages/Login/index.jsx'
 import Cadastro from './pages/Cadastro/index.jsx'
 import RecuperarSenha from './pages/RecuperarSenha/index.jsx'
 import RedefinirSenha from './pages/RedefinirSenha/index.jsx'
-import Home from './pages/Home/index.jsx'
 import CriarPatota from './pages/CriarPatota/index.jsx'
 import CriarPartida from './pages/CriarPartida/index.jsx'
 import DetalhesPartida from './pages/DetalhesPartida/index.jsx'
@@ -24,7 +23,7 @@ function Rotas() {
 
       {/* Rotas autenticadas (com header) */}
       <Route element={<LayoutAutenticado />}>
-        <Route path="/home" element={<Home />} />
+        <Route path="/home" element={<Navigate to="/minhas-patotas" replace />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/criar-patota" element={<CriarPatota />} />
         <Route path="/patota/:id/editar" element={<CriarPatota />} />

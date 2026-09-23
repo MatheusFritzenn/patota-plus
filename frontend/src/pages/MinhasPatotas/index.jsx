@@ -52,15 +52,7 @@ function MinhasPatotas() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Minhas Patotas</h2>
-        <Link
-          to="/criar-patota"
-          className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-        >
-          + Nova Patota
-        </Link>
-      </div>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Minhas Patotas</h2>
 
       {arrayPatotas.length === 0 && (
         <div className="text-center py-16">

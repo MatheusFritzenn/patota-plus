@@ -46,7 +46,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 1. **Cadastro** — registro de novo usuário com dados pessoais, modalidades e posições
 2. **Login** — autenticação via Supabase
 3. **Recuperação de senha** — redefinição via e-mail
-4. **Home** — minhas patotas, buscar e criar
+4. **Minhas patotas** — tela inicial após o login; as opções Minhas patotas, Buscar patotas e Criar patota ficam juntas na barra lateral compartilhada das telas autenticadas
 5. **Tela da patota** — abas: Visão Geral, Jogos, Membros, Relatórios (presidente)
 6. **Detalhes da partida** — abas: Lista de jogadores, Times, Avaliações
 7. **Criar/editar partida** — formulário compartilhado (somente presidente; edição implementada)
@@ -74,6 +74,12 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 ---
 
 ## Roadmap imediato
+
+> **Concluído em 23/09/2026 — navegação lateral:** o layout autenticado exibe
+> uma barra lateral com ícones e acesso a Minhas patotas, Buscar patotas e Criar
+> patota, sem separação entre os três itens. Em telas pequenas, ela abre pelo botão
+> de menu no cabeçalho. O login e o logo levam a Minhas patotas; a rota `/home`
+> redireciona para essa mesma tela diretamente em `Rotas.jsx`, para preservar links antigos.
 
 1. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
    registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
@@ -375,7 +381,7 @@ frontend/src/
 ├── assets/          — todas as imagens e recursos estáticos
 ├── components/      — componentes reutilizáveis (Header, Button, Card, Modal etc.)
 ├── pages/           — telas do sistema (uma pasta por tela)
-│   ├── Home/
+│   ├── MinhasPatotas/
 │   │   ├── index.jsx
 │   │   └── style.css
 │   ├── Login/
