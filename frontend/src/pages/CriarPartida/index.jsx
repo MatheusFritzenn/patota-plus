@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../services/api.js'
 import supabase from '../../services/supabaseClient.js'
+import { obterDataSugerida, obterLocalSugerido } from '../../utils/sugestoesPartida.js'
 import './style.css'
 
 function CriarPartida() {
@@ -15,7 +16,7 @@ function CriarPartida() {
   const [vagasTotal, setVagasTotal] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const [carregandoDados, setCarregandoDados] = useState(modoEdicao)
+  const [carregandoDados, setCarregandoDados] = useState(true)
   const [erroCarregamento, setErroCarregamento] = useState('')
   const [vagasPreenchidas, setVagasPreenchidas] = useState(0)
 
@@ -25,7 +26,32 @@ function CriarPartida() {
     if (modoEdicao) {
       carregarPartida()
     }
-  }, [partidaId])
+    else {
+      carregarPatota()
+    }
+  }, [id, partidaId])
+
+  async function carregarPatota() {
+    setCarregandoDados(true)
+    setErroCarregamento('')
+
+    try {
+      const respostaPatota = await api.get('/patotas/' + id)
+      const patota = respostaPatota.data
+
+      setPatotaId(patota.id)
+      setData(obterDataSugerida(patota.diaHabitual, patota.horaHabitual))
+      setHorario(patota.horaHabitual ? patota.horaHabitual.substring(0, 5) : '')
+      setLocal(obterLocalSugerido(patota))
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar patota:', erroRequisicao)
+      setErroCarregamento('Erro ao carregar os dados da patota.')
+    }
+    finally {
+      setCarregandoDados(false)
+    }
+  }
 
   async function carregarPartida() {
     setCarregandoDados(true)

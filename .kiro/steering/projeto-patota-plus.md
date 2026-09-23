@@ -82,14 +82,15 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
    O filtro por modalidade e a ordenação por proximidade devem funcionar em conjunto.
    Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
    abaixo.
-2. **Sugerir os dados habituais da patota ao criar partida (pendente):** preencher
-   local e horário com os dados cadastrados na patota e sugerir a data da próxima
-   ocorrência do dia habitual. Exemplo: em 21/09/2026, para a patota "Amigos do Dinho"
-   com jogos às sextas-feiras, sugerir 25/09/2026. Permitir alterações manuais nas
-   sugestões; dados habituais ausentes devem continuar disponíveis para preenchimento.
-   Na edição, carregar os valores salvos da partida, sem substituí-los pelos padrões
-   da patota. Antes da implementação, definir o fuso de referência e se o próprio
-   dia habitual entra na sugestão quando seu horário ainda não passou.
+> **Concluído em 23/09/2026 — sugestões ao criar partida:** o formulário de criação
+> sugere o local a partir do endereço textual da patota, o horário habitual e a
+> próxima ocorrência do dia habitual. A referência para calcular o dia e a hora
+> atuais é `America/Sao_Paulo` (Brasília), independentemente do fuso do navegador.
+> Se hoje for o dia habitual e o horário ainda não passou, sugere hoje; depois do
+> horário, sugere a semana seguinte. Sem horário cadastrado, o próprio dia habitual
+> pode ser sugerido hoje e o horário fica vazio. Campos habituais ausentes deixam
+> os respectivos valores em branco. Todas as sugestões são editáveis. Na edição,
+> o formulário carrega exclusivamente os valores salvos da partida.
 
 > **Concluído em 23/09/2026 — edição de partida:** o presidente pode alterar data,
 > horário, local e vagas pelo formulário existente, a partir dos detalhes da partida.

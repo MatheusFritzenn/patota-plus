@@ -133,13 +133,12 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > ou `EM_ANDAMENTO`. A operação confere o status sob bloqueio e remove a partida;
 > as FKs reais removem em cascata suas participações, times e avaliações.
 >
-> **PENDÊNCIA (roadmap — sugestões de partidas):** para o cadastro, obter o local
-> textual de `patotas` e usar `dia_habitual` (1=segunda a 7=domingo) e
-> `hora_habitual` para sugerir a próxima data e horário. Esses campos habituais
-> são opcionais no schema atual. As sugestões
-> serão valores iniciais editáveis; não substituirão os dados de partidas existentes.
-> Essa tarefa não exige novos campos no modelo atual. As regras e decisões
-> pendentes estão no roadmap de `projeto-patota-plus.md`.
+> **SUGESTÕES IMPLEMENTADAS:** na criação, o formulário usa o endereço textual de
+> `patotas`, `dia_habitual` (1=segunda a 7=domingo) e `hora_habitual` para
+> sugerir local, data e horário. Os campos habituais continuam opcionais. O cálculo
+> da data usa o fuso `America/Sao_Paulo`; a edição utiliza os dados salvos da
+> partida. Não foram necessários novos campos no banco. Regras completas em
+> `projeto-patota-plus.md`.
 
 ### participacoes
 | Coluna | Tipo | Observacao |
