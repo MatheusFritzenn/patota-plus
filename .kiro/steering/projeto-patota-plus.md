@@ -75,13 +75,18 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ## Roadmap imediato
 
-1. **Filtro por modalidade, geolocalização da patota e busca por proximidade:** adicionar
-   à busca o filtro obrigatório por modalidade. Ao criar ou editar uma patota,
+1. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
    registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
    localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
-   O filtro por modalidade e a ordenação por proximidade devem funcionar em conjunto.
+   O filtro por modalidade já implementado e a ordenação por proximidade devem funcionar em conjunto.
    Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
    abaixo.
+
+> **Concluído em 23/09/2026 — filtro por modalidade:** a busca permite selecionar
+> uma modalidade ou visualizar todas, com filtro aplicado no backend a patotas das
+> quais o usuário ainda não participa. A tela mostra a quantidade encontrada; os
+> cards exibem a modalidade em destaque verde e não exibem mais a descrição.
+> A geolocalização e a ordenação por distância continuam pendentes.
 > **Concluído em 23/09/2026 — sugestões ao criar partida:** o formulário de criação
 > sugere o local a partir do endereço textual da patota, o horário habitual e a
 > próxima ocorrência do dia habitual. A referência para calcular o dia e a hora
@@ -154,9 +159,9 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ### Busca por proximidade
 
-- Disponibilizar um filtro por modalidade na tela de busca. Este é o único filtro de busca
-  obrigatório para a conclusão do TCC; filtro por posição e campo de texto livre ficam fora
-  do escopo atual. Quando selecionado, o filtro deve ser aplicado junto da proximidade.
+- O filtro por modalidade já está implementado na tela e no backend. É o único filtro de busca
+  previsto para o TCC; filtro por posição e campo de texto livre ficam fora do escopo.
+  Quando a proximidade for implementada, ambos deverão funcionar juntos.
 - Solicitar a posição atual somente quando o usuário acessar ou acionar a busca por
   proximidade, usando `navigator.geolocation.getCurrentPosition` no frontend. A API exige
   HTTPS e consentimento do usuário.

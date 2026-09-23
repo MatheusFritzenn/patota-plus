@@ -95,9 +95,9 @@ function MinhasPatotas() {
                   )}
                 </div>
 
-                <p className="text-sm text-gray-500">
+                <span className="inline-flex self-start rounded-full bg-green-50 text-green-700 text-sm font-medium px-3 py-1">
                   {patota.modalidadeNome}
-                </p>
+                </span>
 
                 <p className="text-sm text-gray-400">
                   {patota.rua} — {patota.cidade}/{patota.estado}

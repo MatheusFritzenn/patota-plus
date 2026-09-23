@@ -94,10 +94,10 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > busca e não será persistida. Conferir os nomes definitivos e o schema escolhido ao aplicar
 > a alteração; nenhuma dessas colunas existe no banco enquanto esta pendência estiver aberta.
 
-> **DECISÃO DE BUSCA:** o único filtro obrigatório para o TCC será a modalidade. Esse filtro
-> deverá ser combinável com a ordenação por proximidade e não exige alteração adicional na
-> modelagem, pois utiliza `patotas.modalidade_id`. Filtro por posição e busca textual ficam
-> fora do escopo atual.
+> **FILTRO DE BUSCA IMPLEMENTADO:** o filtro por modalidade usa `patotas.modalidade_id`,
+> sem alteração no schema, e aceita a opção de listar todas as modalidades. Quando a
+> proximidade for implementada, deverá poder ser combinada com esse filtro. Filtro por
+> posição e busca textual ficam fora do escopo atual.
 
 ### membro_patotas (N:N com metadados)
 | Coluna | Tipo | Observacao |

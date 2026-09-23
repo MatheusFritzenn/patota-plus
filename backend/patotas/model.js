@@ -67,10 +67,10 @@ export async function buscarPatotasDoUsuario(usuarioId) {
   return resultado.rows
 }
 
-// Busca patotas das quais o usuário NÃO participa
-export async function buscarPatotasDisponiveis(usuarioId) {
+// Busca patotas das quais o usuário NÃO participa, filtrando a modalidade quando informada
+export async function buscarPatotasDisponiveis(usuarioId, modalidadeId) {
   const querySelectPatotas = `
-    SELECT p.id, p.nome, p.descricao, p.modalidade_id AS "modalidadeId", p.rua, p.cidade, p.estado,
+    SELECT p.id, p.nome, p.modalidade_id AS "modalidadeId", p.rua, p.cidade, p.estado,
            p.presidente_id AS "presidenteId", p.created_at AS "createdAt", p.updated_at AS "updatedAt",
            m.nome AS "modalidadeNome"
     FROM patotas p
@@ -78,10 +78,12 @@ export async function buscarPatotasDisponiveis(usuarioId) {
     WHERE p.id NOT IN (
       SELECT mp.patota_id FROM membro_patotas mp WHERE mp.usuario_id = $1 AND mp.ativo = true
     )
+      AND ($2::int IS NULL OR p.modalidade_id = $2)
     ORDER BY p.nome
   `
 
-  const resultado = await pool.query(querySelectPatotas, [usuarioId])
+  const arrayValoresBusca = [usuarioId, modalidadeId]
+  const resultado = await pool.query(querySelectPatotas, arrayValoresBusca)
 
   return resultado.rows
 }

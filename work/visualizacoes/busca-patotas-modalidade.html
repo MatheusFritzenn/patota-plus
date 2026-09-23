@@ -1,0 +1,155 @@
+<div id="patota-modalidade-mockup" aria-label="Prévia da busca de patotas por modalidade">
+  <style>
+    #patota-modalidade-mockup {
+      color-scheme: light dark;
+      --pp-page: light-dark(#f7f8fa, #111814);
+      --pp-card: light-dark(#ffffff, #1c2720);
+      --pp-text: light-dark(#1f2937, #edf4ee);
+      --pp-muted: light-dark(#6b7280, #a8b5aa);
+      --pp-border: light-dark(#e5e7eb, #354438);
+      --pp-green: light-dark(#15803d, #7ed99b);
+      --pp-green-soft: light-dark(#e8f5ec, #193a25);
+      box-sizing: border-box;
+      width: 100%;
+      padding: 28px;
+      border-radius: 18px;
+      background: var(--pp-page);
+      color: var(--pp-text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    #patota-modalidade-mockup * { box-sizing: border-box; }
+    #patota-modalidade-mockup h2 { margin: 0 0 22px; font-size: 24px; font-weight: 500; }
+    #patota-modalidade-mockup .pp-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+    #patota-modalidade-mockup .pp-filter { width: min(100%, 320px); }
+    #patota-modalidade-mockup label { display: block; margin-bottom: 7px; color: var(--pp-text); font-size: 14px; font-weight: 500; }
+    #patota-modalidade-mockup select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--pp-border); border-radius: 9px; background: var(--pp-card); color: var(--pp-text); font: inherit; font-size: 15px; }
+    #patota-modalidade-mockup .pp-count { margin: 0 0 11px; color: var(--pp-muted); font-size: 14px; white-space: nowrap; }
+    #patota-modalidade-mockup .pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    #patota-modalidade-mockup .pp-card { min-width: 0; padding: 20px; border: 1px solid var(--pp-border); border-radius: 16px; background: var(--pp-card); box-shadow: 0 3px 12px light-dark(#0000000a, #00000021); }
+    #patota-modalidade-mockup .pp-name { margin: 0 0 9px; color: var(--pp-text); font-size: 18px; font-weight: 500; }
+    #patota-modalidade-mockup .pp-tag { display: inline-block; margin-bottom: 12px; padding: 5px 9px; border-radius: 999px; background: var(--pp-green-soft); color: var(--pp-green); font-size: 13px; }
+    #patota-modalidade-mockup .pp-address { margin: 0; color: var(--pp-muted); font-size: 14px; }
+    #patota-modalidade-mockup .pp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    #patota-modalidade-mockup .pp-chip { min-height: 40px; padding: 8px 13px; border: 1px solid var(--pp-border); border-radius: 999px; background: var(--pp-card); color: var(--pp-text); font: inherit; font-size: 14px; }
+    #patota-modalidade-mockup .pp-chip[aria-pressed="true"] { border-color: var(--pp-green); background: var(--pp-green-soft); color: var(--pp-green); }
+    #patota-modalidade-mockup .pp-empty { margin: 0; padding: 30px 0; color: var(--pp-muted); text-align: center; }
+    @media (max-width: 620px) {
+      #patota-modalidade-mockup { padding: 20px; }
+      #patota-modalidade-mockup .pp-toolbar { display: block; }
+      #patota-modalidade-mockup .pp-filter { width: 100%; }
+      #patota-modalidade-mockup .pp-count { margin: 12px 0 0; }
+      #patota-modalidade-mockup .pp-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+  <h2>Buscar Patotas</h2>
+  <div class="pp-toolbar">
+    <div class="pp-filter" aria-label="Filtro por modalidade">
+      <label for="pp-modalidade">Modalidade</label>
+      <div class="pp-select-view">
+        <select id="pp-modalidade">
+          <option value="todas">Todas as modalidades</option>
+          <option value="campo">Futebol de campo</option>
+          <option value="society">Futebol society</option>
+          <option value="futsal">Futebol de salão</option>
+        </select>
+      </div>
+      <div class="pp-chips-view" hidden>
+        <div class="pp-chips" role="group" aria-label="Modalidade">
+          <button class="pp-chip" type="button" data-value="todas">Todas</button>
+          <button class="pp-chip" type="button" data-value="campo">Campo</button>
+          <button class="pp-chip" type="button" data-value="society">Society</button>
+          <button class="pp-chip" type="button" data-value="futsal">Futsal</button>
+        </div>
+      </div>
+    </div>
+    <p class="pp-count" aria-live="polite"></p>
+  </div>
+  <div class="pp-grid">
+    <article class="pp-card" data-modalidade="society">
+      <h3 class="pp-name">Amigos do Dinho</h3>
+      <span class="pp-tag">Futebol society</span>
+      <p class="pp-address">Rua das Palmeiras — Brasília/DF</p>
+    </article>
+    <article class="pp-card" data-modalidade="futsal">
+      <h3 class="pp-name">Racha da Vila</h3>
+      <span class="pp-tag">Futebol de salão</span>
+      <p class="pp-address">Quadra Central — Brasília/DF</p>
+    </article>
+    <article class="pp-card" data-modalidade="campo">
+      <h3 class="pp-name">Bola de Quinta</h3>
+      <span class="pp-tag">Futebol de campo</span>
+      <p class="pp-address">Setor Esportivo — Taguatinga/DF</p>
+    </article>
+    <article class="pp-card" data-modalidade="futsal">
+      <h3 class="pp-name">Turma da Quadra</h3>
+      <span class="pp-tag">Futebol de salão</span>
+      <p class="pp-address">Rua 10 — Ceilândia/DF</p>
+    </article>
+  </div>
+  <p class="pp-empty" hidden>Nenhuma patota encontrada nessa modalidade.</p>
+  <script>
+    const raizPatota = document.getElementById('patota-modalidade-mockup')
+    const estadoPatota = { modalidade: 'todas', estiloFiltro: 'select' }
+    const estadoSalvoPatota = window.openai && window.openai.widgetState
+    if (estadoSalvoPatota && estadoSalvoPatota.modelContent && estadoSalvoPatota.modelContent.modalidade) {
+      estadoPatota.modalidade = estadoSalvoPatota.modelContent.modalidade
+    }
+    if (estadoSalvoPatota && estadoSalvoPatota.privateContent && estadoSalvoPatota.privateContent.estiloFiltro) {
+      estadoPatota.estiloFiltro = estadoSalvoPatota.privateContent.estiloFiltro
+    }
+
+    function mostrarPatotas() {
+      raizPatota.querySelector('.pp-select-view').hidden = estadoPatota.estiloFiltro !== 'select'
+      raizPatota.querySelector('.pp-chips-view').hidden = estadoPatota.estiloFiltro !== 'chips'
+      raizPatota.querySelector('#pp-modalidade').value = estadoPatota.modalidade
+      let quantidade = 0
+      const arrayCards = raizPatota.querySelectorAll('.pp-card')
+      for (const card of arrayCards) {
+        const visivel = estadoPatota.modalidade === 'todas' || card.dataset.modalidade === estadoPatota.modalidade
+        card.hidden = !visivel
+        if (visivel) quantidade += 1
+      }
+      const arrayChips = raizPatota.querySelectorAll('.pp-chip')
+      for (const chip of arrayChips) {
+        chip.setAttribute('aria-pressed', String(chip.dataset.value === estadoPatota.modalidade))
+      }
+      raizPatota.querySelector('.pp-count').textContent = quantidade + (quantidade === 1 ? ' patota encontrada' : ' patotas encontradas')
+      raizPatota.querySelector('.pp-empty').hidden = quantidade !== 0
+    }
+
+    function salvarEscolhaPatota() {
+      if (window.openai && window.openai.setWidgetState) {
+        window.openai.setWidgetState({
+          modelContent: { modalidade: estadoPatota.modalidade },
+          privateContent: { estiloFiltro: estadoPatota.estiloFiltro }
+        }).catch(function () {})
+      }
+    }
+
+    raizPatota.querySelector('#pp-modalidade').addEventListener('change', function (evento) {
+      estadoPatota.modalidade = evento.target.value
+      mostrarPatotas()
+      salvarEscolhaPatota()
+    })
+    const arrayBotoesPatota = raizPatota.querySelectorAll('.pp-chip')
+    for (const botao of arrayBotoesPatota) {
+      botao.addEventListener('click', function () {
+        estadoPatota.modalidade = botao.dataset.value
+        mostrarPatotas()
+        salvarEscolhaPatota()
+      })
+    }
+    mostrarPatotas()
+
+    if (globalThis.Tweak) {
+      const ajustesPatota = new Tweak({ container: raizPatota, onChange: mostrarPatotas })
+      ajustesPatota.addSelect(estadoPatota, 'estiloFiltro', {
+        label: 'Estilo do filtro',
+        options: [
+          { label: 'Lista suspensa', value: 'select' },
+          { label: 'Botões', value: 'chips' }
+        ]
+      })
+    }
+  </script>
+</div>

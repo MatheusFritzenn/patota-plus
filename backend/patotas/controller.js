@@ -54,12 +54,25 @@ export async function listarPorUsuario(req, res) {
   }
 }
 
-// GET /patotas/buscar — Listar patotas disponíveis (que o usuário não participa)
+// GET /patotas/buscar — Listar patotas disponíveis, com filtro opcional por modalidade
 export async function listarDisponiveis(req, res) {
   try {
     const usuarioId = req.usuarioId
+    const modalidadeRecebida = req.query.modalidadeId
+    let modalidadeId = null
 
-    const arrayPatotas = await buscarPatotasDisponiveis(usuarioId)
+    if (modalidadeRecebida !== undefined) {
+      if (typeof modalidadeRecebida !== 'string' || !/^[1-9]\d*$/.test(modalidadeRecebida)) {
+        return res.status(400).json({ erro: 'A modalidade informada é inválida' })
+      }
+
+      modalidadeId = Number(modalidadeRecebida)
+      if (!Number.isSafeInteger(modalidadeId) || modalidadeId > 2147483647) {
+        return res.status(400).json({ erro: 'A modalidade informada é inválida' })
+      }
+    }
+
+    const arrayPatotas = await buscarPatotasDisponiveis(usuarioId, modalidadeId)
 
     return res.json(arrayPatotas)
   }
