@@ -123,21 +123,29 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | created_at | timestamp | |
 | updated_at | timestamp | |
 
-> **PENDÊNCIA (roadmap — edição e sugestões de partidas):** reutilizar os campos
-> existentes de `partidas` para editar data, horário, local e vagas, sem criar outra
-> partida. Impedir redução de `vagas_total` abaixo do total de registros em
-> `participacoes`. Para o cadastro, obter o local textual de `patotas` e usar
-> `dia_habitual` (1=segunda a 7=domingo) e `hora_habitual` para sugerir a próxima data
-> e horário. Esses campos habituais são opcionais no schema atual. As sugestões
+> **EDIÇÃO IMPLEMENTADA:** os campos existentes de `partidas` permitem alterar data,
+> horário, local e vagas, sem criar outra partida. Apenas o presidente pode editar
+> partidas `AGENDADA` ou `EM_ANDAMENTO`, e `vagas_total` não pode ficar abaixo do
+> total de registros em `participacoes`. O bloqueio transacional da linha da partida
+> sincroniza essa regra com a confirmação de presença.
+>
+> **EXCLUSÃO IMPLEMENTADA:** somente o presidente pode excluir partidas `AGENDADA`
+> ou `EM_ANDAMENTO`. A operação confere o status sob bloqueio e remove a partida;
+> as FKs reais removem em cascata suas participações, times e avaliações.
+>
+> **PENDÊNCIA (roadmap — sugestões de partidas):** para o cadastro, obter o local
+> textual de `patotas` e usar `dia_habitual` (1=segunda a 7=domingo) e
+> `hora_habitual` para sugerir a próxima data e horário. Esses campos habituais
+> são opcionais no schema atual. As sugestões
 > serão valores iniciais editáveis; não substituirão os dados de partidas existentes.
-> Essas tarefas não exigem novos campos no modelo atual. As regras e decisões
+> Essa tarefa não exige novos campos no modelo atual. As regras e decisões
 > pendentes estão no roadmap de `projeto-patota-plus.md`.
 
 ### participacoes
 | Coluna | Tipo | Observacao |
 |---|---|---|
 | id | uuid, PK | |
-| partida_id | uuid, FK → partidas | |
+| partida_id | uuid, FK → partidas (ON DELETE CASCADE) | Conferido no schema real em 23/09/2026 |
 | usuario_id | uuid, FK → usuarios | |
 | time_id | uuid, FK → times, opcional (ON DELETE SET NULL) | Preenchido quando os times são formados (Fase 2) |
 | posicao_id | int, FK → posicoes, opcional (ON DELETE SET NULL) | Posição temporária atribuída pelo presidente exclusivamente para esta partida |

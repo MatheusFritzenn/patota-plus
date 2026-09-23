@@ -32,6 +32,7 @@ function Rotas() {
         <Route path="/buscar-patotas" element={<BuscarPatotas />} />
         <Route path="/patota/:id" element={<Patota />} />
         <Route path="/patota/:id/criar-partida" element={<CriarPartida />} />
+        <Route path="/partida/:partidaId/editar" element={<CriarPartida />} />
         <Route path="/partida/:id" element={<DetalhesPartida />} />
       </Route>
 

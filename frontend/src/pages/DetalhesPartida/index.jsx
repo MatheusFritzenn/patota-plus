@@ -33,6 +33,8 @@ function DetalhesPartida() {
   const [estaConfirmado, setEstaConfirmado] = useState(false)
   const [participanteParaRemover, setParticipanteParaRemover] = useState(null)
   const [modalFinalizarAberto, setModalFinalizarAberto] = useState(false)
+  const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
   const [modalMensagem, setModalMensagem] = useState({ aberto: false, titulo: '', mensagem: '' })
 
   useEffect(() => {
@@ -146,6 +148,29 @@ function DetalhesPartida() {
     }
   }
 
+  async function handleExcluirPartida() {
+    if (excluindo) return
+
+    setExcluindo(true)
+    try {
+      await api.delete('/partidas/' + id)
+      navigate('/patota/' + partida.patotaId)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao excluir partida:', erroRequisicao)
+      setModalExcluirAberto(false)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        setModalMensagem({ aberto: true, titulo: 'Não foi possível excluir', mensagem: erroRequisicao.response.data.erro })
+      }
+      else {
+        setModalMensagem({ aberto: true, titulo: 'Erro', mensagem: 'Erro ao excluir partida. Tente novamente.' })
+      }
+    }
+    finally {
+      setExcluindo(false)
+    }
+  }
+
   async function handleRemoverParticipante() {
     if (!participanteParaRemover) return
 
@@ -206,6 +231,22 @@ function DetalhesPartida() {
         <p className="text-sm text-gray-500">
           {formatarData(partida.data)} às {partida.horario} — {partida.local}
         </p>
+        {ehPresidente && (partida.status === 'AGENDADA' || partida.status === 'EM_ANDAMENTO') && (
+          <div className="flex items-center gap-4 mt-3">
+            <button
+              onClick={() => navigate('/partida/' + id + '/editar')}
+              className="text-sm font-medium text-green-700 hover:underline cursor-pointer"
+            >
+              Editar partida
+            </button>
+            <button
+              onClick={() => setModalExcluirAberto(true)}
+              className="text-sm font-medium text-red-600 hover:underline cursor-pointer"
+            >
+              Excluir partida
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Abas */}
@@ -269,6 +310,16 @@ function DetalhesPartida() {
         corBotaoConfirmar="verde"
         onConfirmar={handleFinalizarPartida}
         onCancelar={() => setModalFinalizarAberto(false)}
+      />
+
+      {/* Modal de confirmação de exclusão da partida */}
+      <ModalConfirmacao
+        aberto={modalExcluirAberto}
+        titulo="Excluir partida"
+        mensagem="Tem certeza que deseja excluir esta partida e seus dados vinculados? Essa ação não pode ser desfeita."
+        textoBotaoConfirmar={excluindo ? 'Excluindo...' : 'Excluir'}
+        onConfirmar={handleExcluirPartida}
+        onCancelar={() => setModalExcluirAberto(false)}
       />
 
       {/* Modal de confirmação de remoção de participante */}

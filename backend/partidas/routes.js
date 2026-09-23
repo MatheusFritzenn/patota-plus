@@ -1,11 +1,13 @@
 import { Router } from 'express'
-import { cadastrar, listarPorPatota, buscarPorId, listarParticipantes, alterarPosicaoTemporaria, participar, removerPresenca, finalizar, listarAvaliacoes, salvarAvaliacoes, encerrar, resultadoAvaliacoes, listarTimes, gerar, desfazer } from './controller.js'
+import { cadastrar, atualizar, excluir, listarPorPatota, buscarPorId, listarParticipantes, alterarPosicaoTemporaria, participar, removerPresenca, finalizar, listarAvaliacoes, salvarAvaliacoes, encerrar, resultadoAvaliacoes, listarTimes, gerar, desfazer } from './controller.js'
 import { autenticar } from '../middlewares/autenticacao.js'
 
 const router = Router()
 
 router.use(autenticar)
 router.post('/', cadastrar)
+router.put('/:id', atualizar)
+router.delete('/:id', excluir)
 router.get('/patota/:patotaId', listarPorPatota)
 router.get('/:id/participantes', listarParticipantes)
 router.put('/:id/participantes/:usuarioId/posicao-temporaria', alterarPosicaoTemporaria)

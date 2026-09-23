@@ -49,7 +49,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 4. **Home** — minhas patotas, buscar e criar
 5. **Tela da patota** — abas: Visão Geral, Jogos, Membros, Relatórios (presidente)
 6. **Detalhes da partida** — abas: Lista de jogadores, Times, Avaliações
-7. **Criar/editar partida** — formulário compartilhado (somente presidente; edição pendente)
+7. **Criar/editar partida** — formulário compartilhado (somente presidente; edição implementada)
 8. **Busca de patotas** — filtro por modalidade e ordenação por proximidade
 9. **Perfil do usuário** — dados pessoais, alteração de senha e média geral
 10. **Mensalidades** — relatório e baixa manual pelo presidente
@@ -82,13 +82,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
    O filtro por modalidade e a ordenação por proximidade devem funcionar em conjunto.
    Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
    abaixo.
-2. **Editar informações de uma partida (pendente):** reutilizar a tela existente de
-   cadastro em modo de edição, carregando os dados salvos e permitindo ao presidente
-   alterar data, horário, local e quantidade de vagas. Disponibilizar o acesso pelos
-   detalhes da partida e validar a autorização também no backend. Manter vagas como
-   inteiro positivo e impedir redução abaixo da quantidade de participantes confirmados.
-   Antes da implementação, definir em quais status a edição será permitida.
-3. **Sugerir os dados habituais da patota ao criar partida (pendente):** preencher
+2. **Sugerir os dados habituais da patota ao criar partida (pendente):** preencher
    local e horário com os dados cadastrados na patota e sugerir a data da próxima
    ocorrência do dia habitual. Exemplo: em 21/09/2026, para a patota "Amigos do Dinho"
    com jogos às sextas-feiras, sugerir 25/09/2026. Permitir alterações manuais nas
@@ -96,6 +90,19 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
    Na edição, carregar os valores salvos da partida, sem substituí-los pelos padrões
    da patota. Antes da implementação, definir o fuso de referência e se o próprio
    dia habitual entra na sugestão quando seu horário ainda não passou.
+
+> **Concluído em 23/09/2026 — edição de partida:** o presidente pode alterar data,
+> horário, local e vagas pelo formulário existente, a partir dos detalhes da partida.
+> A edição é permitida nos status `AGENDADA` e `EM_ANDAMENTO`. Partidas `FINALIZADA`
+> ou `CANCELADA` são encerradas e não podem ser editadas. O backend confirma a
+> autorização e impede vagas menores que o número de participações sob bloqueio
+> da partida, inclusive em concorrência com novas confirmações de presença.
+
+> **Concluído em 23/09/2026 — exclusão de partida:** o presidente pode excluir uma
+> partida `AGENDADA` ou `EM_ANDAMENTO` nos detalhes, após confirmação. Partidas
+> `FINALIZADA` ou `CANCELADA` preservam seu histórico e não podem ser excluídas.
+> O backend valida o presidente e o status sob bloqueio da partida. A exclusão
+> remove em cascata participantes, times e avaliações vinculados.
 
 > **Implementado no código em 21/09/2026 — geração por composição e força:** define
 > uma posição de atuação por participante, monta a composição e compara divisões que
@@ -305,7 +312,7 @@ Esses totais são referências de composição, não limites de participantes da
 - Senha deve ter no mínimo 8 caracteres, com ao menos uma letra maiúscula, uma
   letra minúscula, um número e um caractere especial. Essa política vale para
   cadastro, redefinição e alteração no perfil.
-- Somente o presidente pode: editar patota, criar/editar partidas, gerenciar membros, acessar relatórios, gerar times, registrar movimentações no caixa.
+- Somente o presidente pode: editar patota, criar/editar/excluir partidas, gerenciar membros, acessar relatórios, gerar times, registrar movimentações no caixa.
 - Vagas de partida não podem ser excedidas.
 - Avaliações são feitas apenas entre companheiros do mesmo time, após a partida.
 - Média geral = média das médias por partida.
@@ -327,7 +334,7 @@ Esses totais são referências de composição, não limites de participantes da
 - Notificações
 - Recomendações de patotas na Home
 - Recuperação de senha por SMS
-- Edição de partidas e campo de observações da partida
+- Campo de observações da partida
 - Filtro de busca por posição e busca por texto livre
 - Histórico detalhado no perfil e médias separadas por patota
 - Consulta individual de mensalidade pelo membro

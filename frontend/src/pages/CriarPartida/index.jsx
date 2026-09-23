@@ -1,19 +1,67 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../services/api.js'
+import supabase from '../../services/supabaseClient.js'
 import './style.css'
 
 function CriarPartida() {
-  const { id } = useParams()
+  const { id, partidaId } = useParams()
+  const modoEdicao = !!partidaId
 
+  const [patotaId, setPatotaId] = useState(id || '')
   const [data, setData] = useState('')
   const [horario, setHorario] = useState('')
   const [local, setLocal] = useState('')
   const [vagasTotal, setVagasTotal] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [carregandoDados, setCarregandoDados] = useState(modoEdicao)
+  const [erroCarregamento, setErroCarregamento] = useState('')
+  const [vagasPreenchidas, setVagasPreenchidas] = useState(0)
 
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (modoEdicao) {
+      carregarPartida()
+    }
+  }, [partidaId])
+
+  async function carregarPartida() {
+    setCarregandoDados(true)
+    setErroCarregamento('')
+
+    try {
+      const respostaPartida = await api.get('/partidas/' + partidaId)
+      const partida = respostaPartida.data
+      const respostaUsuario = await supabase.auth.getUser()
+
+      if (!respostaUsuario.data || !respostaUsuario.data.user ||
+          partida.presidenteId !== respostaUsuario.data.user.id) {
+        setErroCarregamento('Apenas o presidente da patota pode editar esta partida.')
+        return
+      }
+
+      if (partida.status !== 'AGENDADA' && partida.status !== 'EM_ANDAMENTO') {
+        setErroCarregamento('Esta partida já está encerrada e não pode ser editada.')
+        return
+      }
+
+      setPatotaId(partida.patotaId)
+      setData(partida.data ? String(partida.data).substring(0, 10) : '')
+      setHorario(partida.horario ? partida.horario.substring(0, 5) : '')
+      setLocal(partida.local || '')
+      setVagasTotal(String(partida.vagasTotal))
+      setVagasPreenchidas(partida.vagasPreenchidas)
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao carregar partida:', erroRequisicao)
+      setErroCarregamento('Erro ao carregar dados da partida.')
+    }
+    finally {
+      setCarregandoDados(false)
+    }
+  }
 
   async function handleSubmit(evento) {
     evento.preventDefault()
@@ -26,35 +74,78 @@ function CriarPartida() {
       return
     }
 
+    if (modoEdicao && vagasNumero < vagasPreenchidas) {
+      setErro('A quantidade de vagas não pode ser menor que os ' + vagasPreenchidas + ' participantes confirmados.')
+      return
+    }
+
     setCarregando(true)
 
     try {
       const dadosPartida = {
-        patotaId: id,
         data: data,
         horario: horario,
         local: local,
         vagasTotal: vagasNumero
       }
 
-      await api.post('/partidas', dadosPartida)
+      if (modoEdicao) {
+        await api.put('/partidas/' + partidaId, dadosPartida)
+      }
+      else {
+        dadosPartida.patotaId = patotaId
+        await api.post('/partidas', dadosPartida)
+      }
 
       setCarregando(false)
-      navigate('/patota/' + id)
+      if (modoEdicao) {
+        navigate('/partida/' + partidaId)
+      }
+      else {
+        navigate('/patota/' + patotaId)
+      }
     }
     catch (erroRequisicao) {
-      console.error('Erro ao criar partida:', erroRequisicao)
-      setErro('Erro ao criar partida. Tente novamente.')
+      console.error('Erro ao salvar partida:', erroRequisicao)
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        setErro(erroRequisicao.response.data.erro)
+      }
+      else {
+        setErro('Erro ao salvar partida. Tente novamente.')
+      }
       setCarregando(false)
     }
+  }
+
+  if (carregandoDados) {
+    return (
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        <p className="text-gray-500 text-center">Carregando partida...</p>
+      </main>
+    )
+  }
+
+  if (erroCarregamento) {
+    return (
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        <p className="text-red-500 text-center">{erroCarregamento}</p>
+      </main>
+    )
+  }
+
+  let destinoCancelar = '/patota/' + patotaId
+  if (modoEdicao) {
+    destinoCancelar = '/partida/' + partidaId
   }
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-10">
       <div className="bg-white rounded-2xl shadow-lg p-8">
         {/* Título */}
-        <h1 className="text-2xl font-bold text-green-700 mb-2">Criar Partida</h1>
-        <p className="text-gray-500 mb-8">Preencha os dados para agendar uma nova partida</p>
+        <h1 className="text-2xl font-bold text-green-700 mb-2">{modoEdicao ? 'Editar Partida' : 'Criar Partida'}</h1>
+        <p className="text-gray-500 mb-8">
+          {modoEdicao ? 'Altere os dados da partida' : 'Preencha os dados para agendar uma nova partida'}
+        </p>
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -112,7 +203,7 @@ function CriarPartida() {
             <input
               id="vagasTotal"
               type="number"
-              min="1"
+              min={modoEdicao ? Math.max(1, vagasPreenchidas) : 1}
               placeholder="Ex: 10"
               value={vagasTotal}
               onChange={(e) => setVagasTotal(e.target.value)}
@@ -129,7 +220,7 @@ function CriarPartida() {
           {/* Botões */}
           <div className="flex gap-3 mt-2">
             <Link
-              to={'/patota/' + id}
+              to={destinoCancelar}
               className="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancelar
@@ -139,7 +230,7 @@ function CriarPartida() {
               disabled={carregando}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {carregando ? 'Criando...' : 'Criar Partida'}
+              {carregando ? 'Salvando...' : (modoEdicao ? 'Salvar alterações' : 'Criar Partida')}
             </button>
           </div>
         </form>

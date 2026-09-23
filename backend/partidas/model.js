@@ -21,6 +21,133 @@ export async function criarPartida(dados) {
   return resultado.rows[0]
 }
 
+// Edita uma partida sob bloqueio da linha, sincronizando a contagem de presenças
+// com a confirmação de jogadores e com a finalização da partida.
+export async function editarPartida(partidaId, presidenteId, dados) {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const querySelectPartida = `
+      SELECT pa.status, p.presidente_id AS "presidenteId"
+      FROM partidas pa
+      JOIN patotas p ON p.id = pa.patota_id
+      WHERE pa.id = $1
+      FOR UPDATE OF pa
+    `
+    const resultadoPartida = await client.query(querySelectPartida, [partidaId])
+
+    if (resultadoPartida.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return { naoEncontrada: true }
+    }
+
+    const partida = resultadoPartida.rows[0]
+    if (partida.presidenteId !== presidenteId) {
+      await client.query('ROLLBACK')
+      return { semPermissao: true }
+    }
+
+    if (partida.status !== 'AGENDADA' && partida.status !== 'EM_ANDAMENTO') {
+      await client.query('ROLLBACK')
+      return { encerrada: true }
+    }
+
+    const queryContarConfirmados = `
+      SELECT COUNT(*)::int AS total
+      FROM participacoes
+      WHERE partida_id = $1
+    `
+    const resultadoConfirmados = await client.query(queryContarConfirmados, [partidaId])
+    const vagasPreenchidas = resultadoConfirmados.rows[0].total
+
+    if (dados.vagasTotal < vagasPreenchidas) {
+      await client.query('ROLLBACK')
+      return { vagasInsuficientes: true, vagasPreenchidas: vagasPreenchidas }
+    }
+
+    const queryUpdatePartida = `
+      UPDATE partidas
+      SET data = $2, horario = $3, local = $4, vagas_total = $5, updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, patota_id AS "patotaId", data, horario, local,
+                vagas_total AS "vagasTotal", status,
+                created_at AS "createdAt", updated_at AS "updatedAt"
+    `
+    const arrayValoresPartida = [
+      partidaId,
+      dados.data,
+      dados.horario,
+      dados.local,
+      dados.vagasTotal
+    ]
+    const resultadoUpdate = await client.query(queryUpdatePartida, arrayValoresPartida)
+
+    await client.query('COMMIT')
+    return { partida: resultadoUpdate.rows[0] }
+  }
+  catch (erro) {
+    await client.query('ROLLBACK')
+    throw erro
+  }
+  finally {
+    client.release()
+  }
+}
+
+// Exclui uma partida ativa. As FKs do banco removem em cascata participações,
+// times e avaliações vinculados à partida.
+export async function excluirPartida(partidaId, presidenteId) {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const querySelectPartida = `
+      SELECT pa.status, p.presidente_id AS "presidenteId"
+      FROM partidas pa
+      JOIN patotas p ON p.id = pa.patota_id
+      WHERE pa.id = $1
+      FOR UPDATE OF pa
+    `
+    const resultadoPartida = await client.query(querySelectPartida, [partidaId])
+
+    if (resultadoPartida.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return { naoEncontrada: true }
+    }
+
+    const partida = resultadoPartida.rows[0]
+    if (partida.presidenteId !== presidenteId) {
+      await client.query('ROLLBACK')
+      return { semPermissao: true }
+    }
+
+    if (partida.status !== 'AGENDADA' && partida.status !== 'EM_ANDAMENTO') {
+      await client.query('ROLLBACK')
+      return { encerrada: true }
+    }
+
+    const queryDeletePartida = `
+      DELETE FROM partidas
+      WHERE id = $1
+      RETURNING patota_id AS "patotaId"
+    `
+    const resultadoExclusao = await client.query(queryDeletePartida, [partidaId])
+
+    await client.query('COMMIT')
+    return { patotaId: resultadoExclusao.rows[0].patotaId }
+  }
+  catch (erro) {
+    await client.query('ROLLBACK')
+    throw erro
+  }
+  finally {
+    client.release()
+  }
+}
+
 // Busca os detalhes de uma partida específica, incluindo dados da patota e vagas preenchidas
 export async function buscarPartidaPorId(partidaId) {
   const querySelectPartida = `

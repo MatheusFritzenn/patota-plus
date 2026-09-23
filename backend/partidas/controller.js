@@ -1,4 +1,4 @@
-import { criarPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, buscarPosicoesDaModalidade, atualizarPosicaoTemporaria, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes, gerarTimes, buscarTimes, desfazerTimes } from './model.js'
+import { criarPartida, editarPartida, excluirPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, buscarPosicoesDaModalidade, atualizarPosicaoTemporaria, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes, gerarTimes, buscarTimes, desfazerTimes } from './model.js'
 import { buscarPatotaPorId } from '../patotas/model.js'
 
 // POST /partidas — Criar nova partida
@@ -43,6 +43,79 @@ export async function cadastrar(req, res) {
   }
   catch (erro) {
     console.error('Erro ao criar partida:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// PUT /partidas/:id — Edita os dados de uma partida ativa (somente presidente)
+export async function atualizar(req, res) {
+  try {
+    const partidaId = req.params.id
+    const data = req.body.data
+    const horario = req.body.horario
+    const local = req.body.local
+    const vagasTotal = req.body.vagasTotal
+
+    if (typeof data !== 'string' || !data.trim() ||
+        typeof horario !== 'string' || !horario.trim() ||
+        typeof local !== 'string' || !local.trim() ||
+        vagasTotal === undefined || vagasTotal === null || vagasTotal === '') {
+      return res.status(400).json({ erro: 'Campos obrigatórios: data, horario, local, vagasTotal' })
+    }
+
+    const vagasNumero = Number(vagasTotal)
+    if (!Number.isInteger(vagasNumero) || vagasNumero <= 0) {
+      return res.status(400).json({ erro: 'A quantidade de vagas deve ser um número inteiro maior que zero' })
+    }
+
+    const dadosPartida = {
+      data: data,
+      horario: horario,
+      local: local.trim(),
+      vagasTotal: vagasNumero
+    }
+    const resultado = await editarPartida(partidaId, req.usuarioId, dadosPartida)
+
+    if (resultado.naoEncontrada) {
+      return res.status(404).json({ erro: 'Partida não encontrada' })
+    }
+    if (resultado.semPermissao) {
+      return res.status(403).json({ erro: 'Apenas o presidente da patota pode editar a partida' })
+    }
+    if (resultado.encerrada) {
+      return res.status(409).json({ erro: 'Não é possível editar uma partida encerrada' })
+    }
+    if (resultado.vagasInsuficientes) {
+      return res.status(409).json({ erro: 'A quantidade de vagas não pode ser menor que os ' + resultado.vagasPreenchidas + ' participantes confirmados' })
+    }
+
+    return res.json(resultado.partida)
+  }
+  catch (erro) {
+    console.error('Erro ao editar partida:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// DELETE /partidas/:id — Exclui uma partida ativa (somente presidente)
+export async function excluir(req, res) {
+  try {
+    const resultado = await excluirPartida(req.params.id, req.usuarioId)
+
+    if (resultado.naoEncontrada) {
+      return res.status(404).json({ erro: 'Partida não encontrada' })
+    }
+    if (resultado.semPermissao) {
+      return res.status(403).json({ erro: 'Apenas o presidente da patota pode excluir a partida' })
+    }
+    if (resultado.encerrada) {
+      return res.status(409).json({ erro: 'Não é possível excluir uma partida encerrada' })
+    }
+
+    return res.json({ mensagem: 'Partida excluída com sucesso', patotaId: resultado.patotaId })
+  }
+  catch (erro) {
+    console.error('Erro ao excluir partida:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
