@@ -160,6 +160,15 @@ export async function excluirMembro(req, res) {
 }
 
 // PUT /patotas/:id — Atualizar dados da patota
+function caminhoEmblemaValido(caminho, patotaId) {
+  if (typeof caminho !== 'string') return false
+
+  const arrayPartes = caminho.split('/')
+  if (arrayPartes.length !== 2 || arrayPartes[0] !== patotaId) return false
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(png|jpg|webp)$/i.test(arrayPartes[1])
+}
+
 export async function atualizar(req, res) {
   try {
     const patotaId = req.params.id
@@ -173,6 +182,11 @@ export async function atualizar(req, res) {
       return res.status(403).json({ erro: 'Apenas o presidente pode editar a patota' })
     }
 
+    const emblemaPath = req.body.emblemaPath
+    if (emblemaPath !== undefined && emblemaPath !== null && !caminhoEmblemaValido(emblemaPath, patotaId)) {
+      return res.status(400).json({ erro: 'Caminho do emblema inválido' })
+    }
+
     const dados = {
       nome: req.body.nome,
       descricao: req.body.descricao,
@@ -181,7 +195,8 @@ export async function atualizar(req, res) {
       cidade: req.body.cidade,
       estado: req.body.estado,
       diaHabitual: req.body.diaHabitual,
-      horaHabitual: req.body.horaHabitual
+      horaHabitual: req.body.horaHabitual,
+      emblemaPath: emblemaPath
     }
 
     const patota = await atualizarPatota(patotaId, dados)
@@ -208,7 +223,10 @@ export async function excluir(req, res) {
       return res.status(403).json({ erro: 'Apenas o presidente pode excluir a patota' })
     }
 
-    await excluirPatota(patotaId)
+    const excluida = await excluirPatota(patotaId)
+    if (!excluida) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
 
     return res.json({ mensagem: 'Patota excluída com sucesso' })
   }

@@ -11,7 +11,7 @@ export async function criarPatota(dados) {
     const queryInsertPatota = `
       INSERT INTO patotas (id, nome, descricao, modalidade_id, rua, cidade, estado, dia_habitual, hora_habitual, presidente_id, created_at, updated_at)
       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-      RETURNING id, nome, descricao, modalidade_id AS "modalidadeId", rua, cidade, estado, dia_habitual AS "diaHabitual", hora_habitual AS "horaHabitual", presidente_id AS "presidenteId", created_at AS "createdAt", updated_at AS "updatedAt"
+      RETURNING id, nome, descricao, modalidade_id AS "modalidadeId", rua, cidade, estado, dia_habitual AS "diaHabitual", hora_habitual AS "horaHabitual", emblema_path AS "emblemaPath", presidente_id AS "presidenteId", created_at AS "createdAt", updated_at AS "updatedAt"
     `
     const arrayValoresPatota = [
       dados.nome,
@@ -52,6 +52,7 @@ export async function criarPatota(dados) {
 export async function buscarPatotasDoUsuario(usuarioId) {
   const querySelectPatotas = `
     SELECT p.id, p.nome, p.descricao, p.modalidade_id AS "modalidadeId", p.rua, p.cidade, p.estado,
+           p.emblema_path AS "emblemaPath",
            p.presidente_id AS "presidenteId", p.created_at AS "createdAt", p.updated_at AS "updatedAt",
            m.nome AS "modalidadeNome",
            mp.role
@@ -71,6 +72,7 @@ export async function buscarPatotasDoUsuario(usuarioId) {
 export async function buscarPatotasDisponiveis(usuarioId, modalidadeId) {
   const querySelectPatotas = `
     SELECT p.id, p.nome, p.modalidade_id AS "modalidadeId", p.rua, p.cidade, p.estado,
+           p.emblema_path AS "emblemaPath",
            p.presidente_id AS "presidenteId", p.created_at AS "createdAt", p.updated_at AS "updatedAt",
            m.nome AS "modalidadeNome"
     FROM patotas p
@@ -92,6 +94,7 @@ export async function buscarPatotasDisponiveis(usuarioId, modalidadeId) {
 export async function buscarPatotaPorId(patotaId) {
   const querySelectPatota = `
     SELECT p.id, p.nome, p.descricao, p.modalidade_id AS "modalidadeId", p.rua, p.cidade, p.estado,
+           p.emblema_path AS "emblemaPath",
            p.dia_habitual AS "diaHabitual", p.hora_habitual AS "horaHabitual",
            p.presidente_id AS "presidenteId", p.created_at AS "createdAt", p.updated_at AS "updatedAt",
            m.nome AS "modalidadeNome",
@@ -234,6 +237,11 @@ export async function atualizarPatota(patotaId, dados) {
     arrayValores.push(dados.horaHabitual)
     indice = indice + 1
   }
+  if (dados.emblemaPath !== undefined) {
+    arrayCampos.push('emblema_path = $' + indice)
+    arrayValores.push(dados.emblemaPath)
+    indice = indice + 1
+  }
 
   // Sempre atualiza updated_at
   arrayCampos.push('updated_at = NOW()')
@@ -255,13 +263,24 @@ export async function excluirPatota(patotaId) {
   try {
     await client.query('BEGIN')
 
-    // Remove membros da patota
-    await client.query('DELETE FROM membro_patotas WHERE patota_id = $1', [patotaId])
+    // Impede que novas solicitações sejam inseridas durante a exclusão.
+    const queryBloquearPatota = 'SELECT id FROM patotas WHERE id = $1 FOR UPDATE'
+    const resultadoPatota = await client.query(queryBloquearPatota, [patotaId])
+    if (resultadoPatota.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return false
+    }
 
-    // Remove a patota
-    await client.query('DELETE FROM patotas WHERE id = $1', [patotaId])
+    // Esta FK não possui ON DELETE CASCADE no schema atual.
+    const queryExcluirSolicitacoes = 'DELETE FROM solicitacoes_entrada WHERE patota_id = $1'
+    await client.query(queryExcluirSolicitacoes, [patotaId])
+
+    // As demais relações da patota são removidas pelas FKs com ON DELETE CASCADE.
+    const queryExcluirPatota = 'DELETE FROM patotas WHERE id = $1'
+    await client.query(queryExcluirPatota, [patotaId])
 
     await client.query('COMMIT')
+    return true
   }
   catch (erro) {
     await client.query('ROLLBACK')

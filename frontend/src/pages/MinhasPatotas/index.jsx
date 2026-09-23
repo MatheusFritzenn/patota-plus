@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
+import CardPatota from '../../components/CardPatota.jsx'
 
 function MinhasPatotas() {
   const [arrayPatotas, setArrayPatotas] = useState([])
@@ -78,38 +79,7 @@ function MinhasPatotas() {
       {arrayPatotas.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {arrayPatotas.map((patota) => (
-            <Link
-              key={patota.id}
-              to={'/patota/' + patota.id}
-              className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-100"
-            >
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    {patota.nome}
-                  </h3>
-                  {patota.role === 'PRESIDENTE' && (
-                    <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-1 rounded-full">
-                      Presidente
-                    </span>
-                  )}
-                </div>
-
-                <span className="inline-flex self-start rounded-full bg-green-50 text-green-700 text-sm font-medium px-3 py-1">
-                  {patota.modalidadeNome}
-                </span>
-
-                <p className="text-sm text-gray-400">
-                  {patota.rua} — {patota.cidade}/{patota.estado}
-                </p>
-
-                {patota.descricao && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {patota.descricao}
-                  </p>
-                )}
-              </div>
-            </Link>
+            <CardPatota key={patota.id} patota={patota} />
           ))}
         </div>
       )}

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
+import CardPatota from '../../components/CardPatota.jsx'
 import './style.css'
 
 const arrayModalidades = [
@@ -122,25 +122,7 @@ function BuscarPatotas() {
       {!carregando && !erro && arrayPatotas.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {arrayPatotas.map((patota) => (
-            <Link
-              key={patota.id}
-              to={'/patota/' + patota.id}
-              className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-100"
-            >
-              <div className="flex flex-col items-start gap-3">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {patota.nome}
-                </h3>
-
-                <span className="inline-flex rounded-full bg-green-50 text-green-700 text-sm font-medium px-3 py-1">
-                  {patota.modalidadeNome}
-                </span>
-
-                <p className="text-sm text-gray-400">
-                  {patota.rua && <>{patota.rua} — </>}{patota.cidade}/{patota.estado}
-                </p>
-              </div>
-            </Link>
+            <CardPatota key={patota.id} patota={patota} />
           ))}
         </div>
       )}

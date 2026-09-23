@@ -22,6 +22,7 @@ test('busca filtra a modalidade no banco e devolve somente os resultados encontr
   let arrayParametros = null
   contexto.mock.method(pool, 'query', async function (querySelect, arrayValores) {
     assert.match(querySelect, /p\.modalidade_id = \$2/)
+    assert.match(querySelect, /p\.emblema_path AS "emblemaPath"/)
     arrayParametros = arrayValores
     return { rows: [{ id: 'patota-society', modalidadeId: 2, modalidadeNome: 'Futebol society' }] }
   })

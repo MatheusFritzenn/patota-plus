@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../services/api.js'
 import ibgeApi from '../../services/ibgeApi.js'
+import { enviarEmblema, excluirEmblema, validarArquivoEmblema } from '../../services/emblemasPatotas.js'
+import EmblemaPatota from '../../components/EmblemaPatota.jsx'
 
 // Modalidades hardcodadas (IDs correspondem ao banco)
 const arrayModalidades = [
@@ -35,11 +37,23 @@ function CriarPatota() {
   const [arrayCidades, setArrayCidades] = useState([])
   const [diaHabitual, setDiaHabitual] = useState('')
   const [horaHabitual, setHoraHabitual] = useState('')
+  const [emblemaPath, setEmblemaPath] = useState('')
+  const [arquivoEmblema, setArquivoEmblema] = useState(null)
+  const [previewEmblema, setPreviewEmblema] = useState('')
+  const [removerEmblema, setRemoverEmblema] = useState(false)
+  const [patotaCriadaId, setPatotaCriadaId] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [carregandoDados, setCarregandoDados] = useState(modoEdicao)
 
   const navigate = useNavigate()
+  const inputEmblemaRef = useRef(null)
+
+  useEffect(() => {
+    return function () {
+      if (previewEmblema) URL.revokeObjectURL(previewEmblema)
+    }
+  }, [previewEmblema])
 
   useEffect(() => {
     carregarEstados()
@@ -99,12 +113,42 @@ function CriarPatota() {
       setEstado(patota.estado || '')
       setDiaHabitual(patota.diaHabitual ? String(patota.diaHabitual) : '')
       setHoraHabitual(patota.horaHabitual ? patota.horaHabitual.substring(0, 5) : '')
+      setEmblemaPath(patota.emblemaPath || '')
 
       setCarregandoDados(false)
     } catch (erroRequisicao) {
       console.error('Erro ao carregar patota:', erroRequisicao)
       setErro('Erro ao carregar dados da patota.')
       setCarregandoDados(false)
+    }
+  }
+
+  function selecionarEmblema(evento) {
+    const arquivo = evento.target.files[0]
+    if (!arquivo) return
+
+    const mensagemErro = validarArquivoEmblema(arquivo)
+    if (mensagemErro) {
+      setArquivoEmblema(null)
+      setPreviewEmblema('')
+      setRemoverEmblema(false)
+      setErro(mensagemErro)
+      evento.target.value = ''
+      return
+    }
+
+    setArquivoEmblema(arquivo)
+    setPreviewEmblema(URL.createObjectURL(arquivo))
+    setRemoverEmblema(false)
+    setErro('')
+  }
+
+  function removerSelecaoEmblema() {
+    setArquivoEmblema(null)
+    setPreviewEmblema('')
+    setRemoverEmblema(true)
+    if (inputEmblemaRef.current) {
+      inputEmblemaRef.current.value = ''
     }
   }
 
@@ -118,53 +162,68 @@ function CriarPatota() {
     }
 
     setCarregando(true)
+    const dadosPatota = {
+      nome: nome,
+      descricao: descricao,
+      modalidadeId: Number(modalidadeId),
+      rua: rua,
+      cidade: cidade,
+      estado: estado,
+      diaHabitual: diaHabitual ? Number(diaHabitual) : null,
+      horaHabitual: horaHabitual || null
+    }
 
-    if (modoEdicao) {
-      // Modo edição: PUT
-      try {
-        const dadosPatota = {
-          nome: nome,
-          descricao: descricao,
-          modalidadeId: Number(modalidadeId),
-          rua: rua,
-          cidade: cidade,
-          estado: estado,
-          diaHabitual: diaHabitual ? Number(diaHabitual) : null,
-          horaHabitual: horaHabitual || null
-        }
+    let patotaAlvoId = id || patotaCriadaId
+    let caminhoNovo = ''
 
-        await api.put('/patotas/' + id, dadosPatota)
-
-        setCarregando(false)
-        navigate('/patota/' + id)
-      } catch (erroRequisicao) {
-        console.error('Erro ao atualizar patota:', erroRequisicao)
-        setErro('Erro ao atualizar patota. Tente novamente.')
-        setCarregando(false)
+    try {
+      if (!patotaAlvoId) {
+        const resposta = await api.post('/patotas', dadosPatota)
+        patotaAlvoId = resposta.data.id
+        setPatotaCriadaId(patotaAlvoId)
       }
-    } else {
-      // Modo criação: POST
-      try {
-        const dadosPatota = {
-          nome: nome,
-          descricao: descricao,
-          modalidadeId: Number(modalidadeId),
-          rua: rua,
-          cidade: cidade,
-          estado: estado,
-          diaHabitual: diaHabitual ? Number(diaHabitual) : null,
-          horaHabitual: horaHabitual || null
+
+      if (arquivoEmblema) {
+        caminhoNovo = await enviarEmblema(patotaAlvoId, arquivoEmblema)
+        dadosPatota.emblemaPath = caminhoNovo
+      } else if (removerEmblema && modoEdicao) {
+        dadosPatota.emblemaPath = null
+      }
+
+      if (modoEdicao || patotaCriadaId || caminhoNovo) {
+        await api.put('/patotas/' + patotaAlvoId, dadosPatota)
+      }
+
+      if (emblemaPath && (caminhoNovo || removerEmblema)) {
+        try {
+          await excluirEmblema(emblemaPath)
+        } catch (erroExclusao) {
+          console.warn('Não foi possível remover o emblema anterior:', erroExclusao)
         }
+      }
 
-        await api.post('/patotas', dadosPatota)
-
-        setCarregando(false)
+      if (modoEdicao) {
+        navigate('/patota/' + patotaAlvoId)
+      } else {
         navigate('/home')
-      } catch (erroRequisicao) {
-        console.error('Erro ao criar patota:', erroRequisicao)
-        setErro('Erro ao criar patota. Tente novamente.')
-        setCarregando(false)
       }
+    } catch (erroRequisicao) {
+      console.error('Erro ao salvar patota ou emblema:', erroRequisicao)
+      if (caminhoNovo) {
+        try {
+          await excluirEmblema(caminhoNovo)
+        } catch (erroExclusao) {
+          console.warn('Não foi possível limpar o upload não salvo:', erroExclusao)
+        }
+      }
+
+      if (!modoEdicao && patotaAlvoId) {
+        setErro('A patota foi criada, mas não foi possível concluir o salvamento. Tente novamente nesta tela para não criar outra patota.')
+      } else {
+        setErro('Erro ao salvar patota. Tente novamente.')
+      }
+    } finally {
+      setCarregando(false)
     }
   }
 
@@ -176,21 +235,58 @@ function CriarPatota() {
     )
   }
 
-  const rotaCancelar = modoEdicao ? '/patota/' + id : '/home'
+  let rotaCancelar = '/home'
+  if (modoEdicao) rotaCancelar = '/patota/' + id
+  if (patotaCriadaId) rotaCancelar = '/patota/' + patotaCriadaId
+  const formularioEdicao = modoEdicao || !!patotaCriadaId
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-10">
       <div className="bg-white rounded-2xl shadow-lg p-8">
         {/* Título */}
         <h1 className="text-2xl font-bold text-green-700 mb-2">
-          {modoEdicao ? 'Editar Patota' : 'Criar Patota'}
+          {formularioEdicao ? 'Editar Patota' : 'Criar Patota'}
         </h1>
         <p className="text-gray-500 mb-8">
-          {modoEdicao ? 'Altere os dados da sua patota' : 'Preencha os dados para criar sua patota'}
+          {formularioEdicao ? 'Altere os dados da sua patota' : 'Preencha os dados para criar sua patota'}
         </p>
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="emblemaPatota" className="text-sm font-medium text-gray-700">
+              Emblema da patota (opcional)
+            </label>
+            <div className="flex flex-wrap items-center gap-5 rounded-xl border border-green-100 bg-green-50/50 p-4">
+              <EmblemaPatota
+                nome={nome}
+                emblemaPath={removerEmblema ? '' : emblemaPath}
+                previewUrl={previewEmblema}
+                tamanho="formulario"
+              />
+              <div className="min-w-0 flex-1">
+                <input
+                  ref={inputEmblemaRef}
+                  id="emblemaPatota"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={selecionarEmblema}
+                  className="block w-full text-sm text-gray-600 file:cursor-pointer file:mr-3 file:rounded-lg file:border-0 file:bg-green-600 file:px-3 file:py-2 file:font-medium file:text-white file:hover:bg-green-700"
+                />
+                <p className="mt-2 text-xs text-gray-500">PNG, JPG ou WebP, até 2 MB. Prefira uma imagem quadrada.</p>
+                {(arquivoEmblema || (emblemaPath && !removerEmblema)) && (
+                  <button
+                    type="button"
+                    onClick={removerSelecaoEmblema}
+                    className="mt-2 text-sm font-medium text-red-600 hover:underline"
+                  >
+                    Remover emblema
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Nome da patota */}
           <div className="flex flex-col gap-1">
             <label htmlFor="nome" className="text-sm font-medium text-gray-700">
@@ -340,7 +436,7 @@ function CriarPatota() {
 
           {/* Mensagem de erro */}
           {erro && (
-            <p className="text-red-500 text-sm text-center">{erro}</p>
+            <p className="text-red-500 text-sm text-center" role="alert">{erro}</p>
           )}
 
           {/* Botões */}
@@ -357,8 +453,8 @@ function CriarPatota() {
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {carregando
-                ? (modoEdicao ? 'Salvando...' : 'Criando...')
-                : (modoEdicao ? 'Salvar' : 'Criar Patota')
+                ? (formularioEdicao ? 'Salvando...' : 'Criando...')
+                : (formularioEdicao ? 'Salvar' : 'Criar Patota')
               }
             </button>
           </div>

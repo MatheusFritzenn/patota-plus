@@ -76,9 +76,29 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | estado | text | |
 | dia_habitual | int, opcional | 1=Segunda, 2=Terça, ..., 7=Domingo |
 | hora_habitual | time, opcional | Formato HH:MM:SS |
+| emblema_path | text, opcional | Caminho do arquivo no bucket público `patota-emblemas` |
 | presidente_id | uuid, FK → usuarios | |
 | created_at | timestamp | |
 | updated_at | timestamp | |
+
+> **EMBLEMA IMPLEMENTADO EM 23/09/2026:** o bucket público `patota-emblemas`
+> aceita PNG, JPEG e WebP de até 2 MB. Cada arquivo fica sob
+> `<patota_id>/<uuid>.<extensão>`. Políticas de `storage.objects` permitem inserir,
+> consultar para manutenção e remover arquivos apenas ao presidente da patota
+> correspondente. O backend aceita `emblemaPath` na edição somente quando o caminho
+> pertence à patota da rota; `NULL` remove a referência. Na criação, a patota é
+> persistida antes do upload para que o caminho e a política possam usar seu ID.
+> Se o upload falhar, a patota criada permanece e o formulário permite tentar de novo.
+> Ao excluir uma patota, o frontend limpa seu arquivo via Storage API após a exclusão
+> no backend; as políticas permitem ao proprietário do arquivo remover um objeto cuja
+> patota já não exista. A URL pública é derivada do caminho no frontend; patotas sem
+> emblema usam iniciais.
+
+> **EXCLUSÃO DE PATOTA:** a exclusão pelo backend bloqueia a linha da patota e
+> remove suas `solicitacoes_entrada` na mesma transação, antes de apagar a patota.
+> Essa FK não possui `ON DELETE CASCADE` no schema real. As FKs diretas de
+> `membro_patotas`, `partidas`, `mensalidades` e `movimentacoes_financeiras` possuem
+> cascata; as dependências de partidas também são removidas pelas respectivas FKs.
 
 > **PENDÊNCIA (roadmap — geolocalização):** definir e adicionar os dados geográficos do
 > local padrão de jogos da patota. Eles devem permitir calcular a distância até a localização
@@ -104,7 +124,7 @@ Convenções reais do banco (PostgreSQL no Supabase):
 |---|---|---|
 | id | uuid, PK | |
 | usuario_id | uuid, FK → usuarios | |
-| patota_id | uuid, FK → patotas | |
+| patota_id | uuid, FK → patotas (ON DELETE CASCADE) | |
 | role | enum RolePatota (PRESIDENTE, JOGADOR) | default JOGADOR |
 | data_entrada | timestamp | |
 | ativo | boolean, default true | |
@@ -182,7 +202,7 @@ Convenções reais do banco (PostgreSQL no Supabase):
 |---|---|---|
 | id | uuid, PK | |
 | usuario_id | uuid, FK → usuarios | |
-| patota_id | uuid, FK → patotas | |
+| patota_id | uuid, FK → patotas (sem ON DELETE CASCADE) | Removida pelo backend antes da patota |
 | status | varchar, default 'PENDENTE' | PENDENTE, ACEITO, RECUSADO |
 | created_at | timestamp | |
 | updated_at | timestamp | |

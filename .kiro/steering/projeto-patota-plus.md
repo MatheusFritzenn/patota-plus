@@ -87,6 +87,17 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 > quais o usuário ainda não participa. A tela mostra a quantidade encontrada; os
 > cards exibem a modalidade em destaque verde e não exibem mais a descrição.
 > A geolocalização e a ordenação por distância continuam pendentes.
+> **Concluído em 23/09/2026 — emblema da patota:** o presidente pode adicionar,
+> substituir ou remover um emblema opcional no cadastro/edição. Os arquivos ficam
+> no bucket público `patota-emblemas` do Supabase Storage, com políticas de escrita
+> vinculadas ao presidente e referência `patotas.emblema_path`. "Minhas patotas" e
+> "Buscar patotas" compartilham o mesmo card com emblema lateral, modalidade verde
+> e fallback de iniciais. A descrição deixa de aparecer também em "Minhas patotas".
+> **Exclusão de patota:** o presidente pode excluir a patota após confirmação
+> explícita de que seus dados relacionados serão removidos. O backend apaga as
+> solicitações de entrada na mesma transação antes de excluir a patota, pois essa
+> FK não tem cascata no schema real; as demais relações diretas relevantes usam
+> `ON DELETE CASCADE`. A imagem do emblema é limpa pelo frontend após o sucesso.
 > **Concluído em 23/09/2026 — sugestões ao criar partida:** o formulário de criação
 > sugere o local a partir do endereço textual da patota, o horário habitual e a
 > próxima ocorrência do dia habitual. A referência para calcular o dia e a hora
@@ -344,7 +355,7 @@ Esses totais são referências de composição, não limites de participantes da
 - Filtro de busca por posição e busca por texto livre
 - Histórico detalhado no perfil e médias separadas por patota
 - Consulta individual de mensalidade pelo membro
-- Foto da patota e indicadores rápidos na Home
+- Indicadores rápidos na Home
 - Gestão profissional de clubes
 
 ---
@@ -428,7 +439,10 @@ backend/
 
 - **Autenticação:** Supabase SDK no frontend gerencia login/cadastro/sessão. O backend recebe o token JWT do Supabase no header `Authorization`, valida-o via `getClaims` em middleware e disponibiliza o UUID autenticado em `req.usuarioId` antes de processar requisições protegidas.
 - **Banco de dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via `pg` (node-postgres) com queries SQL diretas.
-- **Separação de responsabilidades:** Supabase cuida exclusivamente da autenticação. Toda lógica de negócio e acesso a dados passa pelo backend Express + pg.
+- **Separação de responsabilidades:** Supabase Auth gerencia a autenticação e Supabase
+  Storage armazena arquivos de imagem (avatares e emblemas). A referência do emblema,
+  as permissões de edição e os demais dados de negócio passam pelo backend Express + pg;
+  políticas do Storage também restringem o upload e a remoção dos emblemas.
 
 ---
 

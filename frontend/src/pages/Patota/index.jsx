@@ -5,6 +5,7 @@ import api from '../../services/api.js'
 import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
 import ModalMensagem from '../../components/ModalMensagem.jsx'
 import Avatar from '../../components/Avatar.jsx'
+import { excluirEmblema } from '../../services/emblemasPatotas.js'
 import { Trash2 } from 'lucide-react';
 
 // Dias da semana para exibição
@@ -90,6 +91,13 @@ function Patota() {
   async function handleExcluirPatota() {
     try {
       await api.delete('/patotas/' + id)
+      if (patota.emblemaPath) {
+        try {
+          await excluirEmblema(patota.emblemaPath)
+        } catch (erroExclusao) {
+          console.warn('Não foi possível remover o emblema da patota excluída:', erroExclusao)
+        }
+      }
       navigate('/minhas-patotas')
     } catch (erroRequisicao) {
       console.error('Erro ao excluir patota:', erroRequisicao)
@@ -327,7 +335,7 @@ function Patota() {
       <ModalConfirmacao
         aberto={modalExcluirAberto}
         titulo="Excluir patota"
-        mensagem="Tem certeza que deseja excluir esta patota? Essa ação não pode ser desfeita."
+        mensagem="Tem certeza que deseja excluir esta patota? Partidas, membros, solicitações de entrada e registros financeiros relacionados também serão removidos. Essa ação não pode ser desfeita."
         textoBotaoConfirmar="Excluir"
         onConfirmar={handleExcluirPatota}
         onCancelar={() => setModalExcluirAberto(false)}
