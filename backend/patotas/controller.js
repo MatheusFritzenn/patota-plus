@@ -1,4 +1,4 @@
-import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente, removerMembro, membroExiste, buscarRelatorioPresenca } from './model.js'
+import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente, removerMembro, removerMembroPorSaida, membroExiste, buscarRelatorioPresenca } from './model.js'
 
 // POST /patotas — Criar nova patota
 export async function cadastrar(req, res) {
@@ -159,7 +159,7 @@ export async function excluirMembro(req, res) {
   }
 }
 
-// PUT /patotas/:id — Atualizar dados da patota
+// Valida o caminho do emblema recebido na edição da patota
 function caminhoEmblemaValido(caminho, patotaId) {
   if (typeof caminho !== 'string') return false
 
@@ -169,6 +169,35 @@ function caminhoEmblemaValido(caminho, patotaId) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(png|jpg|webp)$/i.test(arrayPartes[1])
 }
 
+// DELETE /patotas/:id/sair — Permite ao jogador deixar a patota
+export async function sairDaPatota(req, res) {
+  try {
+    const patotaId = req.params.id
+    const usuarioId = req.usuarioId
+
+    const patota = await buscarPatotaPorId(patotaId)
+    if (!patota) {
+      return res.status(404).json({ erro: 'Patota não encontrada' })
+    }
+
+    if (patota.presidenteId === usuarioId) {
+      return res.status(403).json({ erro: 'O presidente não pode sair da patota' })
+    }
+
+    const removido = await removerMembroPorSaida(patotaId, usuarioId)
+    if (!removido) {
+      return res.status(404).json({ erro: 'Você não é membro desta patota' })
+    }
+
+    return res.json({ mensagem: 'Você saiu da patota com sucesso' })
+  }
+  catch (erro) {
+    console.error('Erro ao sair da patota:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// PUT /patotas/:id — Atualizar dados da patota
 export async function atualizar(req, res) {
   try {
     const patotaId = req.params.id

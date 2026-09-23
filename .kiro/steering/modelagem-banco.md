@@ -129,6 +129,10 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | data_entrada | timestamp | |
 | ativo | boolean, default true | |
 
+> **SAÍDA VOLUNTÁRIA:** um membro com papel `JOGADOR` pode remover seu próprio
+> vínculo ativo em `membro_patotas`. O presidente é bloqueado também no backend.
+> A saída não exclui a patota nem os registros históricos de partidas ou pagamentos.
+
 ### partidas
 | Coluna | Tipo | Observacao |
 |---|---|---|

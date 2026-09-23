@@ -190,6 +190,23 @@ export async function removerMembro(patotaId, usuarioId) {
   await pool.query(queryDelete, [patotaId, usuarioId])
 }
 
+// Remove o vínculo do próprio jogador, sem permitir a saída do presidente
+export async function removerMembroPorSaida(patotaId, usuarioId) {
+  const queryDelete = `
+    DELETE FROM membro_patotas mp
+    WHERE mp.patota_id = $1 AND mp.usuario_id = $2
+      AND mp.ativo = true AND mp.role = 'JOGADOR'
+      AND EXISTS (
+        SELECT 1 FROM patotas p
+        WHERE p.id = mp.patota_id AND p.presidente_id <> $2
+      )
+    RETURNING mp.id
+  `
+  const resultado = await pool.query(queryDelete, [patotaId, usuarioId])
+
+  return resultado.rows.length > 0
+}
+
 // Atualiza dados de uma patota
 export async function atualizarPatota(patotaId, dados) {
   const arrayCampos = []

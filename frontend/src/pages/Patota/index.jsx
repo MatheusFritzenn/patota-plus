@@ -31,6 +31,7 @@ function Patota() {
   const [ehMembro, setEhMembro] = useState(false)
   const [solicitacaoPendente, setSolicitacaoPendente] = useState(false)
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
+  const [modalSairAberto, setModalSairAberto] = useState(false)
   const [modalMensagem, setModalMensagem] = useState({ aberto: false, titulo: '', mensagem: '' })
   const [membroParaExcluir, setMembroParaExcluir] = useState(null)
   const [userId, setUserId] = useState(null)
@@ -64,9 +65,7 @@ function Patota() {
       setEhMembro(membresia.ehMembro)
       setSolicitacaoPendente(membresia.solicitacaoPendente)
 
-      if (membresia.role === 'PRESIDENTE') {
-        setEhPresidente(true)
-      }
+      setEhPresidente(membresia.role === 'PRESIDENTE')
 
       // Se é membro, busca membros e solicitações (se presidente)
       if (membresia.ehMembro) {
@@ -103,6 +102,22 @@ function Patota() {
       console.error('Erro ao excluir patota:', erroRequisicao)
       setErro('Erro ao excluir patota.')
       setModalExcluirAberto(false)
+    }
+  }
+
+  async function handleSairDaPatota() {
+    try {
+      await api.delete('/patotas/' + id + '/sair')
+      navigate('/minhas-patotas', { replace: true })
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao sair da patota:', erroRequisicao)
+      setModalSairAberto(false)
+      let mensagem = 'Não foi possível sair da patota. Tente novamente.'
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        mensagem = erroRequisicao.response.data.erro
+      }
+      setModalMensagem({ aberto: true, titulo: 'Erro ao sair da patota', mensagem: mensagem })
     }
   }
 
@@ -316,7 +331,7 @@ function Patota() {
 
       {/* Conteúdo das abas */}
       {abaAtiva === 'visao-geral' && (
-        <AbaVisaoGeral patota={patota} ehPresidente={ehPresidente} obterNomeDia={obterNomeDia} formatarHora={formatarHora} onExcluir={() => setModalExcluirAberto(true)} />
+        <AbaVisaoGeral patota={patota} ehPresidente={ehPresidente} podeSair={!ehPresidente && patota.presidenteId !== userId} obterNomeDia={obterNomeDia} formatarHora={formatarHora} onExcluir={() => setModalExcluirAberto(true)} onSair={() => setModalSairAberto(true)} />
       )}
 
       {abaAtiva === 'jogos' && (
@@ -341,6 +356,15 @@ function Patota() {
         onCancelar={() => setModalExcluirAberto(false)}
       />
 
+      <ModalConfirmacao
+        aberto={modalSairAberto}
+        titulo="Sair da patota"
+        mensagem={'Tem certeza que deseja sair de ' + patota.nome + '? Você deixará de ser membro desta patota.'}
+        textoBotaoConfirmar="Sair da patota"
+        onConfirmar={handleSairDaPatota}
+        onCancelar={() => setModalSairAberto(false)}
+      />
+
       {/* Modal de confirmação de exclusão de membro */}
       <ModalConfirmacao
         aberto={!!membroParaExcluir}
@@ -363,7 +387,7 @@ function Patota() {
 }
 
 // Aba Visão Geral
-function AbaVisaoGeral({ patota, ehPresidente, obterNomeDia, formatarHora, onExcluir }) {
+function AbaVisaoGeral({ patota, ehPresidente, podeSair, obterNomeDia, formatarHora, onExcluir, onSair }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -431,6 +455,18 @@ function AbaVisaoGeral({ patota, ehPresidente, obterNomeDia, formatarHora, onExc
             className="border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
           >
             Excluir patota
+          </button>
+        </div>
+      )}
+
+      {podeSair && (
+        <div className="mt-6 flex justify-end">
+          <button
+            type="button"
+            onClick={onSair}
+            className="border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+          >
+            Sair da patota
           </button>
         </div>
       )}

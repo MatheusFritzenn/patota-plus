@@ -104,6 +104,9 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 > solicitações de entrada na mesma transação antes de excluir a patota, pois essa
 > FK não tem cascata no schema real; as demais relações diretas relevantes usam
 > `ON DELETE CASCADE`. A imagem do emblema é limpa pelo frontend após o sucesso.
+> **Saída da patota:** um jogador membro pode sair pela Visão Geral após confirmação.
+> A ação remove apenas seu vínculo ativo em `membro_patotas`, usando a identidade
+> autenticada. O presidente não pode sair, nem pela interface nem pela API.
 > **Concluído em 23/09/2026 — sugestões ao criar partida:** o formulário de criação
 > sugere o local a partir do endereço textual da patota, o horário habitual e a
 > próxima ocorrência do dia habitual. A referência para calcular o dia e a hora
