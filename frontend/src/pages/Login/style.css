@@ -1,1 +1,87 @@
-/* Estilos complementares da tela de Login */
+/* Composição responsiva e ilustração decorativa do campo. */
+.login-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 440px;
+}
+
+.login-story {
+  display: none;
+}
+
+.login-headline {
+  font-size: clamp(30px, 4vw, 43px);
+  line-height: 1.12;
+}
+
+.login-pitch {
+  position: relative;
+  height: 146px;
+  flex-shrink: 0;
+  margin: 34px 0 24px;
+  border: 1px solid #518464;
+  border-radius: 4px;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent 44px, #ffffff04 44px, #ffffff04 88px);
+}
+
+.login-pitch::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #518464;
+}
+
+.login-pitch::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  border: 1px solid #518464;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.login-pitch-area {
+  position: absolute;
+  top: 32px;
+  width: 39px;
+  height: 80px;
+  border: 1px solid #518464;
+}
+
+.login-pitch-area-left { left: -1px; }
+.login-pitch-area-right { right: -1px; }
+
+.login-player {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #86efac;
+  box-shadow: 0 0 0 5px #86efac16;
+}
+
+.login-player-one { left: 15%; top: 46%; }
+.login-player-two { left: 34%; top: 24%; }
+.login-player-three { left: 34%; top: 69%; }
+.login-player-four { left: 61%; top: 32%; }
+.login-player-five { left: 78%; top: 61%; }
+
+@media (min-width: 760px) {
+  .login-shell {
+    max-width: 1040px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .login-story { display: flex; }
+  .login-mobile-brand { display: none; }
+  .login-form-panel { padding: 54px 38px 38px; }
+}
+
+@media (pointer: coarse) {
+  .login-recovery { min-height: 44px; }
+}

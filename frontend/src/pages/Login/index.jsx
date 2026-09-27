@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import supabase from '../../services/supabaseClient.js'
 import './style.css'
 
@@ -8,6 +9,7 @@ function Login() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   const navigate = useNavigate()
 
@@ -32,79 +34,100 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        {/* Título */}
-        <h1 className="text-3xl font-bold text-green-700 text-center mb-2">
-          Patota+
-        </h1>
-        <p className="text-gray-500 text-center mb-8">
-          Entre na sua conta para continuar
-        </p>
-
-        {/* Formulário */}
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          {/* Campo E-mail */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">
-              E-mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+    <div className="login-page min-h-screen flex flex-col items-center justify-center bg-[#f4f7f5] px-3 py-6 sm:p-9 text-[#172d20]">
+      <main className="login-shell w-full overflow-hidden rounded-[22px] border border-[#dce5df] bg-white">
+        <section className="login-story flex-col bg-[#14532d] p-[38px] text-white" aria-label="Patota+, organização do futebol amador">
+          <p className="text-[26px] font-bold tracking-[-1px]">Patota<span className="text-green-300">+</span></p>
+          <p className="mt-12 mb-3.5 text-[11px] uppercase tracking-[2px] text-[#bbdfc7]">O jogo começa aqui</p>
+          <h2 className="login-headline mb-5 font-semibold tracking-[-1.5px]">Sua turma.<br />Seu futebol.<br />Sua patota.</h2>
+          <p className="max-w-[300px] text-sm leading-7 text-[#d2e7d9]">Reúna os amigos, organize as partidas e deixe tudo pronto para entrar em campo.</p>
+          <div className="login-pitch" aria-hidden="true">
+            <div className="login-pitch-area login-pitch-area-left" />
+            <div className="login-pitch-area login-pitch-area-right" />
+            <span className="login-player login-player-one" />
+            <span className="login-player login-player-two" />
+            <span className="login-player login-player-three" />
+            <span className="login-player login-player-four" />
+            <span className="login-player login-player-five" />
           </div>
+          <p className="mt-auto text-xs tracking-wide text-[#bbdfc7]">Futsal · Society · Futebol de campo</p>
+        </section>
 
-          {/* Campo Senha */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="senha" className="text-sm font-medium text-gray-700">
-              Senha
-            </label>
-            <input
-              id="senha"
-              type="password"
-              placeholder="Digite sua senha"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+        <section className="login-form-panel min-w-0 flex flex-col justify-center px-6 py-8" aria-labelledby="login-title">
+          <p className="login-mobile-brand mb-7 text-[26px] font-bold tracking-[-1px] text-green-700">Patota+</p>
+          <h1 id="login-title" className="mb-2 text-[27px] font-semibold tracking-[-0.8px] leading-tight">Bom ter você de volta!</h1>
+          <p className="mb-[30px] text-sm leading-relaxed text-[#65736a]">Entre na sua conta e acompanhe os próximos jogos da sua patota.</p>
+
+          {/* Formulário */}
+          <form onSubmit={handleLogin} className="flex flex-col gap-5" aria-busy={carregando}>
+            {/* Campo E-mail */}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="email" className="text-[13px] font-medium">
+                E-mail
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-12 w-full border border-[#dce5df] rounded-xl px-3.5 text-base placeholder:text-[#65736a] focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+            </div>
+
+            {/* Campo Senha */}
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <label htmlFor="senha" className="text-[13px] font-medium">
+                Senha
+              </label>
+              <Link to="/recuperar-senha" className="login-recovery inline-flex items-center text-xs text-green-700 hover:underline">Esqueceu sua senha?</Link>
+              </div>
+              <div className="relative">
+              <input
+                id="senha"
+                type={mostrarSenha ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="Digite sua senha"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                required
+                className="h-12 w-full border border-[#dce5df] rounded-xl pl-3.5 pr-14 text-base placeholder:text-[#65736a] focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+              <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)} aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={mostrarSenha} aria-controls="senha" className="absolute right-1 top-0.5 flex h-11 w-11 items-center justify-center rounded-lg text-[#65736a] hover:text-green-700 cursor-pointer">
+                {mostrarSenha ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </button>
+              </div>
+            </div>
+
+            {/* Mensagem de erro */}
+            {erro && (
+              <p role="alert" className="text-red-700 text-sm">{erro}</p>
+            )}
+
+            {/* Botão de login */}
+            <button
+              type="submit"
+              disabled={carregando}
+              className="mt-1 flex h-12 w-full items-center justify-center gap-3 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {carregando ? 'Entrando...' : 'Entrar'}
+              {!carregando && <ArrowRight size={18} aria-hidden="true" />}
+            </button>
+          </form>
+
+          {/* Links auxiliares */}
+          <div className="mt-7 border-t border-[#dce5df] pt-6 text-center text-[13px] text-[#65736a]">
+            Ainda não tem conta?{' '}
+            <Link to="/cadastro" className="inline-flex min-h-11 items-center text-green-700 hover:underline font-semibold">
+              Cadastre-se
+            </Link>
           </div>
-
-          {/* Mensagem de erro */}
-          {erro && (
-            <p className="text-red-500 text-sm text-center">{erro}</p>
-          )}
-
-          {/* Botão de login */}
-          <button
-            type="submit"
-            disabled={carregando}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {carregando ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-
-        {/* Links auxiliares */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <Link to="/recuperar-senha" className="text-green-600 hover:underline">
-            Esqueceu sua senha?
-          </Link>
-        </div>
-
-        <div className="mt-3 text-center text-sm text-gray-500">
-          Não tem conta?{' '}
-          <Link to="/cadastro" className="text-green-600 hover:underline font-medium">
-            Cadastre-se
-          </Link>
-        </div>
-      </div>
+        </section>
+      </main>
+      <p className="mt-[22px] text-center text-[11px] text-[#65736a]">Patota+ · Futebol entre amigos, organização de verdade.</p>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowRight, Eye, EyeOff, Goal, LockKeyhole, UserRound } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
@@ -44,24 +45,26 @@ function Cadastro() {
   const [confirmaSenha, setConfirmaSenha] = useState('')
   const [telefone, setTelefone] = useState('')
   const [dataNascimento, setDataNascimento] = useState('')
-  const [modalidadesSelecionadas, setModalidadesSelecionadas] = useState([])
-  const [posicoesSelecionadas, setPosicoesSelecionadas] = useState([])
+  const [arrayModalidadesSelecionadas, setModalidadesSelecionadas] = useState([])
+  const [arrayPosicoesSelecionadas, setPosicoesSelecionadas] = useState([])
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [mostrarConfirmaSenha, setMostrarConfirmaSenha] = useState(false)
 
   const navigate = useNavigate()
 
   // Retorna as posições disponíveis com base nas modalidades selecionadas
   function obterPosicoesDisponiveis() {
     const arrayPosicoes = []
-    const idsJaAdicionados = []
+    const arrayIdsJaAdicionados = []
 
-    for (const modalidadeId of modalidadesSelecionadas) {
-      const posicoesDaModalidade = posicoesPorModalidade[modalidadeId]
-      if (posicoesDaModalidade) {
-        for (const posicao of posicoesDaModalidade) {
-          if (!idsJaAdicionados.includes(posicao.id)) {
-            idsJaAdicionados.push(posicao.id)
+    for (const modalidadeId of arrayModalidadesSelecionadas) {
+      const arrayPosicoesDaModalidade = posicoesPorModalidade[modalidadeId]
+      if (arrayPosicoesDaModalidade) {
+        for (const posicao of arrayPosicoesDaModalidade) {
+          if (!arrayIdsJaAdicionados.includes(posicao.id)) {
+            arrayIdsJaAdicionados.push(posicao.id)
             arrayPosicoes.push(posicao)
           }
         }
@@ -74,16 +77,16 @@ function Cadastro() {
   function handleModalidadeChange(modalidadeId) {
     let arrayNovasModalidades = []
 
-    if (modalidadesSelecionadas.includes(modalidadeId)) {
+    if (arrayModalidadesSelecionadas.includes(modalidadeId)) {
       // Remove a modalidade
-      for (const id of modalidadesSelecionadas) {
+      for (const id of arrayModalidadesSelecionadas) {
         if (id !== modalidadeId) {
           arrayNovasModalidades.push(id)
         }
       }
     } else {
       // Adiciona a modalidade
-      for (const id of modalidadesSelecionadas) {
+      for (const id of arrayModalidadesSelecionadas) {
         arrayNovasModalidades.push(id)
       }
       arrayNovasModalidades.push(modalidadeId)
@@ -92,21 +95,21 @@ function Cadastro() {
     setModalidadesSelecionadas(arrayNovasModalidades)
 
     // Remove posições que não pertencem mais a nenhuma modalidade selecionada
-    const idsPosicoesValidas = []
+    const arrayIdsPosicoesValidas = []
     for (const modId of arrayNovasModalidades) {
-      const posicoesDaModalidade = posicoesPorModalidade[modId]
-      if (posicoesDaModalidade) {
-        for (const posicao of posicoesDaModalidade) {
-          if (!idsPosicoesValidas.includes(posicao.id)) {
-            idsPosicoesValidas.push(posicao.id)
+      const arrayPosicoesDaModalidade = posicoesPorModalidade[modId]
+      if (arrayPosicoesDaModalidade) {
+        for (const posicao of arrayPosicoesDaModalidade) {
+          if (!arrayIdsPosicoesValidas.includes(posicao.id)) {
+            arrayIdsPosicoesValidas.push(posicao.id)
           }
         }
       }
     }
 
     const arrayPosicoesAtualizadas = []
-    for (const posId of posicoesSelecionadas) {
-      if (idsPosicoesValidas.includes(posId)) {
+    for (const posId of arrayPosicoesSelecionadas) {
+      if (arrayIdsPosicoesValidas.includes(posId)) {
         arrayPosicoesAtualizadas.push(posId)
       }
     }
@@ -116,14 +119,14 @@ function Cadastro() {
   function handlePosicaoChange(posicaoId) {
     let arrayNovasPosicoes = []
 
-    if (posicoesSelecionadas.includes(posicaoId)) {
-      for (const id of posicoesSelecionadas) {
+    if (arrayPosicoesSelecionadas.includes(posicaoId)) {
+      for (const id of arrayPosicoesSelecionadas) {
         if (id !== posicaoId) {
           arrayNovasPosicoes.push(id)
         }
       }
     } else {
-      for (const id of posicoesSelecionadas) {
+      for (const id of arrayPosicoesSelecionadas) {
         arrayNovasPosicoes.push(id)
       }
       arrayNovasPosicoes.push(posicaoId)
@@ -177,24 +180,24 @@ function Cadastro() {
       return
     }
 
-    if (modalidadesSelecionadas.length === 0) {
+    if (arrayModalidadesSelecionadas.length === 0) {
       setErro('Selecione ao menos uma modalidade.')
       return
     }
 
-    if (posicoesSelecionadas.length === 0) {
+    if (arrayPosicoesSelecionadas.length === 0) {
       setErro('Selecione ao menos uma posição.')
       return
     }
 
     // Verifica se cada modalidade selecionada tem ao menos uma posição marcada
-    for (const modalidadeId of modalidadesSelecionadas) {
-      const posicoesDaModalidade = posicoesPorModalidade[modalidadeId]
+    for (const modalidadeId of arrayModalidadesSelecionadas) {
+      const arrayPosicoesDaModalidade = posicoesPorModalidade[modalidadeId]
       let temPosicao = false
 
-      if (posicoesDaModalidade) {
-        for (const posicao of posicoesDaModalidade) {
-          if (posicoesSelecionadas.includes(posicao.id)) {
+      if (arrayPosicoesDaModalidade) {
+        for (const posicao of arrayPosicoesDaModalidade) {
+          if (arrayPosicoesSelecionadas.includes(posicao.id)) {
             temPosicao = true
             break
           }
@@ -234,8 +237,8 @@ function Cadastro() {
         nome: nome,
         telefone: telefone,
         dataNascimento: dataNascimento,
-        modalidades: modalidadesSelecionadas,
-        posicoes: posicoesSelecionadas
+        modalidades: arrayModalidadesSelecionadas,
+        posicoes: arrayPosicoesSelecionadas
       }
 
       await api.post('/usuarios', dadosUsuario)
@@ -253,179 +256,107 @@ function Cadastro() {
   const arrayPosicoesDisponiveis = obterPosicoesDisponiveis()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50 py-8">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8">
-        {/* Título */}
-        <h1 className="text-3xl font-bold text-green-700 text-center mb-2">
-          Patota+
-        </h1>
-        <p className="text-gray-500 text-center mb-8">
-          Crie sua conta e entre em campo
-        </p>
+    <div className="cadastro-page min-h-screen bg-[#f4f7f5] px-3 py-6 sm:px-6 sm:py-7 text-[#172d20]">
+      <div className="mx-auto mb-5 flex max-w-[780px] items-center justify-between gap-4">
+        <Link to="/login" className="text-[25px] font-bold tracking-[-1px] text-green-700">Patota+</Link>
+        <span className="hidden text-xs text-[#65736a] sm:block">Seu próximo jogo começa aqui.</span>
+      </div>
+      <main className="mx-auto max-w-[780px] overflow-hidden rounded-[22px] border border-[#dce5df] bg-white">
+        <header className="border-b border-[#dce5df] px-[22px] py-6 sm:px-9 sm:pt-[30px]">
+          <p className="mb-2.5 text-[11px] uppercase tracking-[1.8px] text-green-700">Vem para a patota</p>
+          <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.8px] sm:text-[28px]">Crie sua conta e entre em campo.</h1>
+          <p className="text-sm leading-relaxed text-[#65736a]">Conte um pouco sobre você e o futebol que gosta de jogar.</p>
+        </header>
 
-        {/* Formulário */}
-        <form onSubmit={handleCadastro} className="flex flex-col gap-4">
-          {/* Nome completo */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="nome" className="text-sm font-medium text-gray-700">
-              Nome completo
-            </label>
-            <input
-              id="nome"
-              type="text"
-              placeholder="Seu nome completo"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* E-mail */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">
-              E-mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Senha */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="senha" className="text-sm font-medium text-gray-700">
-              Senha
-            </label>
-            <input
-              id="senha"
-              type="password"
-              placeholder="Crie uma senha forte"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-            <RequisitosSenha senha={senha} />
-          </div>
-
-          {/* Confirmação de senha */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="confirmaSenha" className="text-sm font-medium text-gray-700">
-              Confirme a senha
-            </label>
-            <input
-              id="confirmaSenha"
-              type="password"
-              placeholder="Digite a senha novamente"
-              value={confirmaSenha}
-              onChange={(e) => setConfirmaSenha(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Telefone */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="telefone" className="text-sm font-medium text-gray-700">
-              Telefone (com DDD)
-            </label>
-            <input
-              id="telefone"
-              type="tel"
-              placeholder="(11) 99999-9999"
-              value={telefone}
-              onChange={handleTelefoneChange}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Data de nascimento */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="dataNascimento" className="text-sm font-medium text-gray-700">
-              Data de nascimento
-            </label>
-            <input
-              id="dataNascimento"
-              type="date"
-              value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
-              required
-              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${dataNascimento ? 'text-gray-900' : 'text-gray-400'}`}
-            />
-          </div>
-
-          {/* Modalidades */}
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-gray-700">
-              Modalidade(s)
-            </span>
-            <div className="flex flex-col gap-2">
-              {arrayModalidades.map((modalidade) => (
-                <label key={modalidade.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={modalidadesSelecionadas.includes(modalidade.id)}
-                    onChange={() => handleModalidadeChange(modalidade.id)}
-                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">{modalidade.nome}</span>
-                </label>
-              ))}
+        <form onSubmit={handleCadastro} aria-busy={carregando} className="px-[22px] pb-6 sm:px-9">
+          <section className="border-b border-[#dce5df] py-6" aria-labelledby="cadastro-dados">
+            <h2 id="cadastro-dados" className="mb-5 flex items-center gap-2.5 text-[15px] font-semibold"><UserRound size={18} className="text-green-700" aria-hidden="true" />Seus dados</h2>
+            <div className="grid grid-cols-1 gap-x-5 gap-y-[18px] sm:grid-cols-2">
+              <div className="min-w-0">
+                <label htmlFor="nome" className="cadastro-label">Nome completo</label>
+                <input id="nome" type="text" autoComplete="name" placeholder="Seu nome completo" value={nome} onChange={(e) => setNome(e.target.value)} required className="cadastro-input" />
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="email" className="cadastro-label">E-mail</label>
+                <input id="email" type="email" autoComplete="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="cadastro-input" />
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="telefone" className="cadastro-label">Telefone (com DDD)</label>
+                <input id="telefone" type="tel" autoComplete="tel" placeholder="(11) 99999-9999" value={telefone} onChange={handleTelefoneChange} required className="cadastro-input" />
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="dataNascimento" className="cadastro-label">Data de nascimento</label>
+                <input id="dataNascimento" type="date" autoComplete="bday" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} required className="cadastro-input" />
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* Posições (aparecem somente se ao menos uma modalidade foi selecionada) */}
-          {arrayPosicoesDisponiveis.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-gray-700">
-                Posição(ões) de jogo
-              </span>
-              <div className="flex flex-wrap gap-3">
-                {arrayPosicoesDisponiveis.map((posicao) => (
-                  <label key={posicao.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={posicoesSelecionadas.includes(posicao.id)}
-                      onChange={() => handlePosicaoChange(posicao.id)}
-                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                    />
-                    <span className="text-sm text-gray-700">{posicao.nome}</span>
+          <section className="border-b border-[#dce5df] py-6" aria-labelledby="cadastro-senha">
+            <h2 id="cadastro-senha" className="mb-5 flex items-center gap-2.5 text-[15px] font-semibold"><LockKeyhole size={18} className="text-green-700" aria-hidden="true" />Sua senha</h2>
+            <div className="grid grid-cols-1 gap-x-5 gap-y-[18px] sm:grid-cols-2">
+              <div className="min-w-0">
+                <label htmlFor="senha" className="cadastro-label">Senha</label>
+                <div className="relative">
+                  <input id="senha" type={mostrarSenha ? 'text' : 'password'} autoComplete="new-password" placeholder="Crie uma senha forte" value={senha} onChange={(e) => setSenha(e.target.value)} required aria-describedby="cadastro-requisitos" className="cadastro-input cadastro-input-senha" />
+                  <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)} aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={mostrarSenha} aria-controls="senha" className="cadastro-eye">
+                    {mostrarSenha ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                  </button>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="confirmaSenha" className="cadastro-label">Confirme a senha</label>
+                <div className="relative">
+                  <input id="confirmaSenha" type={mostrarConfirmaSenha ? 'text' : 'password'} autoComplete="new-password" placeholder="Repita sua senha" value={confirmaSenha} onChange={(e) => setConfirmaSenha(e.target.value)} required className="cadastro-input cadastro-input-senha" />
+                  <button type="button" onClick={() => setMostrarConfirmaSenha(!mostrarConfirmaSenha)} aria-label={mostrarConfirmaSenha ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'} aria-pressed={mostrarConfirmaSenha} aria-controls="confirmaSenha" className="cadastro-eye">
+                    {mostrarConfirmaSenha ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="cadastro-requisitos" className="cadastro-requisitos"><RequisitosSenha senha={senha} /></div>
+          </section>
+
+          <section className="border-b border-[#dce5df] py-6" aria-labelledby="cadastro-futebol">
+            <h2 id="cadastro-futebol" className="mb-5 flex items-center gap-2.5 text-[15px] font-semibold"><Goal size={18} className="text-green-700" aria-hidden="true" />Seu futebol</h2>
+            <fieldset className="min-w-0" aria-describedby="cadastro-modalidades-ajuda">
+              <legend className="cadastro-label">O que você joga?</legend>
+              <p id="cadastro-modalidades-ajuda" className="mb-3 text-xs leading-relaxed text-[#65736a]">Selecione uma ou mais modalidades.</p>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                {arrayModalidades.map((modalidade) => (
+                  <label key={modalidade.id} className="cadastro-option min-h-[52px] px-3 py-4">
+                    <input type="checkbox" checked={arrayModalidadesSelecionadas.includes(modalidade.id)} onChange={() => handleModalidadeChange(modalidade.id)} />
+                    <span>{modalidade.nome}</span>
                   </label>
                 ))}
               </div>
-            </div>
-          )}
+            </fieldset>
+            <fieldset className="mt-5 min-w-0" aria-describedby="cadastro-posicoes-ajuda">
+              <legend className="cadastro-label">Em quais posições você joga?</legend>
+              <p id="cadastro-posicoes-ajuda" className="mb-3 text-xs leading-relaxed text-[#65736a]" aria-live="polite">
+                {arrayPosicoesDisponiveis.length > 0 ? 'Escolha ao menos uma posição para cada modalidade selecionada.' : 'Selecione uma modalidade para ver as posições disponíveis.'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {arrayPosicoesDisponiveis.map((posicao) => (
+                  <label key={posicao.id} className="cadastro-option min-h-11 px-3 py-2.5">
+                    <input type="checkbox" checked={arrayPosicoesSelecionadas.includes(posicao.id)} onChange={() => handlePosicaoChange(posicao.id)} />
+                    <span>{posicao.nome}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </section>
 
-          {/* Mensagem de erro */}
-          {erro && (
-            <p className="text-red-500 text-sm text-center">{erro}</p>
-          )}
-
-          {/* Botão de cadastro */}
-          <button
-            type="submit"
-            disabled={carregando}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {carregando ? 'Cadastrando...' : 'Cadastrar'}
-          </button>
+          {erro && <p role="alert" className="mt-4 text-sm text-red-700">{erro}</p>}
+          <div className="flex flex-col-reverse items-stretch gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+            <p className="text-center text-[13px] text-[#65736a]">Já tem conta?{' '}<Link to="/login" className="inline-flex min-h-11 items-center font-semibold text-green-700 hover:underline">Faça login</Link></p>
+            <button type="submit" disabled={carregando} className="flex min-h-12 items-center justify-center gap-3 rounded-xl bg-green-700 px-6 text-sm font-semibold text-white transition-colors hover:bg-green-800 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+              {carregando ? 'Cadastrando...' : 'Criar minha conta'}
+              {!carregando && <ArrowRight size={18} aria-hidden="true" />}
+            </button>
+          </div>
         </form>
-
-        {/* Link para login */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          Já tem conta?{' '}
-          <Link to="/login" className="text-green-600 hover:underline font-medium">
-            Faça login
-          </Link>
-        </div>
-      </div>
+      </main>
+      <p className="mt-5 text-center text-[11px] text-[#65736a]">Patota+ · Futebol entre amigos, organização de verdade.</p>
     </div>
   )
 }
