@@ -1,1 +1,29 @@
-/* Estilos complementares da tela de Perfil */
+/* Controles e estados exclusivos do perfil; layout principal em Tailwind. */
+.perfil-page .perfil-avatar > div { width: 68px; height: 68px; border-width: 2px; }
+.perfil-page .perfil-rating { padding-left: 22px; border-left: 1px solid #dce5df; }
+.perfil-page .perfil-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 19px; font-size: 15px; font-weight: 600; }
+.perfil-page .perfil-heading svg { color: #15803d; }
+.perfil-page .perfil-label { display: block; margin-bottom: 7px; color: #65736a; font-size: 12px; }
+.perfil-page .perfil-input { width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid #dce5df; border-radius: 12px; background: white; color: #172d20; font-size: 16px; }
+.perfil-page .perfil-input[readonly], .perfil-page .perfil-input:disabled { background: #f4f7f5; color: #65736a; }
+.perfil-page .perfil-input:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
+.perfil-page .perfil-input-senha { padding-right: 48px; }
+.perfil-page .perfil-eye { position: absolute; right: 2px; top: 2px; display: grid; place-items: center; width: 42px; height: 42px; color: #65736a; border-radius: 10px; cursor: pointer; }
+.perfil-page .perfil-eye:hover { color: #15803d; }
+.perfil-page .perfil-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px; border: 1px solid #dce5df; border-radius: 12px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+.perfil-page .perfil-primary { background: #15803d; color: white; border-color: #15803d; }
+.perfil-page .perfil-button:hover { background: #f4f7f5; }
+.perfil-page .perfil-primary:hover { background: #166534; }
+.perfil-page button:disabled { opacity: .6; cursor: not-allowed; }
+.perfil-page .perfil-tag { padding: 6px 12px; border-radius: 8px; background: #edf8f0; color: #15803d; font-size: 13px; }
+.perfil-page .perfil-option { display: flex; align-items: center; gap: 9px; min-height: 44px; padding: 11px 13px; border: 1px solid #dce5df; border-radius: 12px; font-size: 13px; cursor: pointer; }
+.perfil-page .perfil-option input { width: 16px; height: 16px; flex-shrink: 0; accent-color: #15803d; }
+.perfil-page .perfil-option:has(input:checked) { background: #edf8f0; color: #15803d; border-color: #15803d; }
+.perfil-page .perfil-option:has(input:focus-visible) { outline: 2px solid #15803d; outline-offset: 2px; }
+.perfil-page .perfil-security summary { list-style: none; }
+.perfil-page .perfil-security summary::-webkit-details-marker { display: none; }
+.perfil-page .perfil-security[open] .perfil-chevron { transform: rotate(180deg); }
+.perfil-page .perfil-requisitos ul { display: flex; flex-wrap: wrap; gap: 7px 18px; margin-top: 14px; }
+@media (max-width: 480px) {
+  .perfil-page .perfil-rating { width: 100%; padding: 14px 0 0; border-left: 0; border-top: 1px solid #dce5df; }
+}

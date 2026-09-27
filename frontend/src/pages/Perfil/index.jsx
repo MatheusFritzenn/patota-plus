@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Camera, ChevronDown, Eye, EyeOff, Goal, LockKeyhole, Pencil, UserRound } from 'lucide-react'
+import './style.css'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
@@ -49,8 +51,8 @@ function Perfil() {
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
   const [dataNascimento, setDataNascimento] = useState('')
-  const [modalidadesSelecionadas, setModalidadesSelecionadas] = useState([])
-  const [posicoesSelecionadas, setPosicoesSelecionadas] = useState([])
+  const [arrayModalidadesSelecionadas, setModalidadesSelecionadas] = useState([])
+  const [arrayPosicoesSelecionadas, setPosicoesSelecionadas] = useState([])
   const [fotoUrl, setFotoUrl] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const [senhaAtual, setSenhaAtual] = useState('')
@@ -122,14 +124,14 @@ function Perfil() {
 
   function obterPosicoesDisponiveis() {
     const arrayPosicoes = []
-    const idsJaAdicionados = []
+    const arrayIdsJaAdicionados = []
 
-    for (const modalidadeId of modalidadesSelecionadas) {
-      const posicoesDaModalidade = posicoesPorModalidade[modalidadeId]
-      if (posicoesDaModalidade) {
-        for (const posicao of posicoesDaModalidade) {
-          if (!idsJaAdicionados.includes(posicao.id)) {
-            idsJaAdicionados.push(posicao.id)
+    for (const modalidadeId of arrayModalidadesSelecionadas) {
+      const arrayPosicoesDaModalidade = posicoesPorModalidade[modalidadeId]
+      if (arrayPosicoesDaModalidade) {
+        for (const posicao of arrayPosicoesDaModalidade) {
+          if (!arrayIdsJaAdicionados.includes(posicao.id)) {
+            arrayIdsJaAdicionados.push(posicao.id)
             arrayPosicoes.push(posicao)
           }
         }
@@ -142,14 +144,14 @@ function Perfil() {
   function handleModalidadeChange(modalidadeId) {
     let arrayNovasModalidades = []
 
-    if (modalidadesSelecionadas.includes(modalidadeId)) {
-      for (const id of modalidadesSelecionadas) {
+    if (arrayModalidadesSelecionadas.includes(modalidadeId)) {
+      for (const id of arrayModalidadesSelecionadas) {
         if (id !== modalidadeId) {
           arrayNovasModalidades.push(id)
         }
       }
     } else {
-      for (const id of modalidadesSelecionadas) {
+      for (const id of arrayModalidadesSelecionadas) {
         arrayNovasModalidades.push(id)
       }
       arrayNovasModalidades.push(modalidadeId)
@@ -158,21 +160,21 @@ function Perfil() {
     setModalidadesSelecionadas(arrayNovasModalidades)
 
     // Remove posições inválidas
-    const idsPosicoesValidas = []
+    const arrayIdsPosicoesValidas = []
     for (const modId of arrayNovasModalidades) {
-      const posicoesDaModalidade = posicoesPorModalidade[modId]
-      if (posicoesDaModalidade) {
-        for (const posicao of posicoesDaModalidade) {
-          if (!idsPosicoesValidas.includes(posicao.id)) {
-            idsPosicoesValidas.push(posicao.id)
+      const arrayPosicoesDaModalidade = posicoesPorModalidade[modId]
+      if (arrayPosicoesDaModalidade) {
+        for (const posicao of arrayPosicoesDaModalidade) {
+          if (!arrayIdsPosicoesValidas.includes(posicao.id)) {
+            arrayIdsPosicoesValidas.push(posicao.id)
           }
         }
       }
     }
 
     const arrayPosicoesAtualizadas = []
-    for (const posId of posicoesSelecionadas) {
-      if (idsPosicoesValidas.includes(posId)) {
+    for (const posId of arrayPosicoesSelecionadas) {
+      if (arrayIdsPosicoesValidas.includes(posId)) {
         arrayPosicoesAtualizadas.push(posId)
       }
     }
@@ -182,14 +184,14 @@ function Perfil() {
   function handlePosicaoChange(posicaoId) {
     let arrayNovasPosicoes = []
 
-    if (posicoesSelecionadas.includes(posicaoId)) {
-      for (const id of posicoesSelecionadas) {
+    if (arrayPosicoesSelecionadas.includes(posicaoId)) {
+      for (const id of arrayPosicoesSelecionadas) {
         if (id !== posicaoId) {
           arrayNovasPosicoes.push(id)
         }
       }
     } else {
-      for (const id of posicoesSelecionadas) {
+      for (const id of arrayPosicoesSelecionadas) {
         arrayNovasPosicoes.push(id)
       }
       arrayNovasPosicoes.push(posicaoId)
@@ -261,24 +263,24 @@ function Perfil() {
       return
     }
 
-    if (modalidadesSelecionadas.length === 0) {
+    if (arrayModalidadesSelecionadas.length === 0) {
       setErro('Selecione ao menos uma modalidade.')
       return
     }
 
-    if (posicoesSelecionadas.length === 0) {
+    if (arrayPosicoesSelecionadas.length === 0) {
       setErro('Selecione ao menos uma posição.')
       return
     }
 
     // Verifica se cada modalidade selecionada tem ao menos uma posição marcada
-    for (const modalidadeId of modalidadesSelecionadas) {
-      const posicoesDaModalidade = posicoesPorModalidade[modalidadeId]
+    for (const modalidadeId of arrayModalidadesSelecionadas) {
+      const arrayPosicoesDaModalidade = posicoesPorModalidade[modalidadeId]
       let temPosicao = false
 
-      if (posicoesDaModalidade) {
-        for (const posicao of posicoesDaModalidade) {
-          if (posicoesSelecionadas.includes(posicao.id)) {
+      if (arrayPosicoesDaModalidade) {
+        for (const posicao of arrayPosicoesDaModalidade) {
+          if (arrayPosicoesSelecionadas.includes(posicao.id)) {
             temPosicao = true
             break
           }
@@ -337,8 +339,8 @@ function Perfil() {
         nome: nome,
         telefone: telefone,
         dataNascimento: dataNascimento,
-        modalidades: modalidadesSelecionadas,
-        posicoes: posicoesSelecionadas
+        modalidades: arrayModalidadesSelecionadas,
+        posicoes: arrayPosicoesSelecionadas
       }
 
       const resposta = await api.put('/usuarios/me', dadosAtualizar)
@@ -427,271 +429,133 @@ function Perfil() {
     )
   }
 
+  if (!usuario) {
+    return <main className="mx-auto max-w-[836px] px-6 py-10"><p role="alert" className="text-sm text-red-700">{erro || 'Não foi possível carregar o perfil.'}</p></main>
+  }
+
   const arrayPosicoesDisponiveis = obterPosicoesDisponiveis()
+  let nascimentoFormatado = 'Não informado'
+  if (dataNascimento) {
+    nascimentoFormatado = dataNascimento.split('-').reverse().join('/')
+  }
 
   return (
-    <main className="max-w-2xl mx-auto px-6 py-10">
-      <div className="bg-white rounded-2xl shadow-lg p-8">
-        {/* Header do perfil */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-green-700">Meu Perfil</h1>
-          {!editando && (
-            <button
-              onClick={() => setEditando(true)}
-              className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              Editar
-            </button>
-          )}
+    <main className="perfil-page mx-auto max-w-[836px] px-4 py-7 text-[#172d20] sm:px-7">
+      <div className="mb-[22px] flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="mb-1 text-[26px] font-semibold leading-tight tracking-[-0.7px]">Meu perfil</h1>
+          <p className="text-[13px] text-[#65736a]">Seus dados e seu jeito de jogar.</p>
         </div>
+        {!editando && <button type="button" onClick={() => { setErro(''); setSucesso(''); setEditando(true) }} className="perfil-button perfil-primary"><Pencil size={16} aria-hidden="true" />Editar perfil</button>}
+      </div>
 
-        {/* Foto */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="mb-3">
-            <Avatar nome={usuario.nome} foto={fotoUrl} tamanho="xl" corBorda="verde" />
-          </div>
-          {editando && (
-            <label className="text-sm text-green-600 hover:underline cursor-pointer">
-              {uploadingFoto ? 'Enviando...' : 'Alterar foto'}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleUploadFoto}
-                className="hidden"
-                disabled={uploadingFoto}
-              />
-            </label>
-          )}
-
-          {/* Média geral (avaliações) */}
-          <div className="mt-4 w-full max-w-xs bg-green-50 border border-green-100 rounded-2xl px-6 py-4 text-center">
-            <p className="text-sm text-gray-500 mb-1">Média geral</p>
-            {usuario.totalAvaliacoes > 0 ? (
+      <div className="overflow-hidden rounded-[22px] border border-[#dce5df] bg-white">
+        <section className="flex flex-wrap items-center gap-4 border-b border-[#dce5df] bg-[#edf8f0] px-[22px] py-6 sm:px-7" aria-label="Resumo do jogador">
+          <div className="perfil-avatar"><Avatar nome={usuario.nome} foto={fotoUrl} tamanho="xl" corBorda="verde" /></div>
+          <div className="min-w-[130px] flex-1">
+            <p className="break-words text-[19px] font-semibold">{usuario.nome}</p>
+            {editando ? (
               <div>
-                <p className="text-3xl font-bold text-green-700">
-                  {Number(usuario.mediaGeral).toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {usuario.totalAvaliacoes} avaliações recebidas
-                </p>
+                <label className="relative inline-flex min-h-11 items-center gap-2 text-xs text-green-700 hover:underline cursor-pointer focus-within:outline-2 focus-within:outline-green-700 rounded">
+                  <Camera size={15} aria-hidden="true" />{uploadingFoto ? 'Enviando...' : 'Alterar foto'}
+                  <input type="file" accept="image/*" aria-label="Alterar foto" onChange={handleUploadFoto} disabled={uploadingFoto || salvando} className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed" />
+                </label>
+                <p className="text-xs text-[#65736a]">A foto é salva ao enviar.</p>
               </div>
-            ) : (
-              <p className="text-gray-400 text-sm">Sem avaliações ainda</p>
-            )}
+            ) : <p className="mt-1 text-xs text-[#65736a]">Seu perfil de jogador</p>}
           </div>
-        </div>
-
-        {/* Campos */}
-        <div className="flex flex-col gap-4">
-          {/* Nome */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Nome completo</label>
-            {editando ? (
-              <input
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            ) : (
-              <p className="text-gray-800 px-4 py-2">{usuario.nome}</p>
-            )}
+          <div className="perfil-rating">
+            <p className="text-xs text-[#65736a]">Média geral</p>
+            {usuario.totalAvaliacoes > 0 ? (
+              <>
+                <p className="my-1 text-[26px] font-semibold leading-tight text-green-700">{Number(usuario.mediaGeral).toFixed(2).replace('.', ',')} <span className="text-xs font-normal text-[#65736a]">/ 10</span></p>
+                <p className="text-xs text-[#65736a]">{usuario.totalAvaliacoes} avaliações recebidas</p>
+              </>
+            ) : <p className="mt-2 text-sm text-[#65736a]">Sem avaliações ainda</p>}
           </div>
+        </section>
 
-          {/* E-mail (não editável) */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">E-mail</label>
-            <p className="text-gray-500 px-4 py-2 bg-gray-50 rounded-lg">{usuario.email}</p>
-          </div>
-
-          {/* Segurança */}
-          {editando && (
-            <div className="border-b border-gray-200 pb-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="senhaAtual" className="text-sm font-medium text-gray-700">
-                    Senha atual
-                  </label>
-                  <input
-                    id="senhaAtual"
-                    type="password"
-                    value={senhaAtual}
-                    onChange={(e) => setSenhaAtual(e.target.value)}
-                    placeholder="Digite sua senha atual"
-                    autoComplete="current-password"
-                    disabled={salvando}
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
-                  />
+        <form className="px-[22px] sm:px-7" aria-busy={salvando} onSubmit={(evento) => { evento.preventDefault(); if (editando && !salvando && !uploadingFoto) handleSalvar() }}>
+          <fieldset disabled={salvando} className="min-w-0">
+            <section className="border-b border-[#dce5df] py-6" aria-labelledby="perfil-dados">
+              <h2 id="perfil-dados" className="perfil-heading"><UserRound size={18} aria-hidden="true" />Seus dados</h2>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div className="min-w-0">
+                  {editando ? <><label htmlFor="perfil-nome" className="perfil-label">Nome completo</label><input id="perfil-nome" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} className="perfil-input" /></> : <><p className="perfil-label">Nome completo</p><p className="break-words text-sm">{usuario.nome}</p></>}
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="novaSenha" className="text-sm font-medium text-gray-700">
-                    Nova senha
-                  </label>
-                  <input
-                    id="novaSenha"
-                    type="password"
-                    value={novaSenha}
-                    onChange={(e) => setNovaSenha(e.target.value)}
-                    placeholder="Crie uma senha forte"
-                    autoComplete="new-password"
-                    disabled={salvando}
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
-                  />
-                  <RequisitosSenha senha={novaSenha} />
+                <div className="min-w-0">
+                  {editando ? <><label htmlFor="perfil-email" className="perfil-label">E-mail</label><input id="perfil-email" type="email" value={usuario.email || ''} readOnly className="perfil-input" /><p className="mt-1 text-xs text-[#65736a]">O e-mail não pode ser alterado.</p></> : <><p className="perfil-label">E-mail</p><p className="break-words text-sm">{usuario.email}</p></>}
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="confirmacaoSenha" className="text-sm font-medium text-gray-700">
-                    Confirme a nova senha
-                  </label>
-                  <input
-                    id="confirmacaoSenha"
-                    type="password"
-                    value={confirmacaoSenha}
-                    onChange={(e) => setConfirmacaoSenha(e.target.value)}
-                    placeholder="Digite a nova senha novamente"
-                    autoComplete="new-password"
-                    disabled={salvando}
-                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
-                  />
+                <div className="min-w-0">
+                  {editando ? <><label htmlFor="perfil-telefone" className="perfil-label">Telefone (com DDD)</label><input id="perfil-telefone" type="tel" autoComplete="tel" placeholder="(11) 99999-9999" value={telefone} onChange={handleTelefoneChange} className="perfil-input" /></> : <><p className="perfil-label">Telefone (com DDD)</p><p className="text-sm">{usuario.telefone || 'Não informado'}</p></>}
+                </div>
+                <div className="min-w-0">
+                  {editando ? <><label htmlFor="perfil-nascimento" className="perfil-label">Data de nascimento</label><input id="perfil-nascimento" type="date" autoComplete="bday" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="perfil-input" /></> : <><p className="perfil-label">Data de nascimento</p><p className="text-sm">{nascimentoFormatado}</p></>}
                 </div>
               </div>
-            </div>
-          )}
+            </section>
 
-          {/* Telefone */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Telefone</label>
-            {editando ? (
-              <input
-                type="tel"
-                value={telefone}
-                onChange={handleTelefoneChange}
-                placeholder="(11) 99999-9999"
-                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            ) : (
-              <p className="text-gray-800 px-4 py-2">{usuario.telefone || 'Não informado'}</p>
-            )}
-          </div>
-
-          {/* Data de nascimento */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Data de nascimento</label>
-            {editando ? (
-              <input
-                type="date"
-                value={dataNascimento}
-                onChange={(e) => setDataNascimento(e.target.value)}
-                className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${dataNascimento ? 'text-gray-900' : 'text-gray-400'}`}
-              />
-            ) : (
-              <p className="text-gray-800 px-4 py-2">
-                {usuario.dataNascimento
-                  ? new Date(usuario.dataNascimento).toLocaleDateString('pt-BR')
-                  : 'Não informado'}
-              </p>
-            )}
-          </div>
-
-          {/* Modalidades */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700">Modalidades</label>
-            {editando ? (
-              <div className="flex flex-col gap-2">
-                {arrayModalidades.map((modalidade) => (
-                  <label key={modalidade.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={modalidadesSelecionadas.includes(modalidade.id)}
-                      onChange={() => handleModalidadeChange(modalidade.id)}
-                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                    />
-                    <span className="text-sm text-gray-700">{modalidade.nome}</span>
-                  </label>
-                ))}
+            <section className="py-6" aria-labelledby="perfil-futebol">
+              <h2 id="perfil-futebol" className="perfil-heading"><Goal size={18} aria-hidden="true" />Seu futebol</h2>
+              <div className="flex flex-col gap-5">
+                <fieldset className="min-w-0">
+                  <legend className="perfil-label">Modalidades</legend>
+                  {editando ? <><p className="mb-3 text-xs text-[#65736a]">Selecione uma ou mais modalidades.</p><div className="flex flex-wrap gap-2">
+                    {arrayModalidades.map((modalidade) => <label key={modalidade.id} className="perfil-option"><input type="checkbox" checked={arrayModalidadesSelecionadas.includes(modalidade.id)} onChange={() => handleModalidadeChange(modalidade.id)} /><span>{modalidade.nome}</span></label>)}
+                  </div></> : <div className="flex flex-wrap gap-2">{usuario.modalidades && usuario.modalidades.map((item) => <span key={item.modalidade.id} className="perfil-tag">{item.modalidade.nome}</span>)}</div>}
+                </fieldset>
+                <fieldset className="min-w-0">
+                  <legend className="perfil-label">Posições</legend>
+                  {editando ? <><p className="mb-3 text-xs text-[#65736a]" aria-live="polite">{arrayPosicoesDisponiveis.length > 0 ? 'Escolha ao menos uma posição para cada modalidade.' : 'Selecione uma modalidade para ver as posições.'}</p><div className="flex flex-wrap gap-2">
+                    {arrayPosicoesDisponiveis.map((posicao) => <label key={posicao.id} className="perfil-option"><input type="checkbox" checked={arrayPosicoesSelecionadas.includes(posicao.id)} onChange={() => handlePosicaoChange(posicao.id)} /><span>{posicao.nome}</span></label>)}
+                  </div></> : <div className="flex flex-wrap gap-2">{usuario.posicoes && usuario.posicoes.map((item) => <span key={item.posicao.id} className="perfil-tag">{item.posicao.nome}</span>)}</div>}
+                </fieldset>
               </div>
-            ) : (
-              <div className="flex flex-wrap gap-2 px-4 py-2">
-                {usuario.modalidades && usuario.modalidades.map((item) => (
-                  <span
-                    key={item.modalidade.id}
-                    className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full"
-                  >
-                    {item.modalidade.nome}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+            </section>
 
-          {/* Posições */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700">Posições</label>
-            {editando ? (
-              arrayPosicoesDisponiveis.length > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  {arrayPosicoesDisponiveis.map((posicao) => (
-                    <label key={posicao.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={posicoesSelecionadas.includes(posicao.id)}
-                        onChange={() => handlePosicaoChange(posicao.id)}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">{posicao.nome}</span>
-                    </label>
-                  ))}
+            {editando && <section className="border-t border-[#dce5df] py-5">
+              <details className="perfil-security">
+                <summary className="flex min-h-11 items-center justify-between gap-3 cursor-pointer rounded">
+                  <span className="flex items-center gap-2.5 text-[15px] font-semibold"><LockKeyhole size={18} className="text-green-700" aria-hidden="true" />Alterar senha</span>
+                  <span className="flex items-center gap-2 text-xs text-[#65736a]">Opcional<ChevronDown size={16} className="perfil-chevron" aria-hidden="true" /></span>
+                </summary>
+                <p className="mb-4 mt-3 text-xs text-[#65736a]">Preencha apenas se quiser trocar sua senha.</p>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <CampoSenhaPerfil id="senhaAtual" label="Senha atual" valor={senhaAtual} aoAlterar={setSenhaAtual} autoComplete="current-password" />
+                  <div className="hidden sm:block" aria-hidden="true" />
+                  <CampoSenhaPerfil id="novaSenha" label="Nova senha" valor={novaSenha} aoAlterar={setNovaSenha} autoComplete="new-password" descricao="perfil-requisitos" />
+                  <CampoSenhaPerfil id="confirmacaoSenha" label="Confirme a nova senha" valor={confirmacaoSenha} aoAlterar={setConfirmacaoSenha} autoComplete="new-password" />
                 </div>
-              ) : (
-                <p className="text-sm text-gray-400 px-4 py-2">Selecione uma modalidade primeiro</p>
-              )
-            ) : (
-              <div className="flex flex-wrap gap-2 px-4 py-2">
-                {usuario.posicoes && usuario.posicoes.map((item) => (
-                  <span
-                    key={item.posicao.id}
-                    className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full"
-                  >
-                    {item.posicao.nome}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+                <div id="perfil-requisitos" className="perfil-requisitos"><RequisitosSenha senha={novaSenha} /></div>
+              </details>
+            </section>}
+          </fieldset>
 
-        </div>
-
-        {/* Mensagens */}
-        {erro && (
-          <p className="text-red-500 text-sm text-center mt-4">{erro}</p>
-        )}
-        {sucesso && (
-          <p className="text-green-600 text-sm text-center mt-4">{sucesso}</p>
-        )}
-
-        {/* Botões de edição */}
-        {editando && (
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleCancelar}
-              disabled={salvando}
-              className="flex-1 border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSalvar}
-              disabled={salvando}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {salvando ? 'Salvando...' : 'Salvar'}
-            </button>
-          </div>
-        )}
+          {erro && <p role="alert" className="mb-5 text-sm text-red-700">{erro}</p>}
+          {sucesso && <p role="status" className="mb-5 text-sm text-green-700">{sucesso}</p>}
+          {editando && <div className="flex flex-wrap justify-end gap-2.5 border-t border-[#dce5df] py-[22px]">
+            <button type="button" onClick={handleCancelar} disabled={salvando || uploadingFoto} className="perfil-button flex-1 sm:flex-none">Cancelar</button>
+            <button type="submit" disabled={salvando || uploadingFoto} className="perfil-button perfil-primary flex-1 sm:flex-none">{salvando ? 'Salvando...' : 'Salvar alterações'}</button>
+          </div>}
+        </form>
       </div>
     </main>
+  )
+}
+
+function CampoSenhaPerfil({ id, label, valor, aoAlterar, autoComplete, descricao }) {
+  const [visivel, setVisivel] = useState(false)
+
+  return (
+    <div className="min-w-0">
+      <label htmlFor={id} className="perfil-label">{label}</label>
+      <div className="relative">
+        <input id={id} type={visivel ? 'text' : 'password'} value={valor} onChange={(evento) => aoAlterar(evento.target.value)} autoComplete={autoComplete} aria-describedby={descricao} className="perfil-input perfil-input-senha" />
+        <button type="button" onClick={() => setVisivel(!visivel)} aria-label={(visivel ? 'Ocultar ' : 'Mostrar ') + label.toLowerCase()} aria-pressed={visivel} aria-controls={id} className="perfil-eye">
+          {visivel ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+        </button>
+      </div>
+    </div>
   )
 }
 

@@ -1,1 +1,58 @@
-/* Estilos complementares da tela de Criar Patota */
+/* Controles e estados do formulário; composição responsiva em Tailwind. */
+.criar-patota-page .patota-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 19px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.criar-patota-page .patota-form-heading svg { color: #15803d; }
+.criar-patota-page .patota-form-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500; }
+.criar-patota-page .patota-form-optional { color: #65736a; font-size: 12px; font-weight: 400; }
+.criar-patota-page .patota-form-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  background: white;
+  color: #172d20;
+  font-size: 16px;
+}
+.criar-patota-page .patota-form-input::placeholder { color: #65736a; }
+.criar-patota-page .patota-form-input:disabled { background: #f4f7f5; color: #65736a; }
+.criar-patota-page .patota-form-input:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
+.criar-patota-page .patota-form-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 12px 10px;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.criar-patota-page .patota-form-option input { width: 16px; height: 16px; flex-shrink: 0; accent-color: #15803d; }
+.criar-patota-page .patota-form-option:has(input:checked) { color: #15803d; border-color: #15803d; background: #edf8f0; }
+.criar-patota-page .patota-form-option:has(input:focus-visible) { outline: 2px solid #15803d; outline-offset: 2px; }
+.criar-patota-page .patota-form-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.criar-patota-page .patota-form-button:hover { background: #f4f7f5; }
+.criar-patota-page .patota-form-primary { background: #15803d; border-color: #15803d; color: white; }
+.criar-patota-page .patota-form-primary:hover { background: #166534; }
+.criar-patota-page button:disabled { opacity: .6; cursor: not-allowed; }

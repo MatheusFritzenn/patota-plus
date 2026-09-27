@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { CalendarDays, CirclePlus, MapPin, Shield, Upload } from 'lucide-react'
+import './style.css'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../services/api.js'
 import ibgeApi from '../../services/ibgeApi.js'
@@ -241,225 +243,107 @@ function CriarPatota() {
   const formularioEdicao = modoEdicao || !!patotaCriadaId
 
   return (
-    <main className="max-w-2xl mx-auto px-6 py-10">
-      <div className="bg-white rounded-2xl shadow-lg p-8">
-        {/* Título */}
-        <h1 className="text-2xl font-bold text-green-700 mb-2">
-          {formularioEdicao ? 'Editar Patota' : 'Criar Patota'}
-        </h1>
-        <p className="text-gray-500 mb-8">
-          {formularioEdicao ? 'Altere os dados da sua patota' : 'Preencha os dados para criar sua patota'}
-        </p>
-
-        {/* Formulário */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="emblemaPatota" className="text-sm font-medium text-gray-700">
-              Emblema da patota (opcional)
-            </label>
-            <div className="flex flex-wrap items-center gap-5 rounded-xl border border-green-100 bg-green-50/50 p-4">
-              <EmblemaPatota
-                nome={nome}
-                emblemaPath={removerEmblema ? '' : emblemaPath}
-                previewUrl={previewEmblema}
-                tamanho="formulario"
-              />
-              <div className="min-w-0 flex-1">
-                <input
-                  ref={inputEmblemaRef}
-                  id="emblemaPatota"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={selecionarEmblema}
-                  className="block w-full text-sm text-gray-600 file:cursor-pointer file:mr-3 file:rounded-lg file:border-0 file:bg-green-600 file:px-3 file:py-2 file:font-medium file:text-white file:hover:bg-green-700"
-                />
-                <p className="mt-2 text-xs text-gray-500">PNG, JPG ou WebP, até 2 MB. Prefira uma imagem quadrada.</p>
-                {(arquivoEmblema || (emblemaPath && !removerEmblema)) && (
-                  <button
-                    type="button"
-                    onClick={removerSelecaoEmblema}
-                    className="mt-2 text-sm font-medium text-red-600 hover:underline"
-                  >
-                    Remover emblema
-                  </button>
-                )}
+    <main className="criar-patota-page mx-auto max-w-[836px] px-4 py-7 text-[#172d20] sm:px-7">
+      <h1 className="mb-2 text-[26px] font-semibold leading-tight tracking-[-0.7px]">{formularioEdicao ? 'Editar patota' : 'Criar patota'}</h1>
+      <p className="mb-[22px] text-[13px] text-[#65736a]">{formularioEdicao ? 'Atualize os dados e a rotina da sua patota.' : 'Dê um nome à sua turma e organize o próximo jogo.'}</p>
+      <form onSubmit={handleSubmit} aria-busy={carregando} className="rounded-[22px] border border-[#dce5df] bg-white px-5 sm:px-7">
+        <fieldset disabled={carregando} className="min-w-0">
+          <section className="border-b border-[#dce5df] py-6" aria-labelledby="patota-identidade">
+            <h2 id="patota-identidade" className="patota-form-heading"><Shield size={18} aria-hidden="true" />Sua patota</h2>
+            <div className="mb-[22px] flex flex-wrap items-center gap-[18px] rounded-[14px] bg-[#edf8f0] p-[18px]">
+              <EmblemaPatota nome={nome} emblemaPath={removerEmblema ? '' : emblemaPath} previewUrl={previewEmblema} tamanho="formulario" />
+              <div className="min-w-[150px] flex-1">
+                <p className="patota-form-label">Emblema <span className="patota-form-optional">· opcional</span></p>
+                <div className="flex flex-wrap items-center gap-x-3">
+                  <label className="patota-form-button relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-green-700">
+                    <Upload size={16} aria-hidden="true" />Escolher imagem
+                    <input ref={inputEmblemaRef} id="emblemaPatota" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Escolher emblema" aria-describedby="emblema-ajuda" onChange={selecionarEmblema} className="absolute inset-0 w-full cursor-pointer opacity-0 disabled:cursor-not-allowed" />
+                  </label>
+                  {(arquivoEmblema || (emblemaPath && !removerEmblema)) && <button type="button" onClick={removerSelecaoEmblema} className="min-h-11 text-xs text-red-700 hover:underline cursor-pointer">Remover emblema</button>}
+                </div>
+                <p id="emblema-ajuda" className="mt-2 text-[11px] leading-relaxed text-[#65736a]">PNG, JPG ou WebP, até 2 MB. Prefira uma imagem quadrada.</p>
+                {arquivoEmblema && <p className="mt-1 break-all text-xs text-[#65736a]" role="status">{arquivoEmblema.name}</p>}
               </div>
             </div>
-          </div>
 
-          {/* Nome da patota */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="nome" className="text-sm font-medium text-gray-700">
-              Nome da patota
-            </label>
-            <input
-              id="nome"
-              type="text"
-              placeholder="Ex: Pelada do Sábado"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
+            <div className="flex flex-col gap-[18px]">
+              <div>
+                <label htmlFor="nome" className="patota-form-label">Nome da patota</label>
+                <input id="nome" type="text" placeholder="Ex.: Pelada do Sábado" value={nome} onChange={(e) => setNome(e.target.value)} required className="patota-form-input" />
+              </div>
+              <div>
+                <label htmlFor="descricao" className="patota-form-label">Descrição <span className="patota-form-optional">· opcional</span></label>
+                <textarea id="descricao" placeholder="Conte um pouco sobre a turma e os jogos." value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} className="patota-form-input resize-y" />
+              </div>
+              <fieldset className="min-w-0" aria-describedby="modalidade-ajuda">
+                <legend className="patota-form-label">Modalidade</legend>
+                <p id="modalidade-ajuda" className="mb-3.5 text-xs text-[#65736a]">Escolha a modalidade da sua patota.</p>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                  {arrayModalidades.map((modalidade) => (
+                    <label key={modalidade.id} className="patota-form-option">
+                      <input type="radio" name="modalidade" value={String(modalidade.id)} checked={modalidadeId === String(modalidade.id)} onChange={(e) => setModalidadeId(e.target.value)} required />
+                      <span>{modalidade.nome}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          </section>
 
-          {/* Descrição */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="descricao" className="text-sm font-medium text-gray-700">
-              Descrição (opcional)
-            </label>
-            <textarea
-              id="descricao"
-              placeholder="Descreva sua patota..."
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              rows={3}
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-            />
-          </div>
+          <section className="border-b border-[#dce5df] py-6" aria-labelledby="patota-local">
+            <h2 id="patota-local" className="patota-form-heading"><MapPin size={18} aria-hidden="true" />Local dos jogos</h2>
+            <div className="flex flex-col gap-[18px]">
+              <div>
+                <label htmlFor="rua" className="patota-form-label">Rua</label>
+                <input id="rua" type="text" placeholder="Ex.: Rua das Flores, 123" value={rua} onChange={(e) => setRua(e.target.value)} required className="patota-form-input" />
+              </div>
+              <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+                <div className="min-w-0">
+                  <label htmlFor="estado" className="patota-form-label">Estado</label>
+                  <select id="estado" value={estado} onChange={(e) => alterarEstado(e.target.value)} required className="patota-form-input">
+                    <option value="" disabled>Selecione o estado</option>
+                    {arrayEstados.map((estadoOpcao) => <option key={estadoOpcao.id} value={estadoOpcao.sigla}>{estadoOpcao.nome} ({estadoOpcao.sigla})</option>)}
+                  </select>
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor="cidade" className="patota-form-label">Cidade</label>
+                  <select id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} required disabled={!estado} className="patota-form-input">
+                    <option value="" disabled>{estado ? 'Selecione a cidade' : 'Selecione primeiro o estado'}</option>
+                    {arrayCidades.map((cidadeOpcao) => <option key={cidadeOpcao.id} value={cidadeOpcao.nome}>{cidadeOpcao.nome}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
 
-          {/* Modalidade */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="modalidade" className="text-sm font-medium text-gray-700">
-              Modalidade
-            </label>
-            <select
-              id="modalidade"
-              value={modalidadeId}
-              onChange={(e) => setModalidadeId(e.target.value)}
-              required
-              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${modalidadeId ? 'text-gray-900' : 'text-gray-400'}`}
-            >
-              <option value="" disabled>Selecione a modalidade</option>
-              {arrayModalidades.map((modalidade) => (
-                <option key={modalidade.id} value={modalidade.id}>
-                  {modalidade.nome}
-                </option>
-              ))}
-            </select>
-          </div>
+          <section className="border-b border-[#dce5df] py-6" aria-labelledby="patota-rotina">
+            <h2 id="patota-rotina" className="patota-form-heading"><CalendarDays size={18} aria-hidden="true" />Rotina da patota</h2>
+            <p className="mb-3.5 text-xs leading-relaxed text-[#65736a]">Defina o dia e o horário de costume para facilitar a criação das próximas partidas.</p>
+            <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+              <div className="min-w-0">
+                <label htmlFor="diaHabitual" className="patota-form-label">Dia habitual <span className="patota-form-optional">· opcional</span></label>
+                <select id="diaHabitual" value={diaHabitual} onChange={(e) => setDiaHabitual(e.target.value)} className="patota-form-input">
+                  <option value="">Sem dia definido</option>
+                  {arrayDiasSemana.map((dia) => <option key={dia.id} value={dia.id}>{dia.nome}</option>)}
+                </select>
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="horaHabitual" className="patota-form-label">Horário habitual <span className="patota-form-optional">· opcional</span></label>
+                <input id="horaHabitual" type="time" value={horaHabitual} onChange={(e) => setHoraHabitual(e.target.value)} className="patota-form-input" />
+              </div>
+            </div>
+          </section>
+        </fieldset>
 
-          {/* Rua */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="rua" className="text-sm font-medium text-gray-700">
-              Rua
-            </label>
-            <input
-              id="rua"
-              type="text"
-              placeholder="Ex: Rua das Flores, 123"
-              value={rua}
-              onChange={(e) => setRua(e.target.value)}
-              required
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Estado */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="estado" className="text-sm font-medium text-gray-700">
-              Estado
-            </label>
-            <select
-              id="estado"
-              value={estado}
-              onChange={(e) => alterarEstado(e.target.value)}
-              required
-              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${estado ? 'text-gray-900' : 'text-gray-400'}`}
-            >
-              <option value="" disabled>Selecione o estado</option>
-              {arrayEstados.map((estadoOpcao) => (
-                <option key={estadoOpcao.id} value={estadoOpcao.sigla}>
-                  {estadoOpcao.nome} ({estadoOpcao.sigla})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Cidade */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="cidade" className="text-sm font-medium text-gray-700">
-              Cidade
-            </label>
-            <select
-              id="cidade"
-              value={cidade}
-              onChange={(e) => setCidade(e.target.value)}
-              required
-              disabled={!estado}
-              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${cidade ? 'text-gray-900' : 'text-gray-400'}`}
-            >
-              <option value="" disabled>
-                {estado ? 'Selecione a cidade' : 'Selecione primeiro o estado'}
-              </option>
-              {arrayCidades.map((cidadeOpcao) => (
-                <option key={cidadeOpcao.id} value={cidadeOpcao.nome}>
-                  {cidadeOpcao.nome}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Dia habitual */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="diaHabitual" className="text-sm font-medium text-gray-700">
-              Dia habitual (opcional)
-            </label>
-            <select
-              id="diaHabitual"
-              value={diaHabitual}
-              onChange={(e) => setDiaHabitual(e.target.value)}
-              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${diaHabitual ? 'text-gray-900' : 'text-gray-400'}`}
-            >
-              <option value="" disabled>Selecione o dia</option>
-              {arrayDiasSemana.map((dia) => (
-                <option key={dia.id} value={dia.id}>
-                  {dia.nome}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Hora habitual */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="horaHabitual" className="text-sm font-medium text-gray-700">
-              Horário habitual (opcional)
-            </label>
-            <input
-              id="horaHabitual"
-              type="time"
-              value={horaHabitual}
-              onChange={(e) => setHoraHabitual(e.target.value)}
-              className={`border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${horaHabitual ? 'text-gray-900' : 'text-gray-400'}`}
-            />
-          </div>
-
-          {/* Mensagem de erro */}
-          {erro && (
-            <p className="text-red-500 text-sm text-center" role="alert">{erro}</p>
-          )}
-
-          {/* Botões */}
-          <div className="flex gap-3 mt-2">
-            <Link
-              to={rotaCancelar}
-              className="flex-1 text-center border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </Link>
-            <button
-              type="submit"
-              disabled={carregando}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {carregando
-                ? (formularioEdicao ? 'Salvando...' : 'Criando...')
-                : (formularioEdicao ? 'Salvar' : 'Criar Patota')
-              }
-            </button>
-          </div>
-        </form>
-      </div>
+        {erro && <p role="alert" className="mt-5 text-sm text-red-700">{erro}</p>}
+        <div className="flex flex-wrap justify-end gap-2.5 py-[22px]">
+          {carregando ? <button type="button" disabled className="patota-form-button flex-1 sm:flex-none">Cancelar</button> : <Link to={rotaCancelar} className="patota-form-button flex-1 sm:flex-none">Cancelar</Link>}
+          <button type="submit" disabled={carregando} className="patota-form-button patota-form-primary flex-1 sm:flex-none">
+            {!formularioEdicao && !carregando && <CirclePlus size={18} aria-hidden="true" />}
+            {carregando ? (formularioEdicao ? 'Salvando...' : 'Criando...') : (formularioEdicao ? 'Salvar alterações' : 'Criar patota')}
+          </button>
+        </div>
+      </form>
     </main>
   )
 }
