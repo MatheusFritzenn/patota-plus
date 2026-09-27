@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "node --test",
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node local.js",
+    "dev": "nodemon local.js"
   },
   "keywords": [],
   "author": "",

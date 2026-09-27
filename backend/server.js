@@ -9,9 +9,15 @@ import movimentacoesRoutes from './movimentacoes/routes.js'
 
 const app = express()
 
-// Habilita CORS apenas para o frontend (porta 5173)
+const arrayOrigensPermitidas = ['http://localhost:5173']
+
+if (process.env.FRONTEND_URL) {
+  arrayOrigensPermitidas.push(process.env.FRONTEND_URL)
+}
+
+// Permite o frontend local e o endereço publicado configurado no ambiente
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: arrayOrigensPermitidas,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }))
@@ -31,7 +37,4 @@ app.use('/partidas', partidasRoutes)
 app.use('/mensalidades', mensalidadesRoutes)
 app.use('/movimentacoes', movimentacoesRoutes)
 
-// Inicia o servidor
-app.listen(3000, () => {
-  console.log('Servidor rodando na porta 3000')
-})
+export default app
