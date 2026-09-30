@@ -447,6 +447,7 @@ backend/
 ### Decisões de arquitetura
 
 - **Autenticação:** Supabase SDK no frontend gerencia login/cadastro/sessão. O backend recebe o token JWT do Supabase no header `Authorization`, valida-o via `getClaims` em middleware e disponibiliza o UUID autenticado em `req.usuarioId` antes de processar requisições protegidas.
+- **Rotas protegidas:** `LayoutAutenticado` aguarda a restauração da sessão pelo Supabase antes de renderizar o cabeçalho, a navegação e a tela solicitada. Sem sessão, redireciona para `/login` substituindo a entrada no histórico. O layout acompanha mudanças de autenticação e também redireciona quando a sessão é encerrada. Login, cadastro, recuperação e redefinição de senha permanecem fora desse layout.
 - **Banco de dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via `pg` (node-postgres) com queries SQL diretas.
 - **Separação de responsabilidades:** Supabase Auth gerencia a autenticação e Supabase
   Storage armazena arquivos de imagem (avatares e emblemas). A referência do emblema,
