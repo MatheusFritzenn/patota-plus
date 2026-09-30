@@ -1,3 +1,4 @@
+import { CarregamentoPagina, IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState, useEffect } from 'react'
 import { Camera, ChevronDown, Eye, EyeOff, Goal, LockKeyhole, Pencil, UserRound } from 'lucide-react'
 import './style.css'
@@ -422,11 +423,7 @@ function Perfil() {
   }
 
   if (carregando) {
-    return (
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <p className="text-gray-500 text-center">Carregando...</p>
-      </main>
-    )
+    return <CarregamentoPagina tipo="perfil" titulo="Meu perfil" mensagem="Carregando perfil..." className="mx-auto max-w-[836px] px-4 py-7 sm:px-7" />
   }
 
   if (!usuario) {
@@ -457,7 +454,7 @@ function Perfil() {
             {editando ? (
               <div>
                 <label className="relative inline-flex min-h-11 items-center gap-2 text-xs text-green-700 hover:underline cursor-pointer focus-within:outline-2 focus-within:outline-green-700 rounded">
-                  <Camera size={15} aria-hidden="true" />{uploadingFoto ? 'Enviando...' : 'Alterar foto'}
+                  {uploadingFoto ? <IndicadorCarregamento texto="Enviando..." /> : <><Camera size={15} aria-hidden="true" />Alterar foto</>}
                   <input type="file" accept="image/*" aria-label="Alterar foto" onChange={handleUploadFoto} disabled={uploadingFoto || salvando} className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed" />
                 </label>
                 <p className="text-xs text-[#65736a]">A foto é salva ao enviar.</p>
@@ -535,7 +532,7 @@ function Perfil() {
           {sucesso && <p role="status" className="mb-5 text-sm text-green-700">{sucesso}</p>}
           {editando && <div className="flex flex-wrap justify-end gap-2.5 border-t border-[#dce5df] py-[22px]">
             <button type="button" onClick={handleCancelar} disabled={salvando || uploadingFoto} className="perfil-button flex-1 sm:flex-none">Cancelar</button>
-            <button type="submit" disabled={salvando || uploadingFoto} className="perfil-button perfil-primary flex-1 sm:flex-none">{salvando ? 'Salvando...' : 'Salvar alterações'}</button>
+            <button type="submit" disabled={salvando || uploadingFoto} aria-busy={salvando} className="perfil-button perfil-primary flex-1 sm:flex-none">{salvando ? <IndicadorCarregamento texto="Salvando..." /> : 'Salvar alterações'}</button>
           </div>}
         </form>
       </div>

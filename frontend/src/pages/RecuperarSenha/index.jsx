@@ -1,3 +1,4 @@
+import { IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
@@ -67,10 +68,10 @@ function RecuperarSenha() {
             {/* Botão enviar */}
             <button
               type="submit"
-              disabled={carregando}
+              disabled={carregando} aria-busy={carregando}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {carregando ? 'Enviando...' : 'Enviar link de recuperação'}
+              {carregando ? <IndicadorCarregamento texto="Enviando..." /> : 'Enviar link de recuperação'}
             </button>
           </form>
         )}

@@ -1,3 +1,4 @@
+import { CarregamentoPagina, IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState, useEffect, useRef } from 'react'
 import { CalendarDays, CirclePlus, MapPin, Shield, Upload } from 'lucide-react'
 import './style.css'
@@ -37,6 +38,8 @@ function CriarPatota() {
   const [estado, setEstado] = useState('')
   const [arrayEstados, setArrayEstados] = useState([])
   const [arrayCidades, setArrayCidades] = useState([])
+  const [carregandoEstados, setCarregandoEstados] = useState(true)
+  const [carregandoCidades, setCarregandoCidades] = useState(false)
   const [diaHabitual, setDiaHabitual] = useState('')
   const [horaHabitual, setHoraHabitual] = useState('')
   const [emblemaPath, setEmblemaPath] = useState('')
@@ -58,15 +61,20 @@ function CriarPatota() {
   }, [previewEmblema])
 
   useEffect(() => {
-    carregarEstados()
+    const controlador = new AbortController()
+    carregarEstados(controlador.signal)
+    return () => controlador.abort()
   }, [])
 
   useEffect(() => {
+    const controlador = new AbortController()
     if (estado) {
-      carregarCidades(estado)
+      carregarCidades(estado, controlador.signal)
     } else {
       setArrayCidades([])
+      setCarregandoCidades(false)
     }
+    return () => controlador.abort()
   }, [estado])
 
   useEffect(() => {
@@ -75,25 +83,38 @@ function CriarPatota() {
     }
   }, [id])
 
-  async function carregarEstados() {
+  async function carregarEstados(sinal) {
+    setCarregandoEstados(true)
     try {
-      const resposta = await ibgeApi.get('/estados?orderBy=nome')
+      const resposta = await ibgeApi.get('/estados?orderBy=nome', { signal: sinal })
+      if (sinal.aborted) return
       setArrayEstados(resposta.data)
     }
     catch (erro) {
+      if (sinal.aborted) return
       console.error('Erro ao carregar estados:', erro)
       setErro('Erro ao carregar estados.')
     }
+    finally {
+      if (!sinal.aborted) setCarregandoEstados(false)
+    }
   }
 
-  async function carregarCidades(estado) {
+  async function carregarCidades(estado, sinal) {
+    setCarregandoCidades(true)
+    setArrayCidades([])
     try {
-      const resposta = await ibgeApi.get('/estados/' + estado + '/municipios?orderBy=nome')
+      const resposta = await ibgeApi.get('/estados/' + estado + '/municipios?orderBy=nome', { signal: sinal })
+      if (sinal.aborted) return
       setArrayCidades(resposta.data)
     }
     catch (erro) {
+      if (sinal.aborted) return
       console.error('Erro ao carregar cidades:', erro)
       setErro('Erro ao carregar cidades.')
+    }
+    finally {
+      if (!sinal.aborted) setCarregandoCidades(false)
     }
   }
 
@@ -230,11 +251,7 @@ function CriarPatota() {
   }
 
   if (carregandoDados) {
-    return (
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <p className="text-gray-500 text-center">Carregando...</p>
-      </main>
-    )
+    return <CarregamentoPagina tipo="formulario" titulo="Editar patota" mensagem="Carregando dados da patota..." className="mx-auto max-w-[836px] px-4 py-7 sm:px-7" />
   }
 
   let rotaCancelar = '/minhas-patotas'
@@ -300,17 +317,19 @@ function CriarPatota() {
               <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
                 <div className="min-w-0">
                   <label htmlFor="estado" className="patota-form-label">Estado</label>
-                  <select id="estado" value={estado} onChange={(e) => alterarEstado(e.target.value)} required className="patota-form-input">
+                  <select id="estado" value={estado} onChange={(e) => alterarEstado(e.target.value)} required disabled={carregandoEstados} aria-busy={carregandoEstados} className="patota-form-input">
                     <option value="" disabled>Selecione o estado</option>
                     {arrayEstados.map((estadoOpcao) => <option key={estadoOpcao.id} value={estadoOpcao.sigla}>{estadoOpcao.nome} ({estadoOpcao.sigla})</option>)}
                   </select>
+                  {carregandoEstados && <div className="mt-2 text-xs text-green-700"><IndicadorCarregamento texto="Buscando estados..." /></div>}
                 </div>
                 <div className="min-w-0">
                   <label htmlFor="cidade" className="patota-form-label">Cidade</label>
-                  <select id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} required disabled={!estado} className="patota-form-input">
+                  <select id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} required disabled={!estado || carregandoCidades} aria-busy={carregandoCidades} className="patota-form-input">
                     <option value="" disabled>{estado ? 'Selecione a cidade' : 'Selecione primeiro o estado'}</option>
                     {arrayCidades.map((cidadeOpcao) => <option key={cidadeOpcao.id} value={cidadeOpcao.nome}>{cidadeOpcao.nome}</option>)}
                   </select>
+                  {carregandoCidades && <div className="mt-2 text-xs text-green-700"><IndicadorCarregamento texto="Buscando cidades..." /></div>}
                 </div>
               </div>
             </div>
@@ -338,9 +357,9 @@ function CriarPatota() {
         {erro && <p role="alert" className="mt-5 text-sm text-red-700">{erro}</p>}
         <div className="flex flex-wrap justify-end gap-2.5 py-[22px]">
           {carregando ? <button type="button" disabled className="patota-form-button flex-1 sm:flex-none">Cancelar</button> : <Link to={rotaCancelar} className="patota-form-button flex-1 sm:flex-none">Cancelar</Link>}
-          <button type="submit" disabled={carregando} className="patota-form-button patota-form-primary flex-1 sm:flex-none">
+          <button type="submit" disabled={carregando || carregandoEstados || carregandoCidades} aria-busy={carregando} className="patota-form-button patota-form-primary flex-1 sm:flex-none">
             {!formularioEdicao && !carregando && <CirclePlus size={18} aria-hidden="true" />}
-            {carregando ? (formularioEdicao ? 'Salvando...' : 'Criando...') : (formularioEdicao ? 'Salvar alterações' : 'Criar patota')}
+            {carregando ? <IndicadorCarregamento texto={formularioEdicao ? 'Salvando...' : 'Criando...'} /> : (formularioEdicao ? 'Salvar alterações' : 'Criar patota')}
           </button>
         </div>
       </form>

@@ -1,3 +1,4 @@
+import { IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
@@ -104,10 +105,10 @@ function RedefinirSenha() {
             {/* Botão redefinir */}
             <button
               type="submit"
-              disabled={carregando}
+              disabled={carregando} aria-busy={carregando}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {carregando ? 'Redefinindo...' : 'Redefinir senha'}
+              {carregando ? <IndicadorCarregamento texto="Redefinindo..." /> : 'Redefinir senha'}
             </button>
           </form>
         )}
@@ -119,7 +120,7 @@ function RedefinirSenha() {
               Senha redefinida com sucesso!
             </p>
             <p className="text-gray-500 text-sm">
-              Redirecionando para o login...
+              <IndicadorCarregamento texto="Redirecionando para o login..." />
             </p>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { CarregamentoConteudo } from '../../components/Carregamento.jsx'
 import { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import supabase from '../../services/supabaseClient.js'
@@ -69,7 +70,7 @@ function BuscarPatotas() {
     textoContagem = '1 patota encontrada'
   }
   if (carregando) {
-    textoContagem = 'Buscando patotas...'
+    textoContagem = ''
   }
 
   return (
@@ -106,7 +107,7 @@ function BuscarPatotas() {
       </div>
 
       {carregando && (
-        <p className="text-gray-500 text-center py-16">Carregando...</p>
+        <CarregamentoConteudo tipo="patotas" mensagem="Carregando patotas disponíveis..." />
       )}
 
       {!carregando && erro && (

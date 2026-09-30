@@ -1,3 +1,4 @@
+import { CarregamentoSessao } from './Carregamento.jsx'
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import supabase from '../services/supabaseClient.js'
@@ -39,11 +40,7 @@ function LayoutAutenticado() {
   }, [menuLateralAberto])
 
   if (verificandoSessao) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-green-50">
-        <p role="status" className="text-green-800">Carregando...</p>
-      </div>
-    )
+    return <CarregamentoSessao />
   }
 
   if (!sessao) {

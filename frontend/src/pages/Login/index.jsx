@@ -1,3 +1,4 @@
+import { IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
@@ -110,10 +111,10 @@ function Login() {
             {/* Botão de login */}
             <button
               type="submit"
-              disabled={carregando}
+              disabled={carregando} aria-busy={carregando}
               className="mt-1 flex h-12 w-full items-center justify-center gap-3 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {carregando ? 'Entrando...' : 'Entrar'}
+              {carregando ? <IndicadorCarregamento texto="Entrando..." /> : 'Entrar'}
               {!carregando && <ArrowRight size={18} aria-hidden="true" />}
             </button>
           </form>

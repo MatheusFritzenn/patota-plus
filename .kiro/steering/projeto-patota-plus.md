@@ -458,6 +458,16 @@ backend/
 
 ## Diretrizes de desenvolvimento
 
+- **Carregamento da interface:** os componentes compartilhados de
+  `frontend/src/components/Carregamento.jsx` padronizam skeletons para cards,
+  formulários, perfil, detalhes, listas, times e relatórios. Títulos conhecidos,
+  cabeçalho e navegação permanecem visíveis enquanto os dados das telas autenticadas
+  chegam. Antes da restauração da sessão, exibir somente o logo e o indicador de
+  acesso, preservando a proteção das rotas. Ações com estado de envio usam indicador
+  no botão e bloqueio durante a requisição; atualizações de caixa e mensalidades
+  preservam os dados já exibidos com indicação de atualização. Skeletons são
+  decorativos, com mensagem de status para leitores de tela; as animações respeitam
+  `prefers-reduced-motion`. Não adicionar atrasos artificiais ao carregamento.
 - Interface simples, clara e intuitiva (RNF01)
 - Layout responsivo — desktop e mobile (RNF02)
 - Segurança e controle de acesso via Supabase (RNF03/RNF04)

@@ -1,4 +1,6 @@
-function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, corBotaoConfirmar, onConfirmar, onCancelar }) {
+import { IndicadorCarregamento } from './Carregamento.jsx'
+
+function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, corBotaoConfirmar, onConfirmar, onCancelar, processando = false }) {
   if (!aberto) return null
 
   // Define a classe de cor do botão de confirmação (padrão: vermelho)
@@ -12,7 +14,7 @@ function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, corBo
       {/* Overlay escuro */}
       <div
         className="absolute inset-0 bg-black/50"
-        onClick={onCancelar}
+        onClick={() => { if (!processando) onCancelar() }}
       />
 
       {/* Card do modal */}
@@ -27,15 +29,18 @@ function ModalConfirmacao({ aberto, titulo, mensagem, textoBotaoConfirmar, corBo
         <div className="flex gap-3">
           <button
             onClick={onCancelar}
+            disabled={processando}
             className="flex-1 border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirmar}
+            disabled={processando}
+            aria-busy={processando}
             className={'flex-1 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer ' + classeBotaoConfirmar}
           >
-            {textoBotaoConfirmar || 'Confirmar'}
+            {processando ? <IndicadorCarregamento texto={textoBotaoConfirmar || 'Processando...'} /> : (textoBotaoConfirmar || 'Confirmar')}
           </button>
         </div>
       </div>

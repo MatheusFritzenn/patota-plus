@@ -1,0 +1,30 @@
+.patota-skeleton {
+  background-color: #e2ebe5;
+  animation: patota-pulsar 1.8s ease-in-out infinite;
+}
+
+.patota-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: patota-girar 0.8s linear infinite;
+}
+
+@keyframes patota-pulsar {
+  50% { opacity: 0.45; }
+}
+
+@keyframes patota-girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patota-skeleton,
+  .patota-spinner {
+    animation: none;
+  }
+}

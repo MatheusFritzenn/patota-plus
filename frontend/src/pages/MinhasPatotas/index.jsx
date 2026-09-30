@@ -1,3 +1,4 @@
+import { CarregamentoPagina } from '../../components/Carregamento.jsx'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
@@ -35,11 +36,7 @@ function MinhasPatotas() {
   }
 
   if (carregando) {
-    return (
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <p className="text-gray-500 text-center">Carregando...</p>
-      </main>
-    )
+    return <CarregamentoPagina tipo="patotas" titulo="Minhas Patotas" mensagem="Carregando suas patotas..." />
   }
 
   if (erro) {

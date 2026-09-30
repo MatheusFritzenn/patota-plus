@@ -1,3 +1,4 @@
+import { CarregamentoPagina, CarregamentoConteudo, IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
@@ -187,11 +188,7 @@ function DetalhesPartida() {
   }
 
   if (carregando) {
-    return (
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <p className="text-gray-500 text-center">Carregando...</p>
-      </main>
-    )
+    return <CarregamentoPagina tipo="detalhes" mensagem="Carregando partida e jogadores..." />
   }
 
   if (erro) {
@@ -317,6 +314,7 @@ function DetalhesPartida() {
         aberto={modalExcluirAberto}
         titulo="Excluir partida"
         mensagem="Tem certeza que deseja excluir esta partida e seus dados vinculados? Essa ação não pode ser desfeita."
+        processando={excluindo}
         textoBotaoConfirmar={excluindo ? 'Excluindo...' : 'Excluir'}
         onConfirmar={handleExcluirPartida}
         onCancelar={() => setModalExcluirAberto(false)}
@@ -550,11 +548,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
   }
 
   if (carregando) {
-    return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-        <p className="text-gray-500">Carregando times...</p>
-      </div>
-    )
+    return <CarregamentoConteudo tipo="times" mensagem="Carregando times..." />
   }
 
   if (erro) {
@@ -583,10 +577,10 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleClicarGerar}
-                disabled={gerando}
+                disabled={gerando} aria-busy={gerando}
                 className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {gerando ? 'Gerando...' : (temTimes ? 'Regenerar times' : 'Gerar times')}
+                {gerando ? <IndicadorCarregamento texto="Gerando..." /> : (temTimes ? 'Regenerar times' : 'Gerar times')}
               </button>
               {temTimes && (
                 <button
@@ -614,6 +608,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
             {arrayParticipantes.map((participante) => (
               <label key={participante.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3">
                 <span className="text-sm font-medium text-gray-800">{participante.nome}</span>
+                {salvandoPosicaoId === participante.id && <span className="text-sm text-green-700"><IndicadorCarregamento texto="Salvando posição..." /></span>}
                 <span className="text-xs text-gray-500">
                   Perfil: {participante.posicoes.length > 0 ? participante.posicoes.join(', ') : 'sem posição cadastrada'}
                 </span>
@@ -872,11 +867,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
   }
 
   if (carregando) {
-    return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-        <p className="text-gray-500">Carregando avaliações...</p>
-      </div>
-    )
+    return <CarregamentoConteudo tipo="lista" mensagem="Carregando avaliações..." />
   }
 
   if (erro) {
@@ -997,10 +988,10 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleSalvarAvaliacoes}
-                  disabled={salvando}
+                  disabled={salvando} aria-busy={salvando}
                   className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {salvando ? 'Salvando...' : 'Salvar avaliações'}
+                  {salvando ? <IndicadorCarregamento texto="Salvando..." /> : 'Salvar avaliações'}
                 </button>
               </div>
             </div>
@@ -1013,6 +1004,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
         aberto={modalEncerrarAberto}
         titulo="Encerrar avaliações"
         mensagem="Ao encerrar, ninguém poderá mais avaliar e as médias dos jogadores serão calculadas. Deseja continuar?"
+        processando={encerrando}
         textoBotaoConfirmar={encerrando ? 'Encerrando...' : 'Encerrar'}
         corBotaoConfirmar="verde"
         onConfirmar={handleEncerrarAvaliacoes}

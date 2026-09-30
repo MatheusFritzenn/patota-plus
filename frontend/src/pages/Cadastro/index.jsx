@@ -1,3 +1,4 @@
+import { IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState } from 'react'
 import { ArrowRight, Eye, EyeOff, Goal, LockKeyhole, UserRound } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
@@ -349,8 +350,8 @@ function Cadastro() {
           {erro && <p role="alert" className="mt-4 text-sm text-red-700">{erro}</p>}
           <div className="flex flex-col-reverse items-stretch gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
             <p className="text-center text-[13px] text-[#65736a]">Já tem conta?{' '}<Link to="/login" className="inline-flex min-h-11 items-center font-semibold text-green-700 hover:underline">Faça login</Link></p>
-            <button type="submit" disabled={carregando} className="flex min-h-12 items-center justify-center gap-3 rounded-xl bg-green-700 px-6 text-sm font-semibold text-white transition-colors hover:bg-green-800 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-              {carregando ? 'Cadastrando...' : 'Criar minha conta'}
+            <button type="submit" disabled={carregando} aria-busy={carregando} className="flex min-h-12 items-center justify-center gap-3 rounded-xl bg-green-700 px-6 text-sm font-semibold text-white transition-colors hover:bg-green-800 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+              {carregando ? <IndicadorCarregamento texto="Cadastrando..." /> : 'Criar minha conta'}
               {!carregando && <ArrowRight size={18} aria-hidden="true" />}
             </button>
           </div>

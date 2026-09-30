@@ -1,3 +1,4 @@
+import { CarregamentoPagina, IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../services/api.js'
@@ -144,11 +145,7 @@ function CriarPartida() {
   }
 
   if (carregandoDados) {
-    return (
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <p className="text-gray-500 text-center">Carregando partida...</p>
-      </main>
-    )
+    return <CarregamentoPagina tipo="partida-formulario" titulo={modoEdicao ? 'Editar Partida' : 'Criar Partida'} mensagem="Carregando dados da partida..." className="max-w-2xl mx-auto px-6 py-10" />
   }
 
   if (erroCarregamento) {
@@ -253,10 +250,10 @@ function CriarPartida() {
             </Link>
             <button
               type="submit"
-              disabled={carregando}
+              disabled={carregando} aria-busy={carregando}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {carregando ? 'Salvando...' : (modoEdicao ? 'Salvar alterações' : 'Criar Partida')}
+              {carregando ? <IndicadorCarregamento texto="Salvando..." /> : (modoEdicao ? 'Salvar alterações' : 'Criar Partida')}
             </button>
           </div>
         </form>
