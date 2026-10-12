@@ -5,6 +5,7 @@ import './style.css'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../services/api.js'
 import ibgeApi from '../../services/ibgeApi.js'
+import { consultarCep } from '../../services/viacep.js'
 import { enviarEmblema, excluirEmblema, validarArquivoEmblema } from '../../services/emblemasPatotas.js'
 import EmblemaPatota from '../../components/EmblemaPatota.jsx'
 
@@ -25,6 +26,7 @@ const arrayDiasSemana = [
   { id: 6, nome: 'Sábado' },
   { id: 7, nome: 'Domingo' }
 ]
+const arrayUfs = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
 
 function CriarPatota() {
   const { id } = useParams()
@@ -34,9 +36,15 @@ function CriarPatota() {
   const [descricao, setDescricao] = useState('')
   const [modalidadeId, setModalidadeId] = useState('')
   const [rua, setRua] = useState('')
+  const [cep, setCep] = useState('')
+  const [numero, setNumero] = useState('')
+  const [complemento, setComplemento] = useState('')
+  const [carregandoCep, setCarregandoCep] = useState(false)
+  const [mensagemCep, setMensagemCep] = useState('')
+  const [enderecoLegado, setEnderecoLegado] = useState(false)
   const [cidade, setCidade] = useState('')
   const [estado, setEstado] = useState('')
-  const [arrayEstados, setArrayEstados] = useState([])
+  const [arrayEstados, setArrayEstados] = useState(arrayUfs.map(function (uf) { return { id: uf, sigla: uf, nome: uf } }))
   const [arrayCidades, setArrayCidades] = useState([])
   const [carregandoEstados, setCarregandoEstados] = useState(true)
   const [carregandoCidades, setCarregandoCidades] = useState(false)
@@ -53,6 +61,39 @@ function CriarPatota() {
 
   const navigate = useNavigate()
   const inputEmblemaRef = useRef(null)
+  const consultaCepRef = useRef(null)
+
+  useEffect(() => {
+    return function () {
+      if (consultaCepRef.current) consultaCepRef.current.abort()
+    }
+  }, [])
+
+  function cancelarConsultaCep() {
+    if (consultaCepRef.current) consultaCepRef.current.abort()
+    setCarregandoCep(false)
+    setMensagemCep('')
+  }
+
+  async function preencherPeloCep() {
+    cancelarConsultaCep()
+    const controlador = new AbortController()
+    consultaCepRef.current = controlador
+    setCarregandoCep(true)
+    try {
+      const endereco = await consultarCep(cep, controlador.signal)
+      if (controlador.signal.aborted) return
+      setRua(endereco.logradouro || '')
+      setEstado(endereco.uf || '')
+      setCidade(endereco.localidade || '')
+      setMensagemCep('Endereço preenchido. Confira os dados e informe o número ou S/N.')
+    } catch (erroCep) {
+      if (controlador.signal.aborted) return
+      setMensagemCep(erroCep.message || 'Consulta de CEP indisponível. Preencha o endereço manualmente.')
+    } finally {
+      if (!controlador.signal.aborted) setCarregandoCep(false)
+    }
+  }
 
   useEffect(() => {
     return function () {
@@ -93,7 +134,6 @@ function CriarPatota() {
     catch (erro) {
       if (sinal.aborted) return
       console.error('Erro ao carregar estados:', erro)
-      setErro('Erro ao carregar estados.')
     }
     finally {
       if (!sinal.aborted) setCarregandoEstados(false)
@@ -111,7 +151,6 @@ function CriarPatota() {
     catch (erro) {
       if (sinal.aborted) return
       console.error('Erro ao carregar cidades:', erro)
-      setErro('Erro ao carregar cidades.')
     }
     finally {
       if (!sinal.aborted) setCarregandoCidades(false)
@@ -119,6 +158,7 @@ function CriarPatota() {
   }
 
   function alterarEstado(novoEstado) {
+    cancelarConsultaCep()
     setCidade('')
     setEstado(novoEstado)
   }
@@ -132,6 +172,10 @@ function CriarPatota() {
       setDescricao(patota.descricao || '')
       setModalidadeId(String(patota.modalidadeId) || '')
       setRua(patota.rua || '')
+      setCep(patota.cep || '')
+      setNumero(patota.numero || '')
+      setComplemento(patota.complemento || '')
+      setEnderecoLegado(!patota.temLocalizacao)
       setCidade(patota.cidade || '')
       setEstado(patota.estado || '')
       setDiaHabitual(patota.diaHabitual ? String(patota.diaHabitual) : '')
@@ -190,11 +234,15 @@ function CriarPatota() {
       descricao: descricao,
       modalidadeId: Number(modalidadeId),
       rua: rua,
+      cep: cep,
+      numero: numero,
+      complemento: complemento,
       cidade: cidade,
       estado: estado,
-      diaHabitual: diaHabitual ? Number(diaHabitual) : null,
+      diaHabitual: null,
       horaHabitual: horaHabitual || null
     }
+    if (diaHabitual) dadosPatota.diaHabitual = Number(diaHabitual)
 
     let patotaAlvoId = id || patotaCriadaId
     let caminhoNovo = ''
@@ -243,7 +291,7 @@ function CriarPatota() {
       if (!modoEdicao && patotaAlvoId) {
         setErro('A patota foi criada, mas não foi possível concluir o salvamento. Tente novamente nesta tela para não criar outra patota.')
       } else {
-        setErro('Erro ao salvar patota. Tente novamente.')
+        setErro(erroRequisicao.response?.data?.erro || 'Erro ao salvar patota. Tente novamente.')
       }
     } finally {
       setCarregando(false)
@@ -309,15 +357,37 @@ function CriarPatota() {
 
           <section className="border-b border-[#dce5df] py-6" aria-labelledby="patota-local">
             <h2 id="patota-local" className="patota-form-heading"><MapPin size={18} aria-hidden="true" />Local dos jogos</h2>
+            {enderecoLegado && <p className="mb-4 text-sm text-amber-800">Complete o endereço para que sua patota apareça na busca por proximidade.</p>}
             <div className="flex flex-col gap-[18px]">
               <div>
+                <label htmlFor="cep" className="patota-form-label">CEP</label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input id="cep" type="text" inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" value={cep} onChange={(evento) => { cancelarConsultaCep(); setCep(evento.target.value.replace(/\D/g, '').slice(0, 8)) }} required pattern="[0-9]{8}" maxLength={9} aria-describedby="cep-ajuda" className="patota-form-input sm:max-w-48" />
+                  <button type="button" onClick={preencherPeloCep} disabled={cep.length !== 8 || carregandoCep} className="patota-form-button">
+                    {carregandoCep ? <IndicadorCarregamento texto="Consultando CEP..." /> : 'Preencher pelo CEP'}
+                  </button>
+                </div>
+                <p id="cep-ajuda" className="mt-2 text-xs text-[#65736a]">Consulte o ViaCEP para preencher o endereço. Você pode corrigir os campos manualmente.</p>
+                {mensagemCep && <p role="status" className="mt-2 text-sm text-[#65736a]">{mensagemCep}</p>}
+              </div>
+              <div>
                 <label htmlFor="rua" className="patota-form-label">Rua</label>
-                <input id="rua" type="text" placeholder="Ex.: Rua das Flores, 123" value={rua} onChange={(e) => setRua(e.target.value)} required className="patota-form-input" />
+                <input id="rua" type="text" placeholder="Ex.: Rua das Flores" value={rua} onChange={(e) => { cancelarConsultaCep(); setRua(e.target.value) }} maxLength={200} required className="patota-form-input" />
+              </div>
+              <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+                <div>
+                  <label htmlFor="numero" className="patota-form-label">Número</label>
+                  <input id="numero" value={numero} onChange={(evento) => setNumero(evento.target.value)} maxLength={30} placeholder="Ex.: 123 ou S/N" required className="patota-form-input" />
+                </div>
+                <div>
+                  <label htmlFor="complemento" className="patota-form-label">Complemento <span className="patota-form-optional">· opcional</span></label>
+                  <input id="complemento" value={complemento} onChange={(evento) => setComplemento(evento.target.value)} maxLength={120} placeholder="Ex.: Quadra 2" className="patota-form-input" />
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
                 <div className="min-w-0">
                   <label htmlFor="estado" className="patota-form-label">Estado</label>
-                  <select id="estado" value={estado} onChange={(e) => alterarEstado(e.target.value)} required disabled={carregandoEstados} aria-busy={carregandoEstados} className="patota-form-input">
+                  <select id="estado" value={estado} onChange={(e) => alterarEstado(e.target.value)} required aria-busy={carregandoEstados} className="patota-form-input">
                     <option value="" disabled>Selecione o estado</option>
                     {arrayEstados.map((estadoOpcao) => <option key={estadoOpcao.id} value={estadoOpcao.sigla}>{estadoOpcao.nome} ({estadoOpcao.sigla})</option>)}
                   </select>
@@ -325,13 +395,14 @@ function CriarPatota() {
                 </div>
                 <div className="min-w-0">
                   <label htmlFor="cidade" className="patota-form-label">Cidade</label>
-                  <select id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} required disabled={!estado || carregandoCidades} aria-busy={carregandoCidades} className="patota-form-input">
-                    <option value="" disabled>{estado ? 'Selecione a cidade' : 'Selecione primeiro o estado'}</option>
-                    {arrayCidades.map((cidadeOpcao) => <option key={cidadeOpcao.id} value={cidadeOpcao.nome}>{cidadeOpcao.nome}</option>)}
-                  </select>
+                  <input id="cidade" list="cidades-patota" value={cidade} onChange={(e) => { cancelarConsultaCep(); setCidade(e.target.value) }} required maxLength={100} placeholder="Informe a cidade" className="patota-form-input" />
+                  <datalist id="cidades-patota">
+                    {arrayCidades.map((cidadeOpcao) => <option key={cidadeOpcao.id} value={cidadeOpcao.nome} />)}
+                  </datalist>
                   {carregandoCidades && <div className="mt-2 text-xs text-green-700"><IndicadorCarregamento texto="Buscando cidades..." /></div>}
                 </div>
               </div>
+              <p className="text-xs leading-relaxed text-[#65736a]">Ao salvar, consultamos a localização do local dos jogos. Dados geográficos © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">OpenStreetMap contributors</a>.</p>
             </div>
           </section>
 
@@ -357,7 +428,7 @@ function CriarPatota() {
         {erro && <p role="alert" className="mt-5 text-sm text-red-700">{erro}</p>}
         <div className="flex flex-wrap justify-end gap-2.5 py-[22px]">
           {carregando ? <button type="button" disabled className="patota-form-button flex-1 sm:flex-none">Cancelar</button> : <Link to={rotaCancelar} className="patota-form-button flex-1 sm:flex-none">Cancelar</Link>}
-          <button type="submit" disabled={carregando || carregandoEstados || carregandoCidades} aria-busy={carregando} className="patota-form-button patota-form-primary flex-1 sm:flex-none">
+          <button type="submit" disabled={carregando || carregandoCep} aria-busy={carregando} className="patota-form-button patota-form-primary flex-1 sm:flex-none">
             {!formularioEdicao && !carregando && <CirclePlus size={18} aria-hidden="true" />}
             {carregando ? <IndicadorCarregamento texto={formularioEdicao ? 'Salvando...' : 'Criando...'} /> : (formularioEdicao ? 'Salvar alterações' : 'Criar patota')}
           </button>

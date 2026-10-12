@@ -1,4 +1,5 @@
 import { criarPatota, buscarPatotasDoUsuario, buscarPatotasDisponiveis, buscarPatotaPorId, buscarMembrosPatota, atualizarPatota, excluirPatota, criarSolicitacaoEntrada, buscarSolicitacoesPendentes, responderSolicitacao, verificarMembro, verificarSolicitacaoPendente, removerMembro, removerMembroPorSaida, membroExiste, buscarRelatorioPresenca } from './model.js'
+import { lerCoordenadasBusca } from '../services/enderecoPatota.js'
 
 // POST /patotas — Criar nova patota
 export async function cadastrar(req, res) {
@@ -28,12 +29,16 @@ export async function cadastrar(req, res) {
       horaHabitual: horaHabitual,
       presidenteId: presidenteId
     }
+    dadosPatota.cep = req.body.cep
+    dadosPatota.numero = req.body.numero
+    dadosPatota.complemento = req.body.complemento
 
     const patota = await criarPatota(dadosPatota)
 
     return res.status(201).json(patota)
   }
   catch (erro) {
+    if (erro.status) return res.status(erro.status).json({ erro: erro.message })
     console.error('Erro ao criar patota:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
@@ -72,11 +77,13 @@ export async function listarDisponiveis(req, res) {
       }
     }
 
-    const arrayPatotas = await buscarPatotasDisponiveis(usuarioId, modalidadeId)
+    const coordenadas = lerCoordenadasBusca(req.query)
+    const arrayPatotas = await buscarPatotasDisponiveis(usuarioId, modalidadeId, coordenadas)
 
     return res.json(arrayPatotas)
   }
   catch (erro) {
+    if (erro.status) return res.status(erro.status).json({ erro: erro.message })
     console.error('Erro ao buscar patotas disponíveis:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
@@ -223,16 +230,20 @@ export async function atualizar(req, res) {
       rua: req.body.rua,
       cidade: req.body.cidade,
       estado: req.body.estado,
+      cep: req.body.cep,
+      numero: req.body.numero,
+      complemento: req.body.complemento,
       diaHabitual: req.body.diaHabitual,
       horaHabitual: req.body.horaHabitual,
       emblemaPath: emblemaPath
     }
 
-    const patota = await atualizarPatota(patotaId, dados)
+    const patota = await atualizarPatota(patotaId, dados, existente)
 
     return res.json(patota)
   }
   catch (erro) {
+    if (erro.status) return res.status(erro.status).json({ erro: erro.message })
     console.error('Erro ao atualizar patota:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }

@@ -51,7 +51,10 @@ export function obterDataSugerida(diaHabitual, horaHabitual, agora = new Date())
 export function obterLocalSugerido(patota) {
   const arrayPartesLocal = []
   if (patota.rua && patota.rua.trim()) {
-    arrayPartesLocal.push(patota.rua.trim())
+    let ruaNumero = patota.rua.trim()
+    if (patota.numero) ruaNumero = ruaNumero + ', ' + patota.numero
+    if (patota.complemento) ruaNumero = ruaNumero + ' (' + patota.complemento + ')'
+    arrayPartesLocal.push(ruaNumero)
   }
 
   let cidadeEstado = ''

@@ -71,7 +71,13 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | nome | text | |
 | descricao | text, opcional | |
 | modalidade_id | int, FK → modalidades | |
-| rua | varchar, opcional | |
+| rua | varchar, opcional no schema | Obrigatória no cadastro/alteração de endereço pela aplicação. |
+| cep | varchar(8), opcional no schema | Oito dígitos; obrigatório no cadastro/alteração de endereço; NULL preserva patotas antigas. |
+| numero | varchar(30), opcional no schema | Obrigatório no cadastro/alteração de endereço; aceita `S/N`. |
+| complemento | varchar(120), opcional | |
+| localizacao | gis.geography(POINT, 4326), opcional | Ponto obtido por geocodificação; índice GiST `patotas_localizacao_gist`. |
+| latitude | double precision, legado | Existia no schema real, vazia em 12/10/2026; preservada, sem uso pela aplicação. |
+| longitude | double precision, legado | Existia no schema real, vazia em 12/10/2026; preservada, sem uso pela aplicação. |
 | cidade | text | |
 | estado | text | |
 | dia_habitual | int, opcional | 1=Segunda, 2=Terça, ..., 7=Domingo |
@@ -100,24 +106,31 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > `membro_patotas`, `partidas`, `mensalidades` e `movimentacoes_financeiras` possuem
 > cascata; as dependências de partidas também são removidas pelas respectivas FKs.
 
-> **PENDÊNCIA (roadmap — geolocalização):** definir e adicionar os dados geográficos do
-> local padrão de jogos da patota. Eles devem permitir calcular a distância até a localização
-> do usuário e ordenar os resultados da busca da menor para a maior distância.
+> **GEOLOCALIZAÇÃO IMPLEMENTADA EM 12/10/2026:** PostGIS instalado no schema dedicado
+> `gis`. `cep`, `numero`, `complemento` e `localizacao` foram criados diretamente no banco,
+> sem migration. O CHECK `patotas_cep_formato_check` permite NULL para legado ou oito
+> dígitos. A aplicação exige endereço completo em novos cadastros e alterações de endereço;
+> as três patotas preexistentes foram preservadas sem coordenadas nem CEP inventados.
+> A geocodificação ocorre no backend somente quando necessária; endereço e ponto são
+> gravados juntos. O cálculo de distâncias usa `gis.ST_Distance` via `pg`.
+> A localização momentânea do usuário existe apenas como parâmetro da busca.
+> Regras e tratamento de falhas em `projeto-patota-plus.md`, seção "Geolocalização e proximidade".
 
-> **DECISÃO PARA A ALTERAÇÃO FUTURA DO SCHEMA — geolocalização:** adicionar `cep` (oito dígitos,
-> obrigatório), `numero` (aceitando `S/N`), `complemento` (opcional) e uma coluna geográfica
-> para o local padrão. A coluna geográfica deverá usar PostGIS, com tipo
-> `geography(POINT, 4326)` e índice GiST; o PostGIS deverá ser instalado em schema dedicado.
-> Manter rua, cidade e estado para exibição. O backend obterá o ponto por geocodificação do
-> endereço somente na criação ou alteração da patota e fará as consultas de distância por SQL
-> direto via `pg`. A localização momentânea do usuário será recebida apenas como parâmetro da
-> busca e não será persistida. Conferir os nomes definitivos e o schema escolhido ao aplicar
-> a alteração; nenhuma dessas colunas existe no banco enquanto esta pendência estiver aberta.
+### Cache e controle de geocodificação (schema privado)
 
-> **FILTRO DE BUSCA IMPLEMENTADO:** o filtro por modalidade usa `patotas.modalidade_id`,
-> sem alteração no schema, e aceita a opção de listar todas as modalidades. Quando a
-> proximidade for implementada, deverá poder ser combinada com esse filtro. Filtro por
-> posição e busca textual ficam fora do escopo atual.
+PostGIS e tabelas auxiliares foram conferidos no banco em 12/10/2026.
+Os papéis `PUBLIC`, `anon` e `authenticated` não têm acesso ao schema `privado`
+nem às suas tabelas. O backend acessa esses objetos por `pg`.
+
+| Tabela | Colunas | Finalidade |
+|---|---|---|
+| privado.geocodificacoes | chave text PK; latitude/longitude double precision; expira_em timestamptz NOT NULL | Cache por hash SHA-256 da consulta/provedor; coordenadas válidas ou par NULL para resultado não encontrado. CHECK valida par e limites. |
+| privado.geocodificacao_controles | id int PK CHECK (id = 1); ultima_consulta timestamptz NOT NULL | Registro único de controle global do intervalo entre chamadas, protegido por bloqueio transacional advisory. |
+
+> **BUSCA IMPLEMENTADA:** modalidade e proximidade podem ser combinadas. Resultados
+> sem coordenadas permanecem disponíveis ao final da ordenação por distância.
+> Sem localização do usuário, a ordenação é por nome. Filtros por posição, texto e
+> raio não foram adicionados.
 
 ### membro_patotas (N:N com metadados)
 | Coluna | Tipo | Observacao |

@@ -2,7 +2,11 @@ import { Link } from 'react-router-dom'
 import { MapPin } from 'lucide-react'
 import EmblemaPatota from './EmblemaPatota.jsx'
 
-function CardPatota({ patota }) {
+function CardPatota({ patota, mostrarDistancia = false }) {
+  let textoDistancia = 'Distância indisponível'
+  if (typeof patota.distanciaKm === 'number' && Number.isFinite(patota.distanciaKm)) {
+    textoDistancia = patota.distanciaKm.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + ' km de você'
+  }
   return (
     <Link
       to={'/patota/' + patota.id}
@@ -29,8 +33,9 @@ function CardPatota({ patota }) {
       <div className="my-4 h-px bg-gray-100" />
       <p className="flex items-start gap-1.5 text-sm leading-relaxed text-gray-500">
         <MapPin size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-        <span>{patota.rua && <>{patota.rua} · </>}{patota.cidade}/{patota.estado}</span>
+        <span>{patota.rua && <>{patota.rua}{patota.numero && <>, {patota.numero}</>} · </>}{patota.cidade}/{patota.estado}</span>
       </p>
+      {mostrarDistancia && <p className="mt-2 text-sm font-medium text-green-700">{textoDistancia}</p>}
     </Link>
   )
 }

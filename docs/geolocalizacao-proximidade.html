@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Registro técnico da implementação de geolocalização e busca por proximidade no Patota+, explicado arquivo por arquivo.">
+  <title>Patota+ · Geolocalização e proximidade — registro da implementação</title>
+  <style>
+    :root { color-scheme: light; --ink: #183328; --muted: #587064; --green: #166646; --line: #dce7df; --paper: #fff; --ground: #f4f7f3; }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 24px; }
+    body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.75 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--green); text-underline-offset: 3px; overflow-wrap: anywhere; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible { outline: 3px solid #24875e; outline-offset: 4px; border-radius: 3px; }
+    .skip { position: absolute; left: 16px; top: -100px; z-index: 3; background: white; padding: 12px; }
+    .skip:focus { top: 12px; }
+    .hero { padding: 64px max(28px, calc((100vw - 1240px) / 2)); background: #153c2d; color: #f1f8f3; border-bottom: 6px solid #85c79e; }
+    .eyebrow { margin: 0 0 14px; text-transform: uppercase; letter-spacing: .15em; font-size: 12px; font-weight: 700; color: #b3d8bf; }
+    h1 { max-width: 900px; margin: 0 0 20px; font-size: clamp(30px, 4.5vw, 50px); line-height: 1.13; letter-spacing: -.035em; }
+    .hero p:last-child { max-width: 780px; margin-bottom: 0; color: #cce0d3; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+    .meta span { padding: 5px 12px; border: 1px solid #527565; border-radius: 999px; font-size: 12px; }
+    .layout { display: grid; grid-template-columns: 265px minmax(0, 1fr); gap: 42px; max-width: 1240px; margin: 0 auto; padding: 42px 28px 72px; }
+    nav { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; padding-right: 10px; font-size: 13px; line-height: 1.55; }
+    nav h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; margin: 0 0 12px; color: var(--muted); }
+    nav ol { list-style: none; padding: 0; margin: 0; }
+    nav li { margin-bottom: 4px; }
+    nav a { display: block; padding: 6px 9px; border-radius: 6px; text-decoration: none; }
+    nav a:hover { background: #e5eee6; }
+    nav .group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    main { min-width: 0; }
+    section { padding: 30px 34px; margin: 0 0 22px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
+    h2 { margin: 0 0 18px; font-size: 24px; line-height: 1.3; letter-spacing: -.025em; }
+    h3 { margin: 25px 0 8px; font-size: 17px; line-height: 1.45; }
+    p { margin: 12px 0; }
+    ul, ol { padding-left: 24px; margin: 12px 0; }
+    li { margin: 5px 0; }
+    .file { display: block; font-family: ui-monospace, Consolas, monospace; font-size: 12px; font-weight: 400; margin-top: 9px; color: var(--muted); overflow-wrap: anywhere; }
+    .tag { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 3px 8px; background: #edf6ee; color: #24623f; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0; }
+    code { background: #eff4f0; padding: 2px 5px; border-radius: 4px; font: .87em/1.6 ui-monospace, Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
+    pre { background: #16372a; color: #e4f1e8; padding: 20px; border-radius: 10px; overflow-x: auto; font-size: 13px; line-height: 1.65; }
+    pre code { padding: 0; background: transparent; color: inherit; border-radius: 0; font-size: inherit; overflow-wrap: normal; }
+    .table-wrap { overflow-x: auto; margin: 18px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #edf4ee; font-weight: 650; }
+    .note { border-left: 4px solid #73aa85; padding: 12px 16px; background: #f0f7f0; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .note p { margin: 0; }
+    .flow { padding: 18px 20px; background: #eff6ef; border-radius: 10px; }
+    .flow li { padding: 4px 0; }
+    .top { display: inline-block; margin-top: 16px; font-size: 12px; color: var(--muted); }
+    footer { padding: 10px 4px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; gap: 24px; padding: 26px 18px 48px; }
+      nav { position: static; max-height: none; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+      nav ol { columns: 2; column-gap: 20px; }
+      nav li { break-inside: avoid; }
+      section { padding: 25px 22px; }
+      .hero { padding: 42px 24px; }
+    }
+    @media (max-width: 520px) {
+      nav ol { columns: 1; }
+      section { padding: 22px 18px; }
+      h2 { font-size: 21px; }
+      th, td { padding: 10px; }
+    }
+    @media print {
+      body { background: white; color: #111; font-size: 10.5pt; line-height: 1.55; }
+      .hero { padding: 0 0 20px; background: white; color: #111; border-bottom: 2px solid #333; }
+      .hero p:last-child, .eyebrow { color: #333; }
+      h1 { font-size: 28pt; }
+      .meta span { border-color: #aaa; }
+      .layout { display: block; padding: 24px 0 0; }
+      nav, .skip, .top { display: none; }
+      section { padding: 0 0 20px; border: 0; border-bottom: 1px solid #ccc; border-radius: 0; }
+      h2, h3 { break-after: avoid; }
+      pre, .note, tr { break-inside: avoid; }
+      pre { background: #f3f3f3; color: #111; white-space: pre-wrap; overflow-wrap: anywhere; }
+      a { color: #111; }
+      .table-wrap { overflow: visible; }
+      th, td { padding: 7px; }
+      @page { margin: 18mm; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <header class="hero" id="inicio">
+    <p class="eyebrow">Patota+ · Memória técnica</p>
+    <h1>Geolocalização e busca por proximidade</h1>
+    <p>Registro completo da implementação, explicado arquivo por arquivo, para consulta e possível inclusão na versão final do TCC.</p>
+    <div class="meta"><span>Registro: 12 de outubro de 2026</span><span>15 arquivos documentados</span><span>Alterações diretas no banco · sem migration</span></div>
+  </header>
+  <div class="layout">
+    <nav aria-label="Sumário do documento">
+      <h2>Consultar implementação</h2>
+      <ol>
+        <li><a href="#visao-geral">Visão geral e fluxos</a></li>
+        <li class="group"><a href="#arquivo-01">01 · Serviço ViaCEP</a></li>
+        <li><a href="#arquivo-02">02 · Formulário de patota</a></li>
+        <li><a href="#arquivo-03">03 · Validação de endereço</a></li>
+        <li><a href="#arquivo-04">04 · Serviço de geocodificação</a></li>
+        <li><a href="#arquivo-05">05 · Controller de patotas</a></li>
+        <li><a href="#arquivo-06">06 · Model de patotas</a></li>
+        <li><a href="#arquivo-07">07 · Busca de patotas</a></li>
+        <li><a href="#arquivo-08">08 · Card de patota</a></li>
+        <li><a href="#arquivo-09">09 · Detalhes da patota</a></li>
+        <li><a href="#arquivo-10">10 · Sugestões de partida</a></li>
+        <li><a href="#arquivo-11">11 · package.json</a></li>
+        <li><a href="#arquivo-12">12 · package-lock.json</a></li>
+        <li><a href="#arquivo-13">13 · Variáveis de ambiente</a></li>
+        <li><a href="#arquivo-14">14 · Contexto e roadmap</a></li>
+        <li><a href="#arquivo-15">15 · Modelagem do banco</a></li>
+        <li class="group"><a href="#banco">Alterações diretas no banco</a></li>
+        <li><a href="#validacao">Validação realizada</a></li>
+        <li><a href="#referencias">Referências e fontes canônicas</a></li>
+      </ol>
+    </nav>
+    <main id="conteudo">
+      <section id="visao-geral">
+        <h2>Visão geral</h2>
+        <p>A implementação tem dois fluxos conectados: <strong>salvar a localização do local onde a patota joga</strong> e <strong>comparar essa localização com a posição do usuário durante a busca</strong>.</p>
+        <p>O endereço e o ponto geográfico da patota ficam salvos no banco. A posição do usuário é usada apenas naquela busca. A arquitetura permanece React/Vite no frontend, Express no backend e SQL direto via <code>pg</code> no PostgreSQL do Supabase.</p>
+        <h3>Cadastro ou alteração do endereço</h3>
+        <ol class="flow">
+          <li>O presidente preenche CEP, rua, número, complemento, cidade e estado. O ViaCEP pode auxiliar o preenchimento.</li>
+          <li>O frontend envia o endereço ao backend Express.</li>
+          <li>O backend valida os dados e verifica se precisa obter coordenadas.</li>
+          <li>O serviço consulta seu cache ou o Nominatim, respeitando o controle global de chamadas.</li>
+          <li>O model salva endereço e ponto geográfico juntos na patota.</li>
+        </ol>
+        <h3>Busca por proximidade</h3>
+        <ol class="flow">
+          <li>O usuário aciona “Usar minha localização” e o navegador solicita autorização.</li>
+          <li>O frontend envia latitude e longitude junto com o filtro opcional de modalidade.</li>
+          <li>O backend valida as coordenadas e o PostgreSQL/PostGIS calcula as distâncias.</li>
+          <li>A API devolve os resultados ordenados, e os cards apresentam a distância em quilômetros.</li>
+        </ol>
+        <div class="note"><p><strong>Contexto deste registro:</strong> a inclusão da funcionalidade na versão final do TCC ainda está em avaliação. Este HTML preserva a explicação da implementação de 12/10/2026. A branch separa as alterações de código; os objetos já criados no banco compartilhado permanecem na base ao trocar de branch.</p></div>
+      </section>
+
+      <section id="arquivo-01">
+        <h2>01 · Serviço ViaCEP <span class="tag">Criado</span><span class="file"><a href="../frontend/src/services/viacep.js">frontend/src/services/viacep.js</a></span></h2>
+        <p>Esse arquivo concentra a consulta de CEP, mantendo a chamada HTTP fora do componente da tela.</p>
+        <p>A função <code>consultarCep(cep, sinal)</code>:</p>
+        <ul>
+          <li>Confere se o CEP contém exatamente oito dígitos.</li>
+          <li>Consulta <code>https://viacep.com.br/ws/&lt;cep&gt;/json/</code> usando Axios.</li>
+          <li>Define um tempo máximo de oito segundos para a resposta.</li>
+          <li>Aceita um sinal de cancelamento por <code>AbortController</code>.</li>
+          <li>Identifica a resposta de CEP inexistente e gera uma mensagem explicativa.</li>
+          <li>Devolve os dados do endereço para o formulário.</li>
+        </ul>
+        <p>O ViaCEP ajuda a preencher rua, cidade e estado. As coordenadas são obtidas em outra etapa, pelo backend.</p>
+      </section>
+
+      <section id="arquivo-02">
+        <h2>02 · Formulário de patota <span class="tag">Alterado</span><span class="file"><a href="../frontend/src/pages/CriarPatota/index.jsx">frontend/src/pages/CriarPatota/index.jsx</a></span></h2>
+        <p>Esse formulário já atendia criação e edição de patotas. Foram acrescentados os campos <code>cep</code>, <code>numero</code> e <code>complemento</code> aos dois modos.</p>
+        <h3>Campos e estados da tela</h3>
+        <p>Além dos valores dos novos campos, foram acrescentados estados para indicar consulta de CEP em andamento, apresentar mensagens e reconhecer uma patota que ainda não possui ponto geográfico.</p>
+        <p>O CEP aceita somente dígitos durante a digitação ou colagem e é limitado a oito caracteres numéricos. Número é obrigatório e aceita texto, permitindo valores como <code>123</code>, <code>123 A</code> e <code>S/N</code>. Complemento é opcional.</p>
+        <h3>Preenchimento pelo CEP</h3>
+        <p>O botão “Preencher pelo CEP” chama <code>preencherPeloCep()</code>. Quando a consulta termina, a função preenche rua, estado e cidade. O número e o complemento permanecem para preenchimento pelo presidente.</p>
+        <p>A consulta acontece por ação explícita no botão. O formulário continua permitindo corrigir os dados retornados.</p>
+        <h3>Cancelamento de consultas antigas</h3>
+        <p>A referência <code>consultaCepRef</code> guarda o <code>AbortController</code> da consulta atual. Ao mudar CEP, rua, cidade ou estado, a consulta pendente é cancelada.</p>
+        <p>Isso evita um comportamento como:</p>
+        <ol>
+          <li>O usuário consulta um CEP.</li>
+          <li>Antes da resposta, corrige a rua manualmente.</li>
+          <li>A resposta antiga chega e sobrescreve a correção.</li>
+        </ol>
+        <p>A consulta também é cancelada quando a tela é desmontada.</p>
+        <h3>Estado e cidade com preenchimento manual</h3>
+        <p>A consulta ao IBGE foi mantida, mas foi acrescentada uma lista inicial de UFs. Assim, os estados continuam disponíveis se o IBGE falhar.</p>
+        <p>Cidade passou de um <code>select</code> fechado para um campo de texto com <code>datalist</code>. As cidades do IBGE aparecem como sugestões, mas o usuário pode informar ou corrigir o nome manualmente.</p>
+        <p>O salvamento deixou de depender do término das consultas do IBGE. Ele continua bloqueado durante uma consulta de CEP ou um envio do formulário.</p>
+        <h3>Carregamento na edição</h3>
+        <p><code>carregarPatota()</code> agora preenche os três novos campos. Também lê <code>temLocalizacao</code>, retornado pelo backend. Quando não existe ponto geográfico, a tela orienta completar o endereço.</p>
+        <h3>Envio e mensagens de erro</h3>
+        <p><code>handleSubmit()</code> inclui os novos campos no objeto enviado à API. O frontend envia o endereço ao Express; a chamada ao Nominatim fica no backend.</p>
+        <p>A tela passou a apresentar a mensagem recebida do backend. Dessa forma, o usuário consegue distinguir endereço não encontrado de indisponibilidade do serviço.</p>
+        <p>O ternário usado para montar <code>diaHabitual</code> foi substituído por uma atribuição inicial e um <code>if</code>, seguindo a convenção do projeto. Foi acrescentada também a atribuição ao OpenStreetMap no formulário.</p>
+      </section>
+
+      <section id="arquivo-03">
+        <h2>03 · Validação de endereço e coordenadas <span class="tag">Criado</span><span class="file"><a href="../backend/services/enderecoPatota.js">backend/services/enderecoPatota.js</a></span></h2>
+        <p>Esse arquivo reúne a validação do endereço da patota e das coordenadas recebidas na busca.</p>
+        <h3>prepararEndereco(dados, existente)</h3>
+        <p>A função combina os campos enviados com o endereço já salvo, quando se trata de edição. Isso permite validar uma alteração parcial, como mudar apenas o número.</p>
+        <ul>
+          <li>Remove espaços nas extremidades.</li>
+          <li>Aceita CEP com ou sem hífen e o normaliza para oito dígitos.</li>
+          <li>Converte a UF para maiúsculas e verifica se ela existe.</li>
+          <li>Normaliza <code>sn</code> e <code>s/n</code> para <code>S/N</code>.</li>
+          <li>Exige número, rua e cidade.</li>
+          <li>Limita número a 30 caracteres, rua a 200, cidade a 100 e complemento a 120.</li>
+          <li>Coloca os valores normalizados no objeto que será salvo.</li>
+        </ul>
+        <p>Depois, decide se é necessário obter coordenadas. A geocodificação é necessária na criação, quando a patota ainda não possui localização ou quando CEP, número, rua, cidade ou estado mudam.</p>
+        <p><strong>Mudar apenas o complemento não exige nova geocodificação</strong>, desde que o restante do endereço esteja completo e já exista um ponto. O complemento serve para identificar algo como “Quadra 2”, dentro do mesmo local.</p>
+        <p>Quando uma edição não envia nenhum campo de endereço, a função permite continuar sem exigir que uma patota antiga complete esses dados naquele momento. Isso preserva operações parciais, como atualizar somente o emblema.</p>
+        <h3>lerCoordenadasBusca(parametros)</h3>
+        <ul>
+          <li>Quando nenhuma das duas coordenadas é enviada, retorna <code>null</code>, indicando busca por nome.</li>
+          <li>Se uma coordenada for enviada, exige a outra.</li>
+          <li>Valida o formato numérico.</li>
+          <li>Aceita latitude entre −90 e 90 e longitude entre −180 e 180.</li>
+          <li>Retorna os valores convertidos para números.</li>
+        </ul>
+        <p>Os erros de validação recebem status HTTP <code>400</code>.</p>
+      </section>
+
+      <section id="arquivo-04">
+        <h2>04 · Serviço de geocodificação <span class="tag">Criado</span><span class="file"><a href="../backend/services/geocodificacao.js">backend/services/geocodificacao.js</a></span></h2>
+        <p>Esse serviço transforma o endereço em coordenadas. A função <code>geocodificarEndereco(endereco)</code> monta uma consulta estruturada com rua, número, cidade, estado, CEP e país. Quando o número é <code>S/N</code>, usa somente o logradouro naquele parâmetro. O complemento não é enviado ao provedor.</p>
+        <h3>Configuração da consulta</h3>
+        <p>A chamada usa Axios, com:</p>
+        <ul>
+          <li>Endpoint <code>/search</code> do Nominatim.</li>
+          <li>Resposta no formato <code>jsonv2</code>.</li>
+          <li>Busca restrita ao Brasil.</li>
+          <li>Limite de um resultado.</li>
+          <li>Tempo máximo de dez segundos.</li>
+          <li>Cabeçalho <code>User-Agent</code> identificando o Patota+.</li>
+        </ul>
+        <p>A resposta é validada antes de aceitar as coordenadas. Valores ausentes, não numéricos ou fora dos limites geográficos são tratados como falha.</p>
+        <h3>Cache persistente</h3>
+        <p>Antes de consultar o provedor, o serviço procura um resultado válido no PostgreSQL.</p>
+        <p>A chave do cache é um hash SHA-256 calculado a partir da URL do provedor e dos parâmetros da consulta. Assim, o cache guarda a identificação da consulta, suas coordenadas e sua validade, sem armazenar o endereço textual.</p>
+        <p>Resultados encontrados valem por <strong>30 dias</strong>. Consultas que não encontram correspondência ficam em cache por <strong>uma hora</strong>, evitando repetir imediatamente a mesma consulta sem resultado.</p>
+        <div class="note"><p>Esse prazo pertence ao cache. O ponto já salvo na patota permanece no cadastro e não expira após 30 dias. A expiração controla a reutilização do cache em novas consultas.</p></div>
+        <h3>Controle compartilhado de chamadas</h3>
+        <p>O serviço abre uma transação e usa:</p>
+        <pre><code>SELECT pg_advisory_xact_lock(728401, 1)</code></pre>
+        <p>Esse bloqueio faz as consultas de geocodificação passarem por uma fila compartilhada no banco. Isso funciona também quando há mais de uma instância do backend conectada à mesma base.</p>
+        <p>O serviço consulta o horário da última chamada e aguarda, quando necessário, para manter um intervalo de pelo menos 1,1 segundo. O horário é registrado antes e depois da consulta HTTP.</p>
+        <p>Esse mecanismo foi implementado para respeitar o limite global definido na <a href="https://operations.osmfoundation.org/policies/nominatim/">política do Nominatim</a>. O uso previsto é de baixo volume para o TCC, por envio de formulário, com identificação, atribuição e cache.</p>
+        <h3>Tratamento das falhas</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th scope="col">Situação</th><th scope="col">Resposta</th></tr></thead>
+          <tbody>
+            <tr><td>Consulta válida, mas endereço não encontrado</td><td><code>422</code>, pedindo revisão do endereço.</td></tr>
+            <tr><td>Timeout, indisponibilidade ou resposta inválida</td><td><code>503</code>, orientando tentar novamente.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Mesmo quando a chamada HTTP falha, o horário de controle é confirmado no banco. Isso impede que novas tentativas ignorem o intervalo entre chamadas.</p>
+        <p>A conexão é liberada ao terminar, e o bloqueio acaba com a transação.</p>
+      </section>
+
+      <section id="arquivo-05">
+        <h2>05 · Controller de patotas <span class="tag">Alterado</span><span class="file"><a href="../backend/patotas/controller.js">backend/patotas/controller.js</a></span></h2>
+        <p>O controller continua fazendo a ligação entre requisição, model e resposta HTTP.</p>
+        <h3>cadastrar()</h3>
+        <p>Foram acrescentados CEP, número e complemento aos dados enviados para <code>criarPatota()</code>.</p>
+        <h3>atualizar()</h3>
+        <p>Foram acrescentados os mesmos campos e o registro existente passou a ser enviado para <code>atualizarPatota()</code>. O model usa esse registro para comparar o endereço anterior com o recebido.</p>
+        <p>A verificação de que o solicitante é o presidente acontece antes de executar a atualização e sua geocodificação.</p>
+        <h3>listarDisponiveis()</h3>
+        <p>Foi acrescentada a leitura das coordenadas:</p>
+        <pre><code>const coordenadas = lerCoordenadasBusca(req.query)</code></pre>
+        <p>O resultado é enviado ao model junto com a identidade do usuário e o filtro por modalidade.</p>
+        <h3>Respostas de erro</h3>
+        <p>Foi acrescentado o tratamento dos erros com status definido pelos serviços. Assim, erros de validação, endereço não encontrado e indisponibilidade chegam ao frontend com suas mensagens específicas.</p>
+      </section>
+
+      <section id="arquivo-06">
+        <h2>06 · Model de patotas <span class="tag">Alterado</span><span class="file"><a href="../backend/patotas/model.js">backend/patotas/model.js</a></span></h2>
+        <p>Esse arquivo conecta as novas regras ao SQL.</p>
+        <h3>criarPatota()</h3>
+        <p>O fluxo passou a ser:</p>
+        <ol>
+          <li>Validar e normalizar o endereço.</li>
+          <li>Obter suas coordenadas.</li>
+          <li>Abrir a transação de criação.</li>
+          <li>Inserir a patota com endereço e ponto geográfico.</li>
+          <li>Inserir o criador como presidente.</li>
+          <li>Confirmar a transação.</li>
+        </ol>
+        <p>A geocodificação ocorre antes da transação de criação. Portanto, se o endereço não for encontrado, a patota não chega a ser inserida.</p>
+        <p>O ponto é construído pela expressão a seguir. Os nomes de coordenadas são ilustrativos; no SQL executado, os valores são parâmetros posicionais:</p>
+        <pre><code>gis.ST_SetSRID(
+  gis.ST_MakePoint(longitude, latitude),
+  4326
+)::gis.geography</code></pre>
+        <p><code>ST_MakePoint</code> recebe longitude primeiro e latitude depois. O identificador <code>4326</code> informa o sistema de coordenadas usado pelo ponto. A conversão para <code>geography</code> permite trabalhar com distâncias geográficas.</p>
+        <h3>buscarPatotaPorId()</h3>
+        <p>Foram acrescentados os novos campos e o indicador:</p>
+        <pre><code>(p.localizacao IS NOT NULL) AS "temLocalizacao"</code></pre>
+        <p>O formulário usa esse indicador para saber se o endereço ainda precisa ser completado.</p>
+        <h3>buscarPatotasDoUsuario()</h3>
+        <p>Foram incluídos os campos textuais novos para que os cards também possam apresentar o número.</p>
+        <h3>buscarPatotasDisponiveis()</h3>
+        <p>Foi acrescentado o parâmetro <code>coordenadas</code>.</p>
+        <p>Sem coordenadas, a consulta retorna <code>distanciaKm</code> como <code>NULL</code> e ordena por nome e ID.</p>
+        <p>Com coordenadas, calcula a distância entre o ponto da patota e o ponto recebido. Expressão ilustrativa:</p>
+        <pre><code>gis.ST_Distance(
+  p.localizacao,
+  ponto_do_usuario
+) / 1000.0</code></pre>
+        <p>O resultado é retornado como <code>distanciaKm</code>, em quilômetros. A distância corresponde à linha reta entre os pontos, não ao percurso por ruas. A ordenação usa:</p>
+        <pre><code>ORDER BY "distanciaKm" ASC NULLS LAST, p.nome, p.id</code></pre>
+        <p>Isso coloca as patotas próximas primeiro, mantém aquelas sem localização ao final e estabelece desempate por nome e ID.</p>
+        <p>O filtro por modalidade e a exclusão das patotas das quais o usuário já é membro ativo continuam na mesma consulta.</p>
+        <h3>atualizarPatota()</h3>
+        <p>O model verifica se precisa geocodificar novamente. Quando precisa, endereço e ponto são gravados pelo mesmo <code>UPDATE</code>, evitando salvar um endereço novo com coordenadas antigas.</p>
+        <p>Foi acrescentada uma proteção contra alterações concorrentes: o <code>UPDATE</code> compara o endereço atual do banco com aquele lido no início da requisição. Se outra operação mudar esse endereço durante o processamento, o salvamento retorna <code>409</code>, orientando recarregar a página.</p>
+        <div class="note"><p>Essa comparação protege o intervalo entre a leitura feita pelo backend e o <code>UPDATE</code>. Ela não representa um controle de versão desde o momento em que o usuário abriu o formulário.</p></div>
+      </section>
+
+      <section id="arquivo-07">
+        <h2>07 · Busca de patotas <span class="tag">Alterado</span><span class="file"><a href="../frontend/src/pages/BuscarPatotas/index.jsx">frontend/src/pages/BuscarPatotas/index.jsx</a></span></h2>
+        <p>Foi acrescentado o botão <strong>“Usar minha localização”</strong> e os estados necessários para guardar coordenadas, indicar carregamento e apresentar mensagens.</p>
+        <p>Ao clicar, <code>localizarUsuario()</code> chama <code>navigator.geolocation.getCurrentPosition()</code> com tempo máximo de 12 segundos. A configuração permite aproveitar uma posição recente, de até um minuto.</p>
+        <p>Quando funciona, latitude e longitude ficam no estado do componente. A mudança desse estado dispara novamente a busca.</p>
+        <p>A função <code>buscarPatotas()</code> passa a enviar os parâmetros junto com a modalidade selecionada, por exemplo:</p>
+        <pre><code>/patotas/buscar?modalidadeId=2&amp;latitude=-23.56&amp;longitude=-46.65</code></pre>
+        <p>As coordenadas não são gravadas no banco, em <code>localStorage</code> ou em <code>sessionStorage</code>.</p>
+        <p>A tela também trata permissão negada, timeout e localização indisponível. Nessas situações, a busca continua por nome, com uma explicação ao usuário.</p>
+        <p>O botão “Limpar localização” remove as coordenadas do estado e refaz a busca sem proximidade. A troca de modalidade mantém a localização já obtida, permitindo combinar os dois critérios.</p>
+        <p>Foi mantido o cancelamento das requisições anteriores quando os parâmetros mudam. Foi acrescentada também uma referência para evitar atualizar o estado depois que o usuário sair da tela.</p>
+        <p>A localização exige consentimento do usuário e um contexto compatível com a API do navegador, como HTTPS ou localhost.</p>
+      </section>
+
+      <section id="arquivo-08">
+        <h2>08 · Card de patota <span class="tag">Alterado</span><span class="file"><a href="../frontend/src/components/CardPatota.jsx">frontend/src/components/CardPatota.jsx</a></span></h2>
+        <p>O card recebeu a propriedade opcional <code>mostrarDistancia</code>, cujo padrão é <code>false</code>.</p>
+        <p>Isso permite continuar usando o mesmo componente em “Minhas patotas” e “Buscar patotas”, exibindo distância quando a busca por proximidade estiver ativa.</p>
+        <p>Quando <code>distanciaKm</code> contém um número válido, o card apresenta algo como:</p>
+        <pre><code>1,2 km de você</code></pre>
+        <p>O valor usa formatação brasileira e uma casa decimal.</p>
+        <p>Se a busca está usando localização, mas aquela patota não possui ponto geográfico, o card apresenta “Distância indisponível”.</p>
+        <p>Foi acrescentado também o número ao endereço exibido.</p>
+      </section>
+
+      <section id="arquivo-09">
+        <h2>09 · Detalhes da patota <span class="tag">Alterado</span><span class="file"><a href="../frontend/src/pages/Patota/index.jsx">frontend/src/pages/Patota/index.jsx</a></span></h2>
+        <p>Os dois pontos da tela que apresentam o endereço foram atualizados para incluir número e complemento, quando disponíveis.</p>
+        <p>Um endereço pode aparecer assim:</p>
+        <pre><code>Avenida Paulista, 1578 (Quadra 2) — São Paulo/SP</code></pre>
+        <p>Isso mantém a apresentação dos detalhes coerente com os novos campos do cadastro.</p>
+      </section>
+
+      <section id="arquivo-10">
+        <h2>10 · Sugestões de partida <span class="tag">Alterado</span><span class="file"><a href="../frontend/src/utils/sugestoesPartida.js">frontend/src/utils/sugestoesPartida.js</a></span></h2>
+        <p><code>obterLocalSugerido()</code> foi atualizada para incluir número e complemento na sugestão de local ao criar uma partida.</p>
+        <p>Como o número passou a ter um campo separado da rua, ele precisa ser acrescentado ao montar esse texto.</p>
+        <p>A função continua adicionando cidade e estado ao final. As regras de sugestão de data e horário permanecem as mesmas.</p>
+      </section>
+
+      <section id="arquivo-11">
+        <h2>11 · Dependências e execução local <span class="tag">Alterado</span><span class="file"><a href="../backend/package.json">backend/package.json</a></span></h2>
+        <p>Axios foi instalado no backend. Durante a inspeção, foi constatado que ele ainda não estava nas dependências desse projeto, embora o planejamento previsse seu uso.</p>
+        <p>Os comandos locais também foram ajustados:</p>
+        <pre><code>"start": "node --use-system-ca local.js",
+"dev": "nodemon --exec \"node --use-system-ca\" local.js"</code></pre>
+        <p>A mudança foi motivada pelo erro de certificados encontrado ao acessar os serviços HTTPS neste ambiente. A opção faz o Node considerar também os certificados confiáveis do sistema operacional, mantendo a validação TLS. O ambiente usado na implementação está com Node.js 24.</p>
+        <p><a href="https://nodejs.org/api/cli.html#--use-system-ca">Referência da opção --use-system-ca</a>.</p>
+      </section>
+
+      <section id="arquivo-12">
+        <h2>12 · Registro das dependências <span class="tag">Atualizado</span><span class="file"><a href="../backend/package-lock.json">backend/package-lock.json</a></span></h2>
+        <p>Esse arquivo foi atualizado pela instalação do Axios.</p>
+        <p>Ele registra a versão resolvida do pacote, suas dependências e informações de integridade, permitindo reproduzir a instalação com <code>npm ci</code>.</p>
+      </section>
+
+      <section id="arquivo-13">
+        <h2>13 · Variáveis de ambiente <span class="tag">Alterado</span><span class="file"><a href="../backend/.env.example">backend/.env.example</a></span></h2>
+        <p>Foram acrescentadas duas configurações:</p>
+        <pre><code>GEOCODIFICACAO_URL=https://nominatim.openstreetmap.org
+GEOCODIFICACAO_USER_AGENT=PatotaPlus-TCC/1.0</code></pre>
+        <p>A primeira permite apontar para outro provedor que ofereça uma API compatível com o endpoint usado. A segunda define a identificação enviada no cabeçalho da consulta.</p>
+        <p>O serviço possui esses valores como padrão, então eles não precisam estar preenchidos para usar a configuração inicial. Um provedor com outra API exigiria adaptação no serviço.</p>
+      </section>
+
+      <section id="arquivo-14">
+        <h2>14 · Contexto do projeto e roadmap <span class="tag">Atualizado</span><span class="file"><a href="../.kiro/steering/projeto-patota-plus.md">.kiro/steering/projeto-patota-plus.md</a></span></h2>
+        <p>Geolocalização e proximidade foram marcadas como implementadas e o planejamento futuro foi substituído pela descrição do funcionamento atual.</p>
+        <p>Foram registradas as decisões sobre cadastro, patotas antigas, cache, controle de chamadas, falhas, busca e configuração local.</p>
+        <p>Após o pedido de remover os testes, foi retirada da descrição de status a referência aos arquivos de teste de geolocalização.</p>
+        <p>A implementação estar concluída no código não define sua inclusão na versão final do TCC; essa decisão permanece com o autor do projeto.</p>
+      </section>
+
+      <section id="arquivo-15">
+        <h2>15 · Modelagem do banco <span class="tag">Atualizado</span><span class="file"><a href="../.kiro/steering/modelagem-banco.md">.kiro/steering/modelagem-banco.md</a></span></h2>
+        <p>Foram documentados os novos campos de <code>patotas</code>, o tipo geográfico, o índice e as tabelas privadas de cache e controle.</p>
+        <p>Foi corrigida uma divergência encontrada: <code>latitude</code> e <code>longitude</code> já existiam no banco real, embora não aparecessem na modelagem. Elas estavam vazias e foram preservadas. A implementação usa <code>localizacao</code> como fonte do ponto geográfico.</p>
+      </section>
+
+      <section id="banco">
+        <h2>Alterações feitas diretamente no banco</h2>
+        <p>Conforme solicitado, as alterações foram executadas na base, <strong>sem criar arquivo de migration</strong>.</p>
+        <h3>Novos campos da tabela patotas</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th scope="col">Campo</th><th scope="col">Tipo</th><th scope="col">Uso</th></tr></thead>
+          <tbody>
+            <tr><td><code>cep</code></td><td><code>varchar(8)</code></td><td>CEP normalizado.</td></tr>
+            <tr><td><code>numero</code></td><td><code>varchar(30)</code></td><td>Número ou <code>S/N</code>.</td></tr>
+            <tr><td><code>complemento</code></td><td><code>varchar(120)</code></td><td>Identificação adicional do local.</td></tr>
+            <tr><td><code>localizacao</code></td><td><code>gis.geography(POINT, 4326)</code></td><td>Ponto geográfico da patota.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Os campos aceitam <code>NULL</code> no banco para preservar as patotas existentes. A aplicação exige o endereço completo nos novos cadastros e nas alterações de endereço.</p>
+        <p>Foi acrescentada a restrição <code>patotas_cep_formato_check</code>, que permite CEP nulo ou composto por exatamente oito dígitos.</p>
+        <h3>PostGIS e índice espacial</h3>
+        <p>O PostGIS foi habilitado no schema <code>gis</code>, e o índice espacial <code>patotas_localizacao_gist</code> foi criado.</p>
+        <p>A busca atual calcula a distância de todos os resultados elegíveis para ordená-los; esse índice também prepara a coluna para consultas espaciais futuras, como uma eventual busca por raio.</p>
+        <h3>Cache e controle global</h3>
+        <p>Foram criadas duas tabelas no schema <code>privado</code>:</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th scope="col">Tabela</th><th scope="col">Colunas</th><th scope="col">Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td><code>geocodificacoes</code></td><td><code>chave</code> text PK; <code>latitude</code> e <code>longitude</code> double precision; <code>expira_em</code> timestamptz obrigatório.</td><td>Guardar hash da consulta, coordenadas e expiração do cache. Uma restrição valida o par de coordenadas e seus limites, permitindo par nulo para resultado não encontrado.</td></tr>
+            <tr><td><code>geocodificacao_controles</code></td><td><code>id</code> integer PK, limitado a 1; <code>ultima_consulta</code> timestamptz obrigatório.</td><td>Guardar o horário usado para controlar o intervalo global de chamadas, em um registro único.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Os papéis <code>anon</code> e <code>authenticated</code> do Supabase não têm acesso a esse schema. O backend acessa essas tabelas por <code>pg</code>.</p>
+        <h3>Preservação dos registros anteriores</h3>
+        <p>As três patotas existentes no momento da implementação foram preservadas sem preencher endereços ou coordenadas por suposição. Elas continuam aparecendo na busca e passam a exibir distância depois que o presidente completar e salvar o endereço.</p>
+        <p>As colunas legadas <code>latitude</code> e <code>longitude</code> foram mantidas. O ponto utilizado pela funcionalidade é exclusivamente <code>localizacao</code>.</p>
+      </section>
+
+      <section id="validacao">
+        <h2>Validação realizada e arquivos de teste removidos</h2>
+        <p>Durante a implementação, foram executados 52 testes com sucesso, incluindo integração com PostgreSQL/PostGIS. O build de produção do frontend e consultas reais ao ViaCEP e Nominatim também foram validados.</p>
+        <p>A integração de geolocalização utilizou tabelas temporárias para conferir cadastro, edição, montagem do ponto, distâncias, modalidade, exclusão de patotas das quais o usuário é membro, registros sem coordenadas e conflito de atualização, sem modificar os dados reais das patotas.</p>
+        <p>Após a validação, os dois arquivos abaixo foram removidos por solicitação do autor do projeto:</p>
+        <ul>
+          <li><code>backend/tests/geolocalizacao.test.js</code></li>
+          <li><code>backend/tests/geolocalizacao-postgres.test.js</code></li>
+        </ul>
+        <p>A contagem de 52 corresponde à execução histórica antes dessa remoção. Os testes preexistentes foram preservados.</p>
+      </section>
+
+      <section id="referencias">
+        <h2>Referências e fontes canônicas</h2>
+        <p>Este material é uma memória da implementação. Para decisões atuais do projeto, consultar os documentos canônicos e o código da branch correspondente.</p>
+        <ul>
+          <li><a href="../.kiro/steering/projeto-patota-plus.md">Contexto, arquitetura, escopo e roadmap do Patota+</a>.</li>
+          <li><a href="../.kiro/steering/modelagem-banco.md">Modelagem do banco de dados</a>.</li>
+          <li><a href="../.kiro/steering/estilo-codigo.md">Convenções de JavaScript do projeto</a>.</li>
+          <li><a href="https://viacep.com.br/">ViaCEP — documentação do serviço</a>.</li>
+          <li><a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim — política de uso</a>.</li>
+          <li><a href="https://www.openstreetmap.org/copyright">OpenStreetMap — atribuição e licença</a>.</li>
+          <li><a href="https://supabase.com/docs/guides/database/extensions/postgis">Supabase — PostGIS</a>.</li>
+          <li><a href="https://nodejs.org/api/cli.html#--use-system-ca">Node.js — opção --use-system-ca</a>.</li>
+        </ul>
+        <a class="top" href="#inicio">Voltar ao início ↑</a>
+      </section>
+      <footer>Patota+ · Registro da implementação de 12/10/2026. HTML independente, com estilos incorporados e leitura sem conexão. Os links externos e os arquivos-fonte exigem acesso aos respectivos destinos. Para imprimir ou salvar como PDF, use a função de impressão do navegador.</footer>
+    </main>
+  </div>
+</body>
+</html>

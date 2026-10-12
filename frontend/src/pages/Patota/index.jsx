@@ -236,7 +236,7 @@ function Patota() {
 
             <div>
               <p className="text-sm text-gray-500">Endereço</p>
-              <p className="text-gray-800 font-medium">{patota.rua} — {patota.cidade}/{patota.estado}</p>
+              <p className="text-gray-800 font-medium">{patota.rua}{patota.numero && <>, {patota.numero}</>}{patota.complemento && <> ({patota.complemento})</>} — {patota.cidade}/{patota.estado}</p>
             </div>
 
             <div>
@@ -400,7 +400,7 @@ function AbaVisaoGeral({ patota, ehPresidente, podeSair, obterNomeDia, formatarH
 
         <div>
           <p className="text-sm text-gray-500">Endereço</p>
-          <p className="text-gray-800 font-medium">{patota.rua} — {patota.cidade}/{patota.estado}</p>
+          <p className="text-gray-800 font-medium">{patota.rua}{patota.numero && <>, {patota.numero}</>}{patota.complemento && <> ({patota.complemento})</>} — {patota.cidade}/{patota.estado}</p>
         </div>
 
         <div>

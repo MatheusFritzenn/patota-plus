@@ -81,18 +81,19 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 > de menu no cabeçalho. O login e o logo levam a Minhas patotas; a rota `/home`
 > redireciona para essa mesma tela diretamente em `Rotas.jsx`, para preservar links antigos.
 
-1. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
-   registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
-   localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
-   O filtro por modalidade já implementado e a ordenação por proximidade devem funcionar em conjunto.
-   Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
-   abaixo.
+> **Concluído em 12/10/2026 — geolocalização e proximidade:** cadastro/edição com
+> CEP, número e complemento, auxílio do ViaCEP e geocodificação no backend via
+> Nominatim. O PostGIS calcula distâncias em linha reta e a busca ordena as patotas
+> mais próximas em conjunto com o filtro por modalidade. A localização do usuário
+> é solicitada pelo botão "Usar minha localização" e não é persistida. Patotas
+> antigas permanecem disponíveis, sem distância, até completar o endereço.
+> Os campos, o índice e o cache foram criados diretamente no Supabase, sem migration.
 
 > **Concluído em 23/09/2026 — filtro por modalidade:** a busca permite selecionar
 > uma modalidade ou visualizar todas, com filtro aplicado no backend a patotas das
 > quais o usuário ainda não participa. A tela mostra a quantidade encontrada; os
 > cards exibem a modalidade em destaque verde e não exibem mais a descrição.
-> A geolocalização e a ordenação por distância continuam pendentes.
+> A geolocalização e a ordenação por distância foram concluídas em 12/10/2026.
 > **Concluído em 23/09/2026 — emblema da patota:** o presidente pode adicionar,
 > substituir ou remover um emblema opcional no cadastro/edição. Os arquivos ficam
 > no bucket público `patota-emblemas` do Supabase Storage, com políticas de escrita
@@ -149,50 +150,67 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ---
 
-## Próxima implementação — geolocalização e proximidade
+## Geolocalização e proximidade
 
-**Status:** solução técnica definida, ainda não implementada.
+**Status:** implementado em 12/10/2026, com schema conferido no Supabase.
 
 ### Cadastro do local da patota
 
-- Adicionar ao endereço da patota `cep`, `numero` e `complemento`. O CEP será obrigatório,
-  armazenado somente com os oito dígitos; o complemento será opcional. O número deverá
-  aceitar `S/N` quando o local não possuir numeração.
-- Usar a API gratuita ViaCEP para auxiliar o preenchimento de rua, cidade e estado. Permitir
-  correção manual, pois o CEP não identifica necessariamente o local exato e o ViaCEP não
-  fornece coordenadas geográficas.
-- Ao criar uma patota ou alterar seu endereço, o backend deverá enviar o endereço completo
-  para o Nominatim/OpenStreetMap e converter o endereço em latitude e longitude. A chamada
-  ficará isolada em um service do backend e usará o Axios já instalado, para permitir a troca
-  futura do provedor sem alterar controllers e models.
-- O Nominatim será usado somente no baixo volume previsto para o TCC: consulta disparada pelo
-  envio do formulário, sem autocomplete, com identificação da aplicação, atribuição ao
-  OpenStreetMap, cache do resultado e limite global de no máximo uma requisição por segundo.
-  As coordenadas salvas evitam repetir a geocodificação durante as buscas. Se esse perfil de
-  uso mudar ou a política do serviço deixar de atendê-lo, substituir o provedor.
-- Ativar o PostGIS em um schema dedicado no Supabase e armazenar o ponto do local em uma
-  coluna `geography(POINT, 4326)` da tabela `patotas`, com índice espacial GiST. Ao construir
-  o ponto, informar longitude antes de latitude.
-- Manter também os campos textuais do endereço para exibição ao usuário. Não é necessário
-  adicionar mapa, Leaflet, React Leaflet ou biblioteca JavaScript de cálculo de distância
-  nesta fase.
+- Novos cadastros e alterações de endereço exigem `cep` (oito dígitos), `numero`
+  (aceita `S/N`), rua, cidade e UF. `complemento` é opcional. ViaCEP auxilia o
+  preenchimento por ação explícita; todos os campos podem ser corrigidos manualmente.
+  Cidades têm sugestões do IBGE, sem bloquear o preenchimento se o serviço falhar.
+- Patotas existentes não recebem CEP nem coordenadas inventadas: as colunas novas
+  aceitam NULL para preservar esses registros. O formulário orienta completar o
+  endereço; atualizações parciais sem endereço, como emblemas e mensalidade, continuam
+  permitidas. Na edição completa pela tela, o endereço deve ser preenchido.
+- `backend/services/geocodificacao.js` consulta Nominatim via Axios na criação ou
+  alteração do endereço. CEP, número, rua, cidade e UF compõem a consulta; complemento
+  é salvo para exibição, mas não é enviado ao provedor nem altera o ponto geográfico.
+  Sem número (`S/N`), a consulta usa o logradouro. Não há autocomplete geográfico.
+- A [política do Nominatim](https://operations.osmfoundation.org/policies/nominatim/)
+  limita o uso a baixo volume, no máximo uma requisição por segundo para toda a aplicação,
+  com identificação, atribuição e cache. Um bloqueio transacional PostgreSQL e o
+  timestamp em `privado.geocodificacao_controles` serializam as consultas entre instâncias,
+  com intervalo mínimo de 1,1 segundo. O timestamp é confirmado inclusive em falhas HTTP.
+  `privado.geocodificacoes` guarda a chave SHA-256 da consulta e as coordenadas por 30 dias;
+  resultados sem correspondência ficam em cache por uma hora. Não guarda endereço textual.
+  Os papéis `anon` e `authenticated` não têm acesso ao schema privado.
+- `GEOCODIFICACAO_URL` permite trocar por provedor compatível com a API search do
+  Nominatim sem alteração de código. `GEOCODIFICACAO_USER_AGENT` identifica a aplicação
+  (padrão `PatotaPlus-TCC/1.0`). A atribuição ao OpenStreetMap está no formulário e na busca.
+  Se o volume previsto para o TCC mudar, substituir o provedor público.
+- Falha do provedor retorna 503 e endereço não encontrado retorna 422, com orientação
+  na tela. A patota não é criada e alterações não são gravadas nessas condições.
+  Endereço inalterado com ponto existente não provoca nova geocodificação. Alterações
+  concorrentes de endereço retornam 409, evitando misturar endereço e ponto incompatíveis.
+- PostGIS está instalado em `gis`; `patotas.localizacao` usa
+  `gis.geography(POINT, 4326)`, com índice GiST `patotas_localizacao_gist`.
+  A construção do ponto usa longitude antes de latitude. Campos textuais são mantidos,
+  e número/complemento também aparecem nos detalhes e nas sugestões de local de partidas.
+  As colunas legadas `latitude` e `longitude`, encontradas vazias no schema real,
+  foram preservadas, mas a aplicação usa exclusivamente `localizacao`.
+- O backend local usa Node.js 24 e `--use-system-ca` nos scripts start/dev para
+  reconhecer os certificados confiáveis do Windows em consultas HTTPS, preservando
+  a validação TLS. [Referência do Node.js](https://nodejs.org/api/cli.html#--use-system-ca).
 
 ### Busca por proximidade
 
-- O filtro por modalidade já está implementado na tela e no backend. É o único filtro de busca
-  previsto para o TCC; filtro por posição e campo de texto livre ficam fora do escopo.
-  Quando a proximidade for implementada, ambos deverão funcionar juntos.
-- Solicitar a posição atual somente quando o usuário acessar ou acionar a busca por
-  proximidade, usando `navigator.geolocation.getCurrentPosition` no frontend. A API exige
-  HTTPS e consentimento do usuário.
-- Enviar latitude e longitude ao backend Express apenas como parâmetros da busca. Não
-  persistir a localização do usuário.
-- Fazer o model de patotas calcular no PostgreSQL/PostGIS a distância em linha reta entre o
-  ponto recebido e cada patota, retornar a distância em quilômetros e ordenar do menor para
-  o maior valor. Usar funções espaciais como `ST_Distance` e, quando houver filtro por raio,
-  `ST_DWithin`; o acesso continuará sendo SQL direto via `pg`.
-- Exibir a distância junto de cada resultado. Se o usuário negar a permissão ou a localização
-  falhar, manter a busca disponível sem ordenação por proximidade e informar essa condição.
+- O usuário aciona "Usar minha localização" na busca. O frontend usa
+  `navigator.geolocation.getCurrentPosition`, com consentimento, timeout e botão
+  para tentar novamente ou limpar a localização. A API requer HTTPS ou localhost.
+- Latitude e longitude são enviadas apenas como parâmetros ao Express; o backend
+  valida o par e seus limites. A localização do usuário não é persistida, nem no
+  banco nem no armazenamento do navegador.
+- SQL direto via `pg` calcula `gis.ST_Distance` em quilômetros e ordena do menor
+  para o maior, com desempate por nome/ID. A distância é em linha reta, não de percurso.
+  Patotas sem ponto ficam ao final e mostram "Distância indisponível".
+- Modalidade e proximidade funcionam juntas, excluindo patotas das quais o usuário
+  já é membro ativo. Sem localização, a busca continua por nome com mensagem
+  explicativa, incluindo permissão negada, indisponibilidade e timeout.
+- Não foram adicionados mapa, bibliotecas de distância, filtro por raio, posição ou
+  texto livre. O índice espacial está disponível para consultas espaciais futuras;
+  a ordenação atual calcula a distância de todos os resultados elegíveis.
 
 ---
 
@@ -304,14 +322,7 @@ Esses totais são referências de composição, não limites de participantes da
 
 ## Roadmap após a conclusão do projeto
 
-1. **Testes automáticos no GitHub (CI):** assim que o projeto estiver pronto,
-   configurar uma rotina no GitHub Actions para executar os testes a cada push e
-   pull request. Usar inicialmente `npm ci` e `npm test` no backend, incluindo os
-   testes de formação de times e os demais testes existentes nesse momento.
-   A rotina deve sinalizar falhas para detectar regressões nas regras cobertas.
-   Esta configuração fica reservada para depois da conclusão das funcionalidades
-   previstas do projeto, conforme decisão do usuário.
-2. **Migration inicial e seed do banco:** somente quando o projeto estiver totalmente
+1. **Migration inicial e seed do banco:** somente quando o projeto estiver totalmente
    finalizado, conferir o schema real do Supabase e gerar uma migration inicial capaz de
    recriar a estrutura final em um banco vazio: tabelas, tipos, relacionamentos, índices,
    restrições e demais objetos necessários à aplicação. Preparar um seed separado com
@@ -442,6 +453,7 @@ backend/
 - Express
 - pg (node-postgres) — driver de acesso ao PostgreSQL
 - @supabase/supabase-js — validação do token JWT do Supabase via `getClaims`
+- Axios — geocodificação do local da patota
 - cors, dotenv
 
 ### Decisões de arquitetura

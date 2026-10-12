@@ -1,6 +1,6 @@
 import { CarregamentoConteudo } from '../../components/Carregamento.jsx'
-import { useState, useEffect } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { ChevronDown, LocateFixed } from 'lucide-react'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import CardPatota from '../../components/CardPatota.jsx'
@@ -17,6 +17,38 @@ function BuscarPatotas() {
   const [modalidadeId, setModalidadeId] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [coordenadas, setCoordenadas] = useState(null)
+  const [localizando, setLocalizando] = useState(false)
+  const [mensagemLocalizacao, setMensagemLocalizacao] = useState('Use sua localização para ver as patotas mais próximas.')
+  const montadoRef = useRef(false)
+
+  useEffect(() => {
+    montadoRef.current = true
+    return function () { montadoRef.current = false }
+  }, [])
+
+  function localizarUsuario() {
+    if (!navigator.geolocation) {
+      setMensagemLocalizacao('Seu navegador não disponibiliza a localização. A busca continua por nome.')
+      return
+    }
+    setLocalizando(true)
+    setMensagemLocalizacao('Aguardando sua localização. Autorize o acesso no navegador.')
+    navigator.geolocation.getCurrentPosition(function (posicao) {
+      if (!montadoRef.current) return
+      setCoordenadas({ latitude: posicao.coords.latitude, longitude: posicao.coords.longitude })
+      setMensagemLocalizacao('Patotas ordenadas pela menor distância em linha reta. Locais sem coordenadas aparecem ao final.')
+      setLocalizando(false)
+    }, function (erroLocalizacao) {
+      if (!montadoRef.current) return
+      setCoordenadas(null)
+      let mensagem = 'Não foi possível obter sua localização. A busca continua por nome; você pode tentar novamente.'
+      if (erroLocalizacao.code === 1) mensagem = 'Permissão de localização negada. A busca continua por nome. Para usar a proximidade, autorize o acesso nas configurações do navegador.'
+      if (erroLocalizacao.code === 3) mensagem = 'O tempo para obter sua localização acabou. A busca continua por nome; tente novamente.'
+      setMensagemLocalizacao(mensagem)
+      setLocalizando(false)
+    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 })
+  }
 
   useEffect(() => {
     const controlador = new AbortController()
@@ -24,7 +56,7 @@ function BuscarPatotas() {
     return function () {
       controlador.abort()
     }
-  }, [modalidadeId])
+  }, [modalidadeId, coordenadas])
 
   async function buscarPatotas(sinal) {
     setCarregando(true)
@@ -43,6 +75,10 @@ function BuscarPatotas() {
       const parametros = {}
       if (modalidadeId) {
         parametros.modalidadeId = modalidadeId
+      }
+      if (coordenadas) {
+        parametros.latitude = coordenadas.latitude
+        parametros.longitude = coordenadas.longitude
       }
       const resposta = await api.get('/patotas/buscar', {
         params: parametros,
@@ -106,6 +142,18 @@ function BuscarPatotas() {
         )}
       </div>
 
+      <div className="mb-6 rounded-xl border border-green-100 bg-green-50 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={localizarUsuario} disabled={localizando} aria-busy={localizando} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-60 cursor-pointer">
+            <LocateFixed size={18} aria-hidden="true" />
+            {localizando ? 'Obtendo localização...' : 'Usar minha localização'}
+          </button>
+          {coordenadas && !localizando && <button type="button" onClick={() => { setCoordenadas(null); setMensagemLocalizacao('Busca por nome. Use sua localização para ordenar por proximidade.') }} className="min-h-11 text-sm text-green-800 underline cursor-pointer">Limpar localização</button>}
+        </div>
+        <p role="status" className="mt-2 text-sm text-gray-600">{mensagemLocalizacao}</p>
+        <p className="mt-1 text-xs text-gray-500">Sua localização é usada somente nesta busca e não é salva.</p>
+      </div>
+
       {carregando && (
         <CarregamentoConteudo tipo="patotas" mensagem="Carregando patotas disponíveis..." />
       )}
@@ -123,10 +171,11 @@ function BuscarPatotas() {
       {!carregando && !erro && arrayPatotas.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {arrayPatotas.map((patota) => (
-            <CardPatota key={patota.id} patota={patota} />
+            <CardPatota key={patota.id} patota={patota} mostrarDistancia={!!coordenadas} />
           ))}
         </div>
       )}
+      <p className="mt-6 text-xs text-gray-500">Dados geográficos © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">OpenStreetMap contributors</a>.</p>
     </main>
   )
 }
