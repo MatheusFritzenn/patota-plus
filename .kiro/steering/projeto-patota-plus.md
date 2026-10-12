@@ -458,6 +458,13 @@ backend/
 
 ## Diretrizes de desenvolvimento
 
+- **Tela da patota:** cabeçalho com emblema, modalidade, localização, quantidade
+  de membros e horário habitual. As abas Visão geral, Jogos, Membros e Relatórios
+  usam seleção destacada e navegação por teclado; Relatórios permanece exclusivo
+  do presidente, com sub-abas Presença, Mensalidades e Caixa. Cards de jogos
+  destacam data e ocupação das vagas; solicitações de entrada ficam separadas
+  da lista de membros. Manter fundo verde-claro, superfícies brancas e layout
+  responsivo, usando Tailwind e complementos locais em `pages/Patota/style.css`.
 - **Carregamento da interface:** os componentes compartilhados de
   `frontend/src/components/Carregamento.jsx` padronizam skeletons para cards,
   formulários, perfil, detalhes, listas, times e relatórios. Títulos conhecidos,

@@ -7,7 +7,9 @@ import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
 import ModalMensagem from '../../components/ModalMensagem.jsx'
 import Avatar from '../../components/Avatar.jsx'
 import { excluirEmblema } from '../../services/emblemasPatotas.js'
-import { Trash2 } from 'lucide-react';
+import EmblemaPatota from '../../components/EmblemaPatota.jsx'
+import { ArrowUpRight, CalendarDays, CalendarClock, ChartNoAxesCombined, ChevronRight, Crown, LayoutDashboard, LockKeyhole, LogOut, MapPin, Pencil, Plus, Trash2, UsersRound } from 'lucide-react'
+import './style.css'
 
 // Dias da semana para exibição
 const arrayDiasSemana = [
@@ -216,71 +218,19 @@ function Patota() {
   // Se NÃO é membro, exibe apenas visão geral + botão solicitar
   if (!ehMembro) {
     return (
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">{patota.nome}</h1>
-          <p className="text-sm text-gray-500">{patota.modalidadeNome}</p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Modalidade</p>
-              <p className="text-gray-800 font-medium">{patota.modalidadeNome}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Presidente</p>
-              <p className="text-gray-800 font-medium">{patota.presidenteNome}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Endereço</p>
-              <p className="text-gray-800 font-medium">{patota.rua} — {patota.cidade}/{patota.estado}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Membros</p>
-              <p className="text-gray-800 font-medium">{patota.quantidadeMembros} jogadores</p>
-            </div>
-
-            {patota.diaHabitual && (
-              <div>
-                <p className="text-sm text-gray-500">Dia habitual</p>
-                <p className="text-gray-800 font-medium">{obterNomeDia(patota.diaHabitual)}</p>
-              </div>
-            )}
-
-            {patota.horaHabitual && (
-              <div>
-                <p className="text-sm text-gray-500">Horário habitual</p>
-                <p className="text-gray-800 font-medium">{formatarHora(patota.horaHabitual)}</p>
-              </div>
-            )}
-
-            {patota.descricao && (
-              <div className="sm:col-span-2">
-                <p className="text-sm text-gray-500">Descrição</p>
-                <p className="text-gray-800">{patota.descricao}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Botão solicitar entrada */}
-          <div className="mt-6">
-            {solicitacaoPendente ? (
-              <p className="text-sm text-yellow-600 font-medium bg-yellow-50 px-4 py-2 rounded-lg inline-block">
-                Solicitação enviada — aguardando aprovação do presidente
-              </p>
-            ) : (
-              <button
-                onClick={handleSolicitar}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer"
-              >
-                Solicitar entrada
-              </button>
-            )}
-          </div>
+      <main className="patota-pagina max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-10">
+        <CabecalhoPatota patota={patota} ehPresidente={false} obterNomeDia={obterNomeDia} formatarHora={formatarHora} />
+        <AbaVisaoGeral patota={patota} ehPresidente={false} podeSair={false} obterNomeDia={obterNomeDia} formatarHora={formatarHora} />
+        <div className="mt-5">
+          {solicitacaoPendente ? (
+            <p role="status" className="text-sm text-amber-800 font-medium bg-amber-50 border border-amber-200 px-4 py-3 rounded-xl">
+              Solicitação enviada — aguardando aprovação do presidente
+            </p>
+          ) : (
+            <button type="button" onClick={handleSolicitar} className="patota-botao patota-botao-primario">
+              <Plus size={17} aria-hidden="true" />Solicitar entrada
+            </button>
+          )}
         </div>
 
         {/* Modal de mensagem */}
@@ -296,43 +246,28 @@ function Patota() {
 
   // Se É membro, exibe tela completa com abas
   const arrayAbas = [
-    { id: 'visao-geral', nome: 'Visão Geral' },
-    { id: 'jogos', nome: 'Jogos' },
-    { id: 'membros', nome: 'Membros' }
+    { id: 'visao-geral', nome: 'Visão geral', icone: LayoutDashboard },
+    { id: 'jogos', nome: 'Jogos', icone: CalendarDays },
+    { id: 'membros', nome: 'Membros', icone: UsersRound }
   ]
 
   if (ehPresidente) {
-    arrayAbas.push({ id: 'relatorios', nome: 'Relatórios' })
+    arrayAbas.push({ id: 'relatorios', nome: 'Relatórios', icone: ChartNoAxesCombined })
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      {/* Nome da patota */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">{patota.nome}</h1>
-        <p className="text-sm text-gray-500">{patota.modalidadeNome}</p>
-      </div>
+    <main className="patota-pagina max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-10">
+      <CabecalhoPatota patota={patota} ehPresidente={ehPresidente} obterNomeDia={obterNomeDia} formatarHora={formatarHora} />
+      <AbasPatota arrayAbas={arrayAbas} abaAtiva={abaAtiva} onAlterar={setAbaAtiva} prefixo="patota" rotulo="Abas da patota" />
 
-      {/* Abas */}
-      <div className="flex border-b border-gray-200 mb-6">
-        {arrayAbas.map((aba) => (
-          <button
-            key={aba.id}
-            onClick={() => setAbaAtiva(aba.id)}
-            className={`px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${abaAtiva === aba.id ? 'text-green-700 border-b-2 border-green-700' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            {aba.nome}
-          </button>
-        ))}
-      </div>
-
+      <div id="patota-painel" role="tabpanel" tabIndex={0} aria-labelledby={'patota-aba-' + abaAtiva}>
       {/* Conteúdo das abas */}
       {abaAtiva === 'visao-geral' && (
         <AbaVisaoGeral patota={patota} ehPresidente={ehPresidente} podeSair={!ehPresidente && patota.presidenteId !== userId} obterNomeDia={obterNomeDia} formatarHora={formatarHora} onExcluir={() => setModalExcluirAberto(true)} onSair={() => setModalSairAberto(true)} />
       )}
 
       {abaAtiva === 'jogos' && (
-        <AbaJogos patotaId={id} usuarioId={userId} />
+        <AbaJogos patotaId={id} usuarioId={userId} ehPresidente={ehPresidente} />
       )}
 
       {abaAtiva === 'membros' && (
@@ -342,6 +277,8 @@ function Patota() {
       {abaAtiva === 'relatorios' && (
         <AbaRelatorios patotaId={id} usuarioId={userId} formatarData={formatarData} formatarHora={formatarHora} />
       )}
+
+      </div>
 
       {/* Modal de confirmação de exclusão */}
       <ModalConfirmacao
@@ -383,95 +320,117 @@ function Patota() {
   )
 }
 
-// Aba Visão Geral
-function AbaVisaoGeral({ patota, ehPresidente, podeSair, obterNomeDia, formatarHora, onExcluir, onSair }) {
+function CabecalhoPatota({ patota, ehPresidente, obterNomeDia, formatarHora }) {
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <p className="text-sm text-gray-500">Modalidade</p>
-          <p className="text-gray-800 font-medium">{patota.modalidadeNome}</p>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-500">Presidente</p>
-          <p className="text-gray-800 font-medium">{patota.presidenteNome}</p>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-500">Endereço</p>
-          <p className="text-gray-800 font-medium">{patota.rua} — {patota.cidade}/{patota.estado}</p>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-500">Membros</p>
-          <p className="text-gray-800 font-medium">{patota.quantidadeMembros} jogadores</p>
-        </div>
-
-        {patota.diaHabitual && (
-          <div>
-            <p className="text-sm text-gray-500">Dia habitual</p>
-            <p className="text-gray-800 font-medium">{obterNomeDia(patota.diaHabitual)}</p>
+    <header className="mb-6">
+      <nav aria-label="Caminho da página" className="mb-4 flex items-center gap-2 text-xs text-gray-500">
+        <Link to="/minhas-patotas" className="shrink-0 rounded hover:text-green-700 focus-visible:outline-green-600">Minhas patotas</Link>
+        <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+        <span aria-current="page" className="min-w-0 truncate">{patota.nome}</span>
+      </nav>
+      <div className="rounded-2xl border border-gray-100 border-t-4 border-t-green-600 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex min-w-0 items-center gap-4">
+          <EmblemaPatota nome={patota.nome} emblemaPath={patota.emblemaPath} />
+          <div className="min-w-0">
+            <h1 className="wrap-break-word text-2xl font-bold tracking-tight text-gray-800 sm:text-3xl">{patota.nome}</h1>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="patota-etiqueta bg-green-50 text-green-700">{patota.modalidadeNome}</span>
+              {ehPresidente && <span className="patota-etiqueta bg-gray-100 text-gray-600"><Crown size={14} aria-hidden="true" />Você é presidente</span>}
+            </div>
           </div>
-        )}
-
-        {patota.horaHabitual && (
-          <div>
-            <p className="text-sm text-gray-500">Horário habitual</p>
-            <p className="text-gray-800 font-medium">{formatarHora(patota.horaHabitual)}</p>
-          </div>
-        )}
-
-        {patota.descricao && (
-          <div className="sm:col-span-2">
-            <p className="text-sm text-gray-500">Descrição</p>
-            <p className="text-gray-800">{patota.descricao}</p>
-          </div>
-        )}
+        </div>
+        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 border-t border-gray-100 pt-4 text-sm text-gray-500">
+          <span className="flex min-w-0 items-center gap-2 wrap-break-word"><MapPin size={16} className="shrink-0" aria-hidden="true" />{patota.cidade}/{patota.estado}</span>
+          <span className="flex items-center gap-2"><UsersRound size={16} aria-hidden="true" />{patota.quantidadeMembros} membros</span>
+          {(patota.diaHabitual || patota.horaHabitual) && (
+            <span className="flex items-center gap-2"><CalendarDays size={16} className="shrink-0" aria-hidden="true" />
+              {obterNomeDia(patota.diaHabitual)}
+              {patota.diaHabitual && patota.horaHabitual && ' · '}
+              {formatarHora(patota.horaHabitual)}
+            </span>
+          )}
+        </div>
       </div>
+    </header>
+  )
+}
 
-      {/* Ações do presidente */}
-      {ehPresidente && (
-        <div className="mt-6 flex items-center justify-between">
-          <div className="flex gap-3">
-            <Link
-              to={'/patota/' + patota.id + '/editar'}
-              className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              Editar patota
-            </Link>
-            <Link
-              to={'/patota/' + patota.id + '/criar-partida'}
-              className="border border-green-600 text-green-600 hover:bg-green-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              Criar partida
-            </Link>
-          </div>
-          <button
-            onClick={onExcluir}
-            className="border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-          >
-            Excluir patota
-          </button>
-        </div>
-      )}
+function AbasPatota({ arrayAbas, abaAtiva, onAlterar, prefixo, rotulo, secundaria }) {
+  function navegarComTeclado(evento, indice) {
+    let proximoIndice = indice
+    if (evento.key === 'ArrowRight') proximoIndice = (indice + 1) % arrayAbas.length
+    else if (evento.key === 'ArrowLeft') proximoIndice = (indice + arrayAbas.length - 1) % arrayAbas.length
+    else if (evento.key === 'Home') proximoIndice = 0
+    else if (evento.key === 'End') proximoIndice = arrayAbas.length - 1
+    else return
 
-      {podeSair && (
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={onSair}
-            className="border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-          >
-            Sair da patota
+    evento.preventDefault()
+    onAlterar(arrayAbas[proximoIndice].id)
+    document.getElementById(prefixo + '-aba-' + arrayAbas[proximoIndice].id).focus()
+  }
+
+  let classeAbas = 'patota-abas'
+  if (secundaria) classeAbas = 'patota-subabas'
+
+  return (
+    <div role="tablist" aria-label={rotulo} className={classeAbas}>
+      {arrayAbas.map((aba, indice) => {
+        const Icone = aba.icone
+        let ordemFoco = -1
+        if (abaAtiva === aba.id) ordemFoco = 0
+        return (
+          <button type="button" key={aba.id} role="tab" id={prefixo + '-aba-' + aba.id}
+            aria-selected={abaAtiva === aba.id} aria-controls={prefixo + '-painel'}
+            tabIndex={ordemFoco} onClick={() => onAlterar(aba.id)} onKeyDown={(evento) => navegarComTeclado(evento, indice)}>
+            {Icone && <Icone size={18} aria-hidden="true" />}{aba.nome}
           </button>
-        </div>
-      )}
+        )
+      })}
     </div>
   )
 }
 
-// Formata a data (timestamp) para o padrão dd/mm/aaaa
+function InformacaoPatota({ icone: Icone, rotulo, children }) {
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700"><Icone size={19} aria-hidden="true" /></span>
+      <div className="min-w-0"><p className="mb-1 text-xs text-gray-500">{rotulo}</p><div className="wrap-break-word text-sm font-medium text-gray-800">{children}</div></div>
+    </div>
+  )
+}
+
+// Aba Visão Geral
+function AbaVisaoGeral({ patota, ehPresidente, podeSair, obterNomeDia, formatarHora, onExcluir, onSair }) {
+  return (
+    <section className="patota-painel">
+      <div className="patota-titulo">
+        <div><h2>Sobre a patota</h2><p>As informações do nosso futebol.</p></div>
+        {ehPresidente && <Link to={'/patota/' + patota.id + '/editar'} className="patota-botao"><Pencil size={16} aria-hidden="true" />Editar patota</Link>}
+      </div>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <InformacaoPatota icone={MapPin} rotulo="Local dos jogos">
+          {patota.rua && <p>{patota.rua}</p>}<p>{patota.cidade}/{patota.estado}</p>
+        </InformacaoPatota>
+        <InformacaoPatota icone={CalendarClock} rotulo="Dia e horário habitual">
+          {patota.diaHabitual || patota.horaHabitual ? (
+            <p>{obterNomeDia(patota.diaHabitual)}{patota.diaHabitual && patota.horaHabitual && ', às '}{formatarHora(patota.horaHabitual)}</p>
+          ) : <p className="text-gray-500">Não informado</p>}
+        </InformacaoPatota>
+        <InformacaoPatota icone={Crown} rotulo="Presidente">{patota.presidenteNome}</InformacaoPatota>
+        <InformacaoPatota icone={UsersRound} rotulo="Nosso grupo">{patota.quantidadeMembros} jogadores</InformacaoPatota>
+      </div>
+      {patota.descricao && <div className="mt-6 border-t border-gray-100 pt-5"><h3 className="mb-2 text-sm font-semibold text-gray-800">Descrição</h3><p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-gray-600">{patota.descricao}</p></div>}
+      {ehPresidente && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5">
+          <Link to={'/patota/' + patota.id + '/criar-partida'} className="patota-botao patota-botao-primario"><Plus size={17} aria-hidden="true" />Criar partida</Link>
+          <button type="button" onClick={onExcluir} className="patota-botao patota-botao-perigo"><Trash2 size={16} aria-hidden="true" />Excluir patota</button>
+        </div>
+      )}
+      {podeSair && <div className="mt-6 border-t border-gray-100 pt-5"><button type="button" onClick={onSair} className="patota-botao patota-botao-perigo"><LogOut size={16} aria-hidden="true" />Sair da patota</button></div>}
+    </section>
+  )
+}
+
 function formatarData(data) {
   if (!data) return ''
   const dataObj = new Date(data)
@@ -485,44 +444,33 @@ function formatarData(data) {
 // Quando há avaliação pendente do usuário logado, o card recebe um destaque âmbar
 // e exibe um selo "Avaliação pendente" para lembrar o jogador de avaliar seus companheiros.
 function CardPartida({ partida }) {
-  let classeCard = 'flex items-center justify-between p-4 rounded-lg border transition-colors cursor-pointer '
-  if (partida.avaliacaoPendente) {
-    classeCard = classeCard + 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+  const dataFormatada = formatarData(partida.data)
+  let mesAbreviado = ''
+  if (partida.data) {
+    mesAbreviado = new Date(partida.data).toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' }).replace('.', '').toUpperCase()
   }
-  else {
-    classeCard = classeCard + 'border-gray-100 bg-gray-50 hover:bg-gray-100'
-  }
+  let percentualVagas = 0
+  if (partida.vagasTotal > 0) percentualVagas = Math.min(100, Math.max(0, partida.vagasPreenchidas / partida.vagasTotal * 100))
+  const estiloVagas = { width: percentualVagas + '%' }
+  let classeCard = 'patota-jogo'
+  if (partida.avaliacaoPendente) classeCard += ' patota-jogo-pendente'
 
   return (
-    <Link
-      to={'/partida/' + partida.id}
-      className={classeCard}
-    >
-      <div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-gray-800 font-medium">
-            {formatarData(partida.data)} às {partida.horario}
-          </p>
-          {partida.avaliacaoPendente && (
-            <span className="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-0.5 rounded-full">
-              Avaliação pendente
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-500">{partida.local}</p>
+    <Link to={'/partida/' + partida.id} className={classeCard}>
+      <div className="patota-data" aria-hidden="true"><strong>{dataFormatada.slice(0, 2)}</strong><span>{mesAbreviado}</span></div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-gray-800">{dataFormatada} às {partida.horario}</p>
+        <p className="mt-1 wrap-break-word text-sm text-gray-500">{partida.local}</p>
+        {partida.avaliacaoPendente && <span className="patota-etiqueta mt-2 bg-amber-100 text-amber-800">Avaliação pendente</span>}
       </div>
-      <div className="text-right">
-        <p className="text-sm text-gray-500">Vagas</p>
-        <p className="text-gray-800 font-medium">
-          {partida.vagasPreenchidas}/{partida.vagasTotal}
-        </p>
-      </div>
+      <div className="patota-vagas"><p className="text-xs text-gray-500">Vagas preenchidas</p><p className="mt-1 text-sm font-semibold tabular-nums text-gray-800">{partida.vagasPreenchidas} / {partida.vagasTotal}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-green-100" aria-hidden="true"><div className="h-full rounded-full bg-green-500" style={estiloVagas} /></div></div>
+      <span className="patota-ver-jogo">Ver jogo<ArrowUpRight size={16} aria-hidden="true" /></span>
     </Link>
   )
 }
 
 // Aba Jogos
-function AbaJogos({ patotaId, usuarioId }) {
+function AbaJogos({ patotaId, usuarioId, ehPresidente }) {
   const [arrayProximos, setArrayProximos] = useState([])
   const [arrayFinalizados, setArrayFinalizados] = useState([])
   const [carregando, setCarregando] = useState(true)
@@ -554,7 +502,7 @@ function AbaJogos({ patotaId, usuarioId }) {
 
   if (erro) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+      <div className="patota-painel text-center">
         <p className="text-red-500">{erro}</p>
       </div>
     )
@@ -563,7 +511,10 @@ function AbaJogos({ patotaId, usuarioId }) {
   const semPartidas = arrayProximos.length === 0 && arrayFinalizados.length === 0
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+    <section className="patota-painel">
+      <div className="patota-titulo"><div><h2>Jogos da patota</h2><p>Próximos encontros e partidas realizadas.</p></div>
+        {ehPresidente && <Link to={'/patota/' + patotaId + '/criar-partida'} className="patota-botao patota-botao-primario"><Plus size={17} aria-hidden="true" />Criar partida</Link>}
+      </div>
       {semPartidas && (
         <div className="text-center">
           <p className="text-gray-500 text-lg mb-2">Nenhuma partida registrada ainda.</p>
@@ -594,42 +545,45 @@ function AbaJogos({ patotaId, usuarioId }) {
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }
 
 // Aba Membros
 function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder, onExcluirMembro }) {
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+    <div className="patota-painel">
+      <div className="patota-titulo"><div><h2>Membros</h2><p>Quem faz parte da nossa patota.</p></div><span className="patota-etiqueta bg-green-50 text-green-700">{arrayMembros.length} jogadores</span></div>
       {/* Solicitações pendentes (apenas presidente) */}
       {ehPresidente && arraySolicitacoes.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-yellow-700 mb-3">
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+          <h3 className="text-sm font-semibold text-amber-800 mb-3">
             Solicitações pendentes ({arraySolicitacoes.length})
           </h3>
           <div className="flex flex-col gap-3">
             {arraySolicitacoes.map((solicitacao) => (
-              <div key={solicitacao.id} className="flex items-center gap-4 p-3 rounded-lg bg-yellow-50 border border-yellow-100">
+              <div key={solicitacao.id} className="flex flex-wrap items-center gap-3 border-t border-amber-100 py-3">
                 {/* Foto */}
                 <Avatar nome={solicitacao.nome} foto={solicitacao.foto} tamanho="md" corBorda="amarela" />
 
                 {/* Nome */}
-                <div className="flex-1">
-                  <p className="text-gray-800 font-medium text-sm">{solicitacao.nome}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="wrap-break-word text-gray-800 font-medium text-sm">{solicitacao.nome}</p>
                 </div>
 
                 {/* Botões aceitar/recusar */}
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => onResponder(solicitacao.id, 'ACEITO')}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="patota-botao patota-botao-primario"
                   >
                     Aceitar
                   </button>
                   <button
+                    type="button"
                     onClick={() => onResponder(solicitacao.id, 'RECUSADO')}
-                    className="border border-red-500 text-red-500 hover:bg-red-50 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="patota-botao"
                   >
                     Recusar
                   </button>
@@ -637,7 +591,7 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
               </div>
             ))}
           </div>
-          <hr className="mt-6 border-gray-200" />
+
         </div>
       )}
 
@@ -647,16 +601,16 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
       )}
 
       {arrayMembros.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col">
           {arrayMembros.map((membro) => (
-            <div key={membro.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <div key={membro.id} className="flex items-center gap-3 border-b border-gray-100 py-4 last:border-0">
               {/* Foto */}
               <Avatar nome={membro.nome} foto={membro.foto} tamanho="lg" corBorda="verde" />
 
               {/* Dados */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-gray-800 font-medium">{membro.nome}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="wrap-break-word text-gray-800 font-medium">{membro.nome}</p>
                   {membro.role === 'PRESIDENTE' && (
                     <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
                       Presidente
@@ -672,10 +626,11 @@ function AbaMembros({ arrayMembros, ehPresidente, arraySolicitacoes, onResponder
                 <div>
                   <button
                     onClick={() => onExcluirMembro(membro)}
-                    className="text-red-500 hover:text-red-700 cursor-pointer transition-colors"
-                    title="Excluir membro"
+                    type="button"
+                    className="patota-botao patota-botao-perigo shrink-0"
+                    aria-label={'Remover ' + membro.nome + ' da patota'}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -697,11 +652,11 @@ function BarraFrequencia({ percentual }) {
     classeCor = 'bg-yellow-400'
   }
 
-  const estiloLargura = { width: percentual + '%' }
+  const estiloLargura = { width: Math.min(100, Math.max(0, percentual)) + '%' }
 
   return (
-    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-      <div className={'h-2 rounded-full transition-all ' + classeCor} style={estiloLargura}></div>
+    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden" aria-hidden="true">
+      <div className={'h-1.5 rounded-full transition-all motion-reduce:transition-none ' + classeCor} style={estiloLargura}></div>
     </div>
   )
 }
@@ -718,19 +673,9 @@ function AbaRelatorios({ patotaId, usuarioId, formatarData, formatarHora }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Sub-abas do relatório */}
-      <div className="flex gap-2 flex-wrap">
-        {arraySubAbas.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setSubAba(item.id)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors cursor-pointer ${subAba === item.id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            {item.nome}
-          </button>
-        ))}
-      </div>
-
+      <div className="patota-titulo"><div><h2>Relatórios</h2><p>Acompanhe a presença e o financeiro da patota.</p></div><span className="patota-etiqueta bg-gray-100 text-gray-600"><LockKeyhole size={14} aria-hidden="true" />Presidente</span></div>
+      <AbasPatota arrayAbas={arraySubAbas} abaAtiva={subAba} onAlterar={setSubAba} prefixo="relatorios" rotulo="Tipos de relatório" secundaria={true} />
+      <div id="relatorios-painel" role="tabpanel" tabIndex={0} aria-labelledby={'relatorios-aba-' + subAba}>
       {subAba === 'presenca' && (
         <RelatorioPresenca patotaId={patotaId} usuarioId={usuarioId} formatarData={formatarData} formatarHora={formatarHora} />
       )}
@@ -742,6 +687,7 @@ function AbaRelatorios({ patotaId, usuarioId, formatarData, formatarHora }) {
       {subAba === 'caixa' && (
         <RelatorioCaixa patotaId={patotaId} usuarioId={usuarioId} />
       )}
+      </div>
     </div>
   )
 }
@@ -845,8 +791,8 @@ function RelatorioCaixa({ patotaId, usuarioId }) {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-md p-5 sm:p-6 border border-gray-100">
-        <div className="flex items-center justify-between gap-4">
+      <div className="patota-painel">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-gray-700">Movimentações</h3>
             <p className="text-xs text-gray-500 mt-1">Registre receitas e despesas da patota.</p>
@@ -890,7 +836,7 @@ function RelatorioCaixa({ patotaId, usuarioId }) {
       </div>
 
       {caixa && (
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700">Histórico</h3>
           </div>
@@ -913,7 +859,7 @@ function ResumoCaixa({ rotulo, valor, tipo }) {
   if (tipo === 'SALDO' && valor < 0) classeValor = 'text-red-600'
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+    <div className="patota-resumo rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
       <p className="text-xs text-gray-500 mb-1">{rotulo}</p>
       <p className={'text-xl font-bold ' + classeValor}>{formatarMoeda(valor)}</p>
     </div>
@@ -1043,11 +989,11 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="bg-white rounded-2xl shadow-md p-5 sm:p-6 border border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
+      <div className="patota-painel">
+        <div className="flex flex-wrap items-end gap-4 justify-between">
           <div>
             <label htmlFor="mes-mensalidades" className="block text-sm font-medium text-gray-700 mb-1">Mês de referência</label>
-            <input id="mes-mensalidades" type="month" value={mesReferencia} disabled={carregando || membroAtualizando !== null || salvandoValor} onChange={(evento) => setMesReferencia(evento.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
+            <input id="mes-mensalidades" type="month" value={mesReferencia} disabled={carregando || membroAtualizando !== null || salvandoValor} onChange={(evento) => setMesReferencia(evento.target.value)} className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <form onSubmit={salvarValor}>
             <label htmlFor="valor-mensalidade" className="block text-sm font-medium text-gray-700 mb-1">Valor vigente</label>
@@ -1072,7 +1018,8 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
             <ResumoMensalidade rotulo="Recebido" valor={formatarMoeda(relatorio.totalRecebido)} />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <h3 className="border-b border-gray-100 px-5 py-4 text-sm font-semibold text-gray-800">Pagamentos do mês</h3>
             {relatorio.mensalidades.length === 0 && <p className="p-6 text-center text-gray-500">Nenhum membro ativo nesta patota.</p>}
             <div className="divide-y divide-gray-100">
               {relatorio.mensalidades.map((mensalidade) => (
@@ -1091,12 +1038,12 @@ function LinhaMensalidade({ mensalidade, atualizando, desabilitado, onAlternar }
   let classeStatus = 'bg-yellow-100 text-yellow-700'
   let classeBotao = 'border-green-600 text-green-700 hover:bg-green-50'
   let textoStatus = 'Pendente'
-  let textoBotao = 'Marcar como paga'
+  let textoBotao = 'Dar baixa'
   if (pago) {
     classeStatus = 'bg-green-100 text-green-700'
     classeBotao = 'border-red-500 text-red-600 hover:bg-red-50'
     textoStatus = 'Pago'
-    textoBotao = 'Reverter para pendente'
+    textoBotao = 'Desfazer baixa'
   }
 
   return (
@@ -1104,12 +1051,12 @@ function LinhaMensalidade({ mensalidade, atualizando, desabilitado, onAlternar }
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <Avatar nome={mensalidade.nome} foto={mensalidade.foto} tamanho="md" />
         <div className="min-w-0">
-          <p className="text-gray-800 font-medium truncate">{mensalidade.nome}</p>
+          <p className="wrap-break-word text-gray-800 font-medium">{mensalidade.nome}</p>
           <p className="text-sm text-gray-500">{formatarMoeda(mensalidade.valor)}</p>
         </div>
       </div>
       <span className={'self-start sm:self-auto text-xs font-semibold px-2.5 py-1 rounded-full ' + classeStatus}>{textoStatus}</span>
-      <button type="button" disabled={desabilitado} aria-busy={atualizando} onClick={() => onAlternar(mensalidade)} className={'sm:w-48 border disabled:opacity-50 text-sm font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer ' + classeBotao}>{atualizando ? <IndicadorCarregamento texto="Atualizando..." /> : textoBotao}</button>
+      <button type="button" disabled={desabilitado} aria-busy={atualizando} onClick={() => onAlternar(mensalidade)} className={'sm:w-40 border disabled:opacity-50 text-sm font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer ' + classeBotao}>{atualizando ? <IndicadorCarregamento texto="Atualizando..." /> : textoBotao}</button>
     </div>
   )
 }
@@ -1119,7 +1066,7 @@ function ResumoMensalidade({ rotulo, valor, cor }) {
   if (cor === 'verde') classeValor = 'text-green-700'
   if (cor === 'amarelo') classeValor = 'text-yellow-600'
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+    <div className="patota-resumo rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
       <p className="text-xs text-gray-500 mb-1">{rotulo}</p>
       <p className={'text-xl font-bold ' + classeValor}>{valor}</p>
     </div>
@@ -1168,7 +1115,7 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
 
   if (erro) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+      <div className="patota-painel text-center">
         <p className="text-red-500">{erro}</p>
       </div>
     )
@@ -1176,7 +1123,7 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
 
   if (!relatorio || relatorio.totalPartidas === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+      <div className="patota-painel text-center">
         <p className="text-gray-500 text-lg mb-2">Nenhuma partida realizada ainda.</p>
         <p className="text-gray-400 text-sm">A frequência dos jogadores aparecerá aqui após partidas finalizadas.</p>
       </div>
@@ -1186,8 +1133,8 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
   return (
     <div className="flex flex-col gap-6">
       {/* Frequência por jogador */}
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
+      <div className="patota-painel">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="text-sm font-semibold text-gray-700">Frequência dos jogadores</h3>
           <span className="text-xs text-gray-500">
             {relatorio.totalPartidas} partida(s) realizada(s)
@@ -1199,9 +1146,9 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
             <div key={jogador.id} className="flex items-center gap-4">
               <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="md" />
 
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-gray-800 font-medium text-sm">{jogador.nome}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-2">
+                  <p className="wrap-break-word text-gray-800 font-medium text-sm">{jogador.nome}</p>
                   <p className="text-xs text-gray-500">
                     {jogador.presencas}/{jogador.totalPartidas} · {jogador.percentual}%
                   </p>
@@ -1214,21 +1161,23 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
       </div>
 
       {/* Lista de partidas realizadas com presentes */}
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+      <div className="patota-painel">
         <h3 className="text-sm font-semibold text-gray-700 mb-4">Partidas realizadas</h3>
 
         <div className="flex flex-col gap-3">
           {relatorio.partidas.map((partida) => (
             <div key={partida.id} className="rounded-lg border border-gray-100 bg-gray-50">
               <button
+                type="button"
                 onClick={() => alternarPartida(partida.id)}
-                className="w-full flex items-center justify-between p-4 text-left cursor-pointer hover:bg-gray-100 transition-colors rounded-lg"
+                aria-expanded={partidaExpandida === partida.id}
+                className="w-full flex items-center justify-between gap-4 p-4 text-left cursor-pointer hover:bg-gray-100 transition-colors rounded-lg"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="text-gray-800 font-medium">
                     {formatarData(partida.data)} às {formatarHora(partida.horario) || partida.horario}
                   </p>
-                  <p className="text-sm text-gray-500">{partida.local}</p>
+                  <p className="wrap-break-word text-sm text-gray-500">{partida.local}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Presentes</p>
@@ -1237,7 +1186,7 @@ function RelatorioPresenca({ patotaId, usuarioId, formatarData, formatarHora }) 
               </button>
 
               {partidaExpandida === partida.id && (
-                <div className="px-4 pb-4">
+                <div id={'presenca-partida-' + partida.id} className="px-4 pb-4">
                   {partida.presentes.length === 0 ? (
                     <p className="text-sm text-gray-400">Nenhum jogador presente nesta partida.</p>
                   ) : (

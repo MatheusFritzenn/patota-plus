@@ -1,1 +1,150 @@
-/* Estilos complementares da tela da Patota */
+/* Complementos locais ao Tailwind: abas e cards responsivos da patota. */
+.patota-pagina { container-type: inline-size; }
+.patota-pagina .patota-painel {
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 2px 8px #14532d05;
+}
+
+.patota-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.patota-titulo h2 { color: #1f2937; font-size: 1.125rem; font-weight: 650; }
+.patota-titulo p { margin-top: .25rem; color: #6b7280; font-size: .875rem; }
+
+.patota-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  max-width: 100%;
+  padding: .25rem .75rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.patota-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 2.75rem;
+  padding: .625rem .875rem;
+  border: 1px solid #dce5df;
+  border-radius: .625rem;
+  background: #fff;
+  color: #374151;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s, border-color .15s;
+}
+
+.patota-botao svg { flex-shrink: 0; }
+.patota-botao:hover { background: #f9fafb; border-color: #b9c9bd; }
+.patota-botao-primario { background: #16a34a; border-color: #16a34a; color: #fff; }
+.patota-botao-primario:hover { background: #15803d; border-color: #15803d; }
+.patota-botao-perigo { color: #b91c1c; border-color: #fecaca; }
+.patota-botao-perigo:hover { background: #fef2f2; border-color: #fca5a5; }
+
+.patota-abas {
+  display: flex;
+  gap: .25rem;
+  padding: .375rem;
+  margin-bottom: 1.5rem;
+  border-radius: .875rem;
+  background: #e4f1e8;
+}
+
+.patota-abas button {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 2.75rem;
+  padding: .625rem .5rem;
+  border-radius: .625rem;
+  color: #52665a;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s, color .15s;
+}
+
+.patota-abas button svg { flex-shrink: 0; }
+.patota-abas button:hover { color: #15803d; background: #ffffff70; }
+.patota-abas button[aria-selected="true"] { color: #15803d; background: #fff; box-shadow: 0 2px 5px #123b1510; }
+
+.patota-subabas { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+.patota-subabas button {
+  min-height: 2.75rem;
+  padding: .5rem .875rem;
+  border: 1px solid #dce5df;
+  border-radius: .625rem;
+  background: #fff;
+  color: #6b7280;
+  font-size: .875rem;
+  cursor: pointer;
+}
+.patota-subabas button:hover { background: #f0fdf4; }
+.patota-subabas button[aria-selected="true"] { background: #eaf8ee; color: #166534; border-color: #bbdfc5; font-weight: 600; }
+
+.patota-jogo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: .875rem;
+  background: #fff;
+  transition: background-color .15s, border-color .15s;
+}
+.patota-jogo:hover { background: #f0fdf4; border-color: #bbdfc5; }
+.patota-jogo-pendente { border-color: #f5d994; background: #fffcf2; }
+.patota-jogo-pendente:hover { background: #fffbeb; border-color: #fbbf24; }
+.patota-data { flex-shrink: 0; min-width: 3.25rem; padding: .5rem; border-radius: .75rem; background: #f0fdf4; text-align: center; color: #15803d; }
+.patota-data strong { display: block; font-size: 1.5rem; line-height: 1.25; }
+.patota-data span { font-size: .6875rem; }
+.patota-vagas { flex-shrink: 0; min-width: 7rem; text-align: right; }
+.patota-ver-jogo { display: flex; align-items: center; gap: .375rem; flex-shrink: 0; color: #15803d; font-size: .75rem; font-weight: 600; }
+.patota-resumo { min-width: 0; }
+.patota-resumo p:last-child { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+
+.patota-pagina button:focus-visible,
+.patota-pagina a:focus-visible,
+.patota-pagina [role="tabpanel"]:focus-visible { outline: 2px solid #16a34a; outline-offset: 3px; }
+.patota-pagina button:disabled { cursor: not-allowed; }
+
+@media (max-width: 639px) {
+  .patota-pagina .patota-painel { padding: 1.125rem; }
+  .patota-abas button { flex-direction: column; gap: .375rem; font-size: .75rem; padding: .625rem .125rem; }
+  .patota-jogo { flex-wrap: wrap; gap: .75rem; }
+  .patota-vagas { width: calc(100% - 6rem); padding-left: 4rem; text-align: left; }
+  .patota-ver-jogo { margin-left: auto; }
+  .patota-pagina input, .patota-pagina select { min-width: 0; max-width: 100%; font-size: 1rem; }
+}
+
+/* Considera a largura útil da página quando a barra lateral ocupa parte da tela. */
+@container (max-width: 620px) {
+  .patota-jogo { flex-wrap: wrap; gap: .75rem; }
+  .patota-vagas { width: calc(100% - 6rem); padding-left: 4rem; text-align: left; }
+  .patota-ver-jogo { margin-left: auto; }
+}
+
+@container (max-width: 480px) {
+  .patota-abas button { flex-direction: column; gap: .375rem; font-size: .75rem; padding: .625rem .125rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patota-botao, .patota-jogo, .patota-abas button { transition: none; }
+}
