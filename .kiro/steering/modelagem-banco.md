@@ -173,29 +173,27 @@ Convenções reais do banco (PostgreSQL no Supabase):
 | time_id | uuid, FK → times, opcional (ON DELETE SET NULL) | Preenchido quando os times são formados (Fase 2) |
 | posicao_id | int, FK → posicoes, opcional (ON DELETE SET NULL) | Posição temporária atribuída pelo presidente exclusivamente para esta partida |
 | posicao_formacao_id | int, FK → posicoes, opcional (ON DELETE SET NULL) | Posição de atuação escolhida na última formação; adicionada em 21/09/2026 |
-| extra_formacao | boolean, opcional | true = extra; false = composição; NULL = sem formação nova; adicionada em 21/09/2026 |
+| nota_temporaria | numeric(4,2), opcional, CHECK 0 a 10 | Nota atribuída pelo presidente nesta partida a quem ainda não possui média |
+
+> **Alteração de 12/10/2026:** `nota_temporaria` e a restrição de nota entre 0 e 10 foram aplicadas diretamente ao PostgreSQL indicado por `backend/.env`. A nota temporária não altera `media_usuarios` nem as avaliações. Toda geração ou regeneração exige nota temporária para cada participante cujo `total_avaliacoes` é zero; a média real, quando existir, tem prioridade. As colunas `confirmado_em` e `extra_formacao` e o índice `(partida_id, confirmado_em)` foram removidos: todos os confirmados entram na composição, independentemente da ordem de confirmação.
 
 > **Implementado em 12/09/2026 — posição por partida:** `participacoes.posicao_id` armazena
 > apenas o remanejamento daquela partida e a alteração nunca modifica `usuario_posicoes`.
 > Desde 13/09/2026, o algoritmo de geração usa esse campo com prioridade sobre as
 > posições do perfil. Sem remanejamento, considera as posições de `usuario_posicoes`
-> válidas para a modalidade. A revisão de 21/09/2026 também grava a posição da formação
-> e a identificação de extras, preservando `posicao_id` e o perfil.
+> válidas para a modalidade. A posição da formação é gravada em
+> `posicao_formacao_id`, preservando `posicao_id` e o perfil.
 
-> **Revisão implementada no código em 21/09/2026:** os dois campos acima foram
-> adicionados ao banco. O arquivo SQL incremental foi removido por decisão do usuário.
-> A posição escolhida automaticamente ocupa `posicao_formacao_id`; `extra_formacao`
-> indica se o participante excede o total da referência, sem excluí-lo do time ou da
-> força média. A geração grava os campos e `time_id` na mesma transação; desfazer limpa
-> todos, sem alterar `posicao_id` nem `usuario_posicoes`. Ambos começam em NULL para
-> preservar formações antigas; a regeneração preenche o novo estado. A interface lê a
+> **Revisão implementada no código em 21/09/2026:** a posição escolhida
+> automaticamente ocupa `posicao_formacao_id`. A geração grava esse campo e `time_id`
+> na mesma transação; desfazer limpa ambos, sem alterar `posicao_id` nem
+> `usuario_posicoes`. A interface lê a
 > posição salva, mesmo que o perfil ou o remanejamento mude depois. Regras completas na
 > seção "Formação por composição" de `projeto-patota-plus.md`.
 >
 > **Conferido no banco em 21/09/2026:** após a reativação do projeto Supabase, o schema
-> e os IDs das posições foram conferidos e as colunas foram adicionadas. A leitura das duas
-> novas colunas foi validada, assim como o ciclo de formação em tabelas temporárias no
-> PostgreSQL, preservando os dados reais das partidas.
+> e os IDs das posições foram conferidos. O ciclo de formação foi validado em tabelas
+> temporárias no PostgreSQL, preservando os dados reais das partidas.
 
 > A presença é representada pela existência da linha (confirmar = inserir, cancelar = deletar).
 > A coluna `status` (CONFIRMADO/CANCELADO) prevista originalmente **não foi criada** — o

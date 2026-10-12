@@ -185,10 +185,14 @@ export async function buscarPartidaPorId(partidaId) {
 export async function buscarParticipantes(partidaId, modalidadeId) {
   const querySelectParticipantes = `
     SELECT u.id, u.nome, u.foto,
+           pt.nota_temporaria AS "notaTemporaria",
+           mu.media_geral AS "mediaGeral",
+           mu.total_avaliacoes AS "totalAvaliacoes",
            pt.posicao_id AS "posicaoTemporariaId",
            posicao_temporaria.nome AS "posicaoTemporariaNome"
     FROM participacoes pt
     JOIN usuarios u ON u.id = pt.usuario_id
+    LEFT JOIN media_usuarios mu ON mu.usuario_id = u.id
     LEFT JOIN posicoes posicao_temporaria ON posicao_temporaria.id = pt.posicao_id
     WHERE pt.partida_id = $1
     ORDER BY u.nome ASC
@@ -225,8 +229,16 @@ export async function buscarParticipantes(partidaId, modalidadeId) {
       nome: participante.nome,
       foto: participante.foto,
       posicoes: arrayPosicoes,
+      mediaGeral: null,
+      notaTemporaria: null,
       posicaoTemporariaId: participante.posicaoTemporariaId,
       posicaoTemporariaNome: participante.posicaoTemporariaNome
+    }
+    if (participante.totalAvaliacoes > 0) {
+      participanteCompleto.mediaGeral = Number(participante.mediaGeral)
+    }
+    if (participante.notaTemporaria !== null && participante.notaTemporaria !== undefined) {
+      participanteCompleto.notaTemporaria = Number(participante.notaTemporaria)
     }
     arrayParticipantes.push(participanteCompleto)
   }
@@ -274,6 +286,21 @@ export async function atualizarPosicaoTemporaria(partidaId, usuarioId, posicaoId
   }
 
   return resultado.rows[0]
+}
+
+export async function atualizarNotaTemporaria(partidaId, usuarioId, notaTemporaria) {
+  const queryUpdateNota = `
+    UPDATE participacoes pt
+    SET nota_temporaria = $3
+    WHERE pt.partida_id = $1 AND pt.usuario_id = $2
+      AND NOT EXISTS (
+        SELECT 1 FROM media_usuarios mu
+        WHERE mu.usuario_id = pt.usuario_id AND mu.total_avaliacoes > 0
+      )
+    RETURNING pt.usuario_id AS "usuarioId", pt.nota_temporaria AS "notaTemporaria"
+  `
+  const resultado = await pool.query(queryUpdateNota, [partidaId, usuarioId, notaTemporaria])
+  return resultado.rows[0] || null
 }
 
 // Verifica se um usuário já é participante confirmado da partida
@@ -675,13 +702,14 @@ export async function buscarResultadoAvaliacoes(partidaId) {
 // ===================== Geração automática de times (Fase 4) =====================
 
 // Busca os participantes confirmados de uma partida com os insumos usados na formação:
-// - forca: média geral do jogador (cache media_usuarios); null se nunca avaliado
+// - forca: média geral do jogador ou nota temporária da participação
 // - posições do perfil filtradas pela modalidade e posição temporária da partida
 async function buscarParticipantesParaFormacao(partidaId, client) {
   const querySelect = `
     SELECT u.id, u.nome, u.foto,
            mu.media_geral AS "mediaGeral",
            mu.total_avaliacoes AS "totalAvaliacoes",
+           pt.nota_temporaria AS "notaTemporaria",
            pt.posicao_id AS "posicaoTemporariaId",
            ARRAY(
              SELECT up.posicao_id FROM usuario_posicoes up
@@ -712,13 +740,12 @@ async function buscarParticipantesParaFormacao(partidaId, client) {
     participante.posicoesIds = linha.posicoesIds
 
     // Só considera a média como força quando o jogador tem avaliações.
-    // Quem nunca foi avaliado fica com força indefinida (null) para receber
-    // depois a força neutra do grupo.
+    // Quem nunca foi avaliado usa a nota temporária da participação.
     if (linha.totalAvaliacoes && linha.totalAvaliacoes > 0) {
       participante.forca = Number(linha.mediaGeral)
     }
     else {
-      participante.forca = null
+      participante.forca = linha.notaTemporaria === null || linha.notaTemporaria === undefined ? null : Number(linha.notaTemporaria)
     }
     arrayParticipantes.push(participante)
   }
@@ -751,21 +778,6 @@ function obterComposicaoReferencia(modalidadeId) {
   throw new Error('Modalidade sem composição de referência')
 }
 
-function calcularForcaNeutra(arrayParticipantes) {
-  let soma = 0
-  let quantidade = 0
-  for (const participante of arrayParticipantes) {
-    if (Number.isFinite(participante.forca)) {
-      soma += participante.forca
-      quantidade += 1
-    }
-  }
-  if (quantidade === 0) {
-    return 5
-  }
-  return soma / quantidade
-}
-
 function compararIds(primeiro, segundo) {
   return String(primeiro.id).localeCompare(String(segundo.id))
 }
@@ -779,7 +791,6 @@ function compararForca(primeiro, segundo) {
 }
 
 function prepararJogadoresParaFormacao(arrayParticipantes, arrayReferencia) {
-  const forcaNeutra = calcularForcaNeutra(arrayParticipantes)
   const arrayJogadores = []
   for (const participante of arrayParticipantes) {
     let arrayOpcoes = participante.posicoesIds || []
@@ -793,19 +804,14 @@ function prepararJogadoresParaFormacao(arrayParticipantes, arrayReferencia) {
         arrayPosicoes.push(vaga.posicaoId)
       }
     }
-    let forcaEfetiva = forcaNeutra
-    if (Number.isFinite(participante.forca)) {
-      forcaEfetiva = participante.forca
-    }
     arrayJogadores.push({
       id: participante.id,
       nome: participante.nome,
       foto: participante.foto,
       forca: participante.forca,
-      forcaEfetiva: forcaEfetiva,
+      forcaEfetiva: participante.forca,
       posicoesIds: arrayPosicoes,
       posicaoFormacaoId: null,
-      extraFormacao: true,
       ehGoleiro: false
     })
   }
@@ -861,47 +867,15 @@ function escolherPosicoesDeAtuacao(arrayJogadores, arrayReferencia) {
   }
 }
 
-function selecionarComposicaoEExtras(arrayJogadores, arrayReferencia) {
-  let capacidadeReferencia = 0
-  let selecionados = 0
-  // Preenche as vagas de cada posição por ID, sem privilegiar força ou avaliações.
-  for (const vaga of arrayReferencia) {
-    capacidadeReferencia += 2 * vaga.quantidade
-    let quantidade = 0
-    for (const jogador of arrayJogadores) {
-      if (jogador.posicaoFormacaoId === vaga.posicaoId && quantidade < 2 * vaga.quantidade) {
-        jogador.extraFormacao = false
-        quantidade += 1
-        selecionados += 1
-      }
-    }
-  }
-  // Se faltam posições, adapta a referência com os demais jogadores por ID.
-  // Não inventa posições: quem não tem opção válida continua sem posição.
-  for (const jogador of arrayJogadores) {
-    if (selecionados >= capacidadeReferencia) {
-      break
-    }
-    if (jogador.extraFormacao) {
-      jogador.extraFormacao = false
-      selecionados += 1
-    }
-  }
-}
-
 function criarGruposDeComposicao(arrayJogadores, arrayReferencia) {
   const arrayGrupos = []
   for (const vaga of arrayReferencia) {
-    arrayGrupos.push({ posicaoId: vaga.posicaoId, extra: false, arrayJogadores: [], quantidadeTimeA: 0 })
+    arrayGrupos.push({ posicaoId: vaga.posicaoId, arrayJogadores: [], quantidadeTimeA: 0 })
   }
-  arrayGrupos.push({ posicaoId: null, extra: false, arrayJogadores: [], quantidadeTimeA: 0 })
-  arrayGrupos.push({ posicaoId: null, extra: true, arrayJogadores: [], quantidadeTimeA: 0 })
+  arrayGrupos.push({ posicaoId: null, arrayJogadores: [], quantidadeTimeA: 0 })
   for (const jogador of arrayJogadores) {
     const grupo = arrayGrupos.find(function (candidato) {
-      if (jogador.extraFormacao) {
-        return candidato.extra
-      }
-      return !candidato.extra && candidato.posicaoId === jogador.posicaoFormacaoId
+      return candidato.posicaoId === jogador.posicaoFormacaoId
     })
     grupo.arrayJogadores.push(jogador)
   }
@@ -954,9 +928,9 @@ function distribuirComposicaoInicial(arrayGrupos, quantidadeJogadores) {
         indiceEscolhido = 1
       }
       else if (arrayTimes[1].jogadores.length < arrayLimites[1]) {
-        // Nas posições, equilibra primeiro quantidades. Extras ignoram posições.
+        // Equilibra a quantidade em cada posição antes de comparar tamanho e força.
         const diferencaPosicao = arrayAlocados[0].length - arrayAlocados[1].length
-        if (!grupo.extra && diferencaPosicao !== 0) {
+        if (diferencaPosicao !== 0) {
           if (diferencaPosicao > 0) {
             indiceEscolhido = 1
           }
@@ -1077,10 +1051,17 @@ function buscarMelhorDivisao(arrayGrupos, arrayFormacaoInicial) {
 // A garantia de menor diferença vale somente para a composição e as posições
 // escolhidas nesta execução, e somente quando buscaConcluida é true.
 export function balancearTimes(arrayParticipantes, modalidadeId) {
+  const arraySemNota = arrayParticipantes.filter(function (participante) {
+    return !Number.isFinite(participante.forca)
+  })
+  if (arraySemNota.length > 0) {
+    const erro = new Error('Atribua uma nota temporária a todos os jogadores sem média antes de gerar os times')
+    erro.codigo = 'NOTAS_TEMPORARIAS_PENDENTES'
+    throw erro
+  }
   const arrayReferencia = obterComposicaoReferencia(modalidadeId)
   const arrayJogadores = prepararJogadoresParaFormacao(arrayParticipantes, arrayReferencia)
   escolherPosicoesDeAtuacao(arrayJogadores, arrayReferencia)
-  selecionarComposicaoEExtras(arrayJogadores, arrayReferencia)
   const arrayGrupos = criarGruposDeComposicao(arrayJogadores, arrayReferencia)
   const arrayFormacaoInicial = distribuirComposicaoInicial(arrayGrupos, arrayJogadores.length)
   return buscarMelhorDivisao(arrayGrupos, arrayFormacaoInicial)
@@ -1095,6 +1076,8 @@ export async function gerarTimes(partidaId, modalidadeId) {
   try {
     await client.query('BEGIN')
 
+    // Sincroniza geração e novas confirmações da mesma partida.
+    await client.query('SELECT id FROM partidas WHERE id = $1 FOR UPDATE', [partidaId])
     // Busca os participantes com os insumos de formação
     const arrayParticipantes = await buscarParticipantesParaFormacao(partidaId, client)
 
@@ -1105,7 +1088,7 @@ export async function gerarTimes(partidaId, modalidadeId) {
     // Limpa a formação anterior: zera o time_id das participações e apaga os times
     const queryLimparFormacao = `
       UPDATE participacoes
-      SET time_id = NULL, posicao_formacao_id = NULL, extra_formacao = NULL
+      SET time_id = NULL, posicao_formacao_id = NULL
       WHERE partida_id = $1
     `
     await client.query(queryLimparFormacao, [partidaId])
@@ -1125,11 +1108,11 @@ export async function gerarTimes(partidaId, modalidadeId) {
       // Atualiza a participação de cada jogador do time
       for (const jogador of timeCalculado.jogadores) {
         const queryUpdateParticipacao = `
-          UPDATE participacoes SET time_id = $1, posicao_formacao_id = $4, extra_formacao = $5
+          UPDATE participacoes SET time_id = $1, posicao_formacao_id = $4
           WHERE partida_id = $2 AND usuario_id = $3
         `
         await client.query(queryUpdateParticipacao, [
-          timeId, partidaId, jogador.id, jogador.posicaoFormacaoId, jogador.extraFormacao
+          timeId, partidaId, jogador.id, jogador.posicaoFormacaoId
         ])
       }
     }
@@ -1161,11 +1144,8 @@ function ordenarJogadoresParaExibicao(arrayJogadores, modalidadeId) {
   }
 
   function identificarOrdemDoJogador(jogador) {
-    if (jogador.extraFormacao === true) {
-      return arrayOrdemPosicoes.length + 1
-    }
     let arrayPosicoes = jogador.posicoes
-    if (jogador.extraFormacao === false) {
+    if (jogador.posicaoFormacaoId !== null) {
       arrayPosicoes = []
       if (jogador.posicaoFormacaoNome) {
         arrayPosicoes.push(jogador.posicaoFormacaoNome)
@@ -1195,15 +1175,6 @@ function ordenarJogadoresParaExibicao(arrayJogadores, modalidadeId) {
 }
 
 export async function buscarTimes(partidaId) {
-  // Mesma força neutra usada pelo balanceamento, inclusive na média exibida.
-  const queryForcaNeutra = `
-    SELECT COALESCE(AVG(mu.media_geral), 5) AS "forcaNeutra"
-    FROM participacoes pt
-    JOIN media_usuarios mu ON mu.usuario_id = pt.usuario_id
-    WHERE pt.partida_id = $1 AND mu.total_avaliacoes > 0
-  `
-  const resultadoForcaNeutra = await pool.query(queryForcaNeutra, [partidaId])
-  const forcaNeutra = Number(resultadoForcaNeutra.rows[0].forcaNeutra)
   // Descobre a modalidade da partida (para filtrar as posições exibidas)
   const queryModalidade = `
     SELECT p.modalidade_id AS "modalidadeId"
@@ -1239,12 +1210,12 @@ export async function buscarTimes(partidaId) {
       SELECT u.id, u.nome, u.foto,
              mu.media_geral AS "mediaGeral",
              mu.total_avaliacoes AS "totalAvaliacoes",
+             pt.nota_temporaria AS "notaTemporaria",
              pt.posicao_id AS "posicaoTemporariaId",
              posicao_temporaria.nome AS "posicaoTemporariaNome",
              pt.posicao_formacao_id AS "posicaoFormacaoId",
              posicao_formacao.nome AS "posicaoFormacaoNome",
-             pt.extra_formacao AS "extraFormacao",
-             CASE WHEN pt.extra_formacao IS NOT NULL THEN COALESCE(pt.posicao_formacao_id = 1, false)
+             CASE WHEN pt.posicao_formacao_id IS NOT NULL THEN pt.posicao_formacao_id = 1
              WHEN pt.posicao_id IS NOT NULL THEN pt.posicao_id = 1
              ELSE EXISTS (
                SELECT 1 FROM usuario_posicoes up
@@ -1280,11 +1251,11 @@ export async function buscarTimes(partidaId) {
       if (linha.totalAvaliacoes && linha.totalAvaliacoes > 0) {
         forca = Number(Number(linha.mediaGeral).toFixed(2))
       }
-      let forcaEfetiva = forcaNeutra
-      if (forca !== null) {
-        forcaEfetiva = forca
+      let forcaEfetiva = forca
+      if (forca === null && linha.notaTemporaria !== null && linha.notaTemporaria !== undefined) {
+        forcaEfetiva = Number(linha.notaTemporaria)
       }
-      somaForca += forcaEfetiva
+      if (forcaEfetiva !== null) somaForca += forcaEfetiva
 
       const jogador = {}
       jogador.id = linha.id
@@ -1296,14 +1267,14 @@ export async function buscarTimes(partidaId) {
       jogador.posicaoTemporariaNome = linha.posicaoTemporariaNome
       jogador.posicaoFormacaoId = linha.posicaoFormacaoId
       jogador.posicaoFormacaoNome = linha.posicaoFormacaoNome
-      jogador.extraFormacao = linha.extraFormacao
       jogador.forca = forca
       jogador.forcaEfetiva = forcaEfetiva
+      jogador.notaTemporaria = linha.notaTemporaria === null || linha.notaTemporaria === undefined ? null : Number(linha.notaTemporaria)
       arrayJogadores.push(jogador)
     }
 
     let mediaForca = null
-    if (arrayJogadores.length > 0) {
+    if (arrayJogadores.length > 0 && arrayJogadores.every(function (jogador) { return jogador.forcaEfetiva !== null })) {
       mediaForca = Number((somaForca / arrayJogadores.length).toFixed(2))
     }
 
@@ -1328,7 +1299,7 @@ export async function desfazerTimes(partidaId) {
     await client.query('BEGIN')
     const queryLimparFormacao = `
       UPDATE participacoes
-      SET time_id = NULL, posicao_formacao_id = NULL, extra_formacao = NULL
+      SET time_id = NULL, posicao_formacao_id = NULL
       WHERE partida_id = $1
     `
     await client.query(queryLimparFormacao, [partidaId])

@@ -1,4 +1,4 @@
-import { criarPartida, editarPartida, excluirPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, buscarPosicoesDaModalidade, atualizarPosicaoTemporaria, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes, gerarTimes, buscarTimes, desfazerTimes } from './model.js'
+import { criarPartida, editarPartida, excluirPartida, buscarPartidasPorPatota, buscarPartidaPorId, buscarParticipantes, buscarPosicoesDaModalidade, atualizarPosicaoTemporaria, atualizarNotaTemporaria, confirmarPresenca, removerParticipacao, finalizarPartida, usuarioParticipouDaPartida, buscarAvaliaveis, registrarAvaliacoes, encerrarAvaliacoes, buscarResultadoAvaliacoes, gerarTimes, buscarTimes, desfazerTimes } from './model.js'
 import { buscarPatotaPorId } from '../patotas/model.js'
 
 // POST /partidas — Criar nova partida
@@ -262,6 +262,35 @@ export async function alterarPosicaoTemporaria(req, res) {
   }
   catch (erro) {
     console.error('Erro ao alterar posição temporária:', erro)
+    return res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
+// PUT /partidas/:id/participantes/:usuarioId/nota-temporaria
+export async function alterarNotaTemporaria(req, res) {
+  try {
+    const partidaId = req.params.id
+    const participanteId = req.params.usuarioId
+    const partida = await buscarPartidaPorId(partidaId)
+    if (!partida) return res.status(404).json({ erro: 'Partida não encontrada' })
+    if (partida.presidenteId !== req.usuarioId) {
+      return res.status(403).json({ erro: 'Apenas o presidente pode atribuir notas temporárias' })
+    }
+    if (partida.status === 'FINALIZADA' || partida.status === 'CANCELADA') {
+      return res.status(409).json({ erro: 'Não é possível alterar a nota após o encerramento da partida' })
+    }
+    const nota = Number(req.body.notaTemporaria)
+    if (req.body.notaTemporaria === null || req.body.notaTemporaria === undefined || req.body.notaTemporaria === '' || !Number.isFinite(nota) || nota < 0 || nota > 10) {
+      return res.status(400).json({ erro: 'A nota temporária deve ser um número entre 0 e 10' })
+    }
+    const participacao = await atualizarNotaTemporaria(partidaId, participanteId, nota)
+    if (!participacao) {
+      return res.status(409).json({ erro: 'O jogador não participa desta partida ou já possui média de avaliações' })
+    }
+    return res.json(participacao)
+  }
+  catch (erro) {
+    console.error('Erro ao alterar nota temporária:', erro)
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
@@ -609,6 +638,9 @@ export async function gerar(req, res) {
   }
   catch (erro) {
     console.error('Erro ao gerar times:', erro)
+    if (erro.codigo === 'NOTAS_TEMPORARIAS_PENDENTES') {
+      return res.status(409).json({ erro: erro.message })
+    }
     return res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }

@@ -134,8 +134,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 > uma posição de atuação por participante, monta a composição e compara divisões que
 > preservam suas vagas. O limite é de 350.000 divisões completas válidas, sem corte por
 > participantes. As decisões e a garantia da busca estão na seção "Formação por composição".
-> As colunas da posição da formação e da identificação de extras foram adicionadas
-> e conferidas no Supabase em 21/09/2026.
+> A posição da formação é persistida em `participacoes.posicao_formacao_id`.
 
 > **Concluído em 12/09/2026 — atribuição de posição temporária:** o
 > presidente pode remanejar cada participante na aba de times antes da geração ou
@@ -201,6 +200,10 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 **Status:** implementado em 21/09/2026, com schema atualizado no Supabase e testes
 automatizados. Substitui a busca antiga com corte de 22 participantes.
 
+**Revisão em 12/10/2026:** todos os confirmados participam da composição, sem
+classificação por ordem de confirmação. A geração exige nota temporária do presidente
+para cada participante sem média de avaliações.
+
 ### Composição de referência por time
 
 | Modalidade | Composição | Total por time |
@@ -228,23 +231,32 @@ Esses totais são referências de composição, não limites de participantes da
 - A escolha automática vale para a formação e não altera o perfil nem sobrescreve a
   posição temporária atribuída pelo presidente.
 
-### Jogadores extras
+### Todos os participantes
 
-- Acima do padrão de 5 jogadores por time no futsal/society ou 11 no campo, distribuir
-  os jogadores extras apenas pela força, sem contar suas posições no equilíbrio da
-  composição de referência.
-- Incluir todos os participantes nos times e no cálculo de força média. Ser extra não
-  exclui o jogador da partida. Preservar o equilíbrio de tamanho também nessa etapa.
-- Preservar a força neutra: média dos jogadores avaliados da partida, ou 5 quando
-  nenhum foi avaliado; não registrar essa estimativa como avaliação real.
+- A composição de referência orienta a escolha das posições, mas não limita o total
+  de jogadores. Todos os confirmados, mesmo acima de 10 no futsal/society ou 22 no
+  campo, recebem uma posição de atuação quando houver opção válida no perfil ou
+  posição temporária definida pelo presidente.
+- Distribuir os jogadores disponíveis entre dois times com diferença de tamanho de
+  no máximo um e equilibrar a quantidade de jogadores de cada posição. Posições
+  em falta não são inventadas; posições excedentes continuam na composição.
+- Todos entram no cálculo da força média. A ordem de confirmação não influencia a
+  geração dos times.
+- Cada jogador sem média de avaliações precisa receber do presidente uma nota
+  temporária de 0 a 10 nesta participação antes de gerar ou regenerar os times.
+  A nota não é avaliação e não altera a média do perfil. Jogadores já avaliados
+  usam a média real. A média de força exibida usa esses mesmos valores. Na aba de
+  times, um único botão "Salvar" registra todas as notas temporárias preenchidas
+  ou alteradas. Ao clicar em gerar/regenerar, a interface informa os jogadores
+  que ainda precisam de nota salva; o backend também bloqueia a geração incompleta.
 
 ### Busca por menor diferença de força
 
 - Após a distribuição inicial, manter a composição por posição de cada time e variar
   os jogadores dentro dela, trocando jogadores por outros da mesma posição de atuação.
   Considerar também combinações que exigem várias trocas simultâneas.
-- Os extras são a exceção à restrição de posição: sua distribuição considera somente
-  força, sem modificar as vagas por posição da composição de referência.
+- Jogadores sem posição válida formam um grupo próprio, distribuído entre os dois
+  times com as mesmas regras de quantidade e força.
 - Calcular as divisões possíveis já respeitando a composição definida. Não contar
   como possibilidades válidas divisões que violam essa estrutura. A inversão dos nomes
   dos times, quando equivalente, não representa uma nova divisão.
@@ -268,37 +280,35 @@ Esses totais são referências de composição, não limites de participantes da
   proporcional: quantidade já atribuída dividida pela quantidade desejada nos dois times.
   Empates seguem a ordem da referência: goleiro, zagueiro, lateral, volante, meia, atacante
   no campo; goleiro, fixo, ala, pivô nas demais modalidades.
-- Preencher até o dobro das vagas de cada posição por ordem de ID, sem privilegiar notas.
-  Se faltarem posições, completar o total da referência com os demais participantes por ID,
-  preservando a posição escolhida. Sem opção válida, manter posição indefinida. Não inventar
-  uma posição que o jogador não ofereceu. A composição é adaptada aos jogadores disponíveis.
-- Somente o excedente ao total de referência (10 ou 22) é extra. A escolha de quem é extra
-  fica fixa durante a busca. Extras continuam na partida; não significam banco de reservas.
+- Escolher uma posição de atuação para todos os confirmados; sem opção válida,
+  manter posição indefinida. Não inventar posição. A composição é adaptada aos
+  jogadores disponíveis.
 - Distribuir os grupos de posição começando pelo goleiro. Dentro de cada grupo, ordenar por
   força decrescente e ID; priorizar menos jogadores da posição, depois menor tamanho e menor
-  soma de força, respeitando os tamanhos finais. Extras ignoram o critério de posição.
-- Fixar as quantidades por posição e de extras de cada time após a distribuição inicial.
+  soma de força, respeitando os tamanhos finais.
+- Fixar as quantidades por posição de cada time após a distribuição inicial.
   Enumerar combinações dentro desses grupos; a primeira é a formação inicial. Só eliminar
   inversão dos times quando todos os grupos tiverem quantidades iguais nos dois times.
   Comparar médias com tolerância de 0,000000001 e manter a formação anterior nos empates.
 - O resultado interno informa `divisoesAvaliadas` e `buscaConcluida`. A contagem prévia de
   possibilidades satura acima do teto; não enumera todas as combinações para contá-las.
-- Persistir `participacoes.posicao_formacao_id` e `extra_formacao` separadamente de
-  `posicao_id`. A geração/regeneração grava os dois campos com o time na mesma transação;
-  desfazer limpa os três. Mudar a posição temporária exige regenerar para alterar a formação.
-- Exibir a posição salva com o rótulo "na formação" e identificar extras. Ordenar jogadores
+- Persistir `participacoes.posicao_formacao_id` separadamente de `posicao_id`. A
+  geração/regeneração grava a posição com o time na mesma transação; desfazer limpa
+  ambos. Mudar a posição temporária exige regenerar para alterar a formação.
+- Exibir a posição salva na formação. Ordenar jogadores
   pela posição da formação (goleiro, lateral, zagueiro, volante, meia, atacante no campo),
-  depois os sem posição e por último extras; empates seguem por nome. Formações anteriores
+  depois os sem posição; empates seguem por nome. Formações anteriores
   à atualização do schema mantêm a exibição antiga até a regeneração, sem atribuição retroativa.
-- Testes cobrem referência das três modalidades, versatilidade, remanejamento, falta de
-  posições, força neutra, determinismo, contagem de divisões, ótimo por oráculo independente,
-  reservas acima de 22 participantes, teto e persistência transacional.
+- Os testes da revisão de 21/09/2026 cobrem referência das três modalidades,
+  versatilidade, remanejamento, falta de posições, determinismo, contagem de divisões,
+  ótimo por oráculo independente, reservas acima de 22 participantes, teto e persistência
+  transacional. Eles não foram atualizados para as regras de 12/10/2026.
 - Na medição local realizada durante a implementação em 21/09/2026, sem banco:
   futsal/society com 14 jogadores avaliou 144 divisões em cerca de 7 ms;
   com 30, atingiu 350.000 em 27 ms. Campo com 24 avaliou 17.280 em 2 ms; com 40, atingiu
   350.000 em 25 ms. Valores dependem da máquina e dos participantes, sem garantia de tempo
-  fixo e sem incluir consultas/gravações. O teste PostgreSQL optativo usa tabelas temporárias
-  para validar o ciclo de geração, leitura, regeneração e desfazer sem modificar dados reais.
+  fixo e sem incluir consultas/gravações. O teste PostgreSQL optativo da revisão anterior
+  usa tabelas temporárias; seu cenário não foi atualizado para as regras de 12/10/2026.
 
 ---
 

@@ -430,11 +430,23 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
   const [modalRegenerarAberto, setModalRegenerarAberto] = useState(false)
   const [modalDesfazerAberto, setModalDesfazerAberto] = useState(false)
   const [salvandoPosicaoId, setSalvandoPosicaoId] = useState(null)
+  const [salvandoNotas, setSalvandoNotas] = useState(false)
+  const [mapaNotasTemporarias, setMapaNotasTemporarias] = useState({})
   const [posicoesAbertas, setPosicoesAbertas] = useState(false)
 
   useEffect(() => {
     carregarTimes()
   }, [partidaId])
+
+  useEffect(() => {
+    const novoMapa = {}
+    for (const participante of arrayParticipantes) {
+      if (participante.mediaGeral == null) {
+        novoMapa[participante.id] = participante.notaTemporaria == null ? '' : String(participante.notaTemporaria)
+      }
+    }
+    setMapaNotasTemporarias(novoMapa)
+  }, [arrayParticipantes])
 
   async function carregarTimes() {
     setCarregando(true)
@@ -472,6 +484,21 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
 
   // Decide se gera direto ou pede confirmação (quando já existem times formados)
   function handleClicarGerar() {
+    if (!notasDisponiveis) {
+      onMensagem('Não foi possível verificar as notas', 'Atualize a página e tente novamente antes de gerar os times.')
+      return
+    }
+    if (arraySemNota.length > 0) {
+      const arrayNomes = arraySemNota.map(function (participante) {
+        return participante.nome
+      })
+      onMensagem('Notas temporárias pendentes', 'Atribua e salve uma nota temporária para: ' + arrayNomes.join(', ') + '.')
+      return
+    }
+    if (haNotasNaoSalvas) {
+      onMensagem('Notas não salvas', 'Clique em "Salvar" para registrar as notas temporárias antes de gerar os times.')
+      return
+    }
     if (arrayTimes.length > 0) {
       setModalRegenerarAberto(true)
     } else {
@@ -523,6 +550,61 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
     }
   }
 
+  function handleAlterarNota(participanteId, valor) {
+    const novoMapa = {}
+    for (const chave in mapaNotasTemporarias) {
+      novoMapa[chave] = mapaNotasTemporarias[chave]
+    }
+    novoMapa[participanteId] = valor
+    setMapaNotasTemporarias(novoMapa)
+  }
+
+  async function handleSalvarNotas() {
+    const arrayNotasParaSalvar = []
+    for (const participante of arrayParticipantes) {
+      if (participante.mediaGeral != null) continue
+      const valor = mapaNotasTemporarias[participante.id]
+      if (valor === '' || valor === undefined) continue
+      const nota = Number(valor)
+      if (!Number.isFinite(nota) || nota < 0 || nota > 10) {
+        onMensagem('Nota inválida', 'A nota de ' + participante.nome + ' deve ser um número entre 0 e 10.')
+        return
+      }
+      if (participante.notaTemporaria !== nota) {
+        arrayNotasParaSalvar.push({ participanteId: participante.id, nota: nota })
+      }
+    }
+    if (arrayNotasParaSalvar.length === 0) {
+      onMensagem('Nenhuma nota nova', 'Preencha ou altere ao menos uma nota temporária antes de salvar.')
+      return
+    }
+    setSalvandoNotas(true)
+    try {
+      const arrayResultados = await Promise.allSettled(arrayNotasParaSalvar.map(function (item) {
+        return api.put('/partidas/' + partidaId + '/participantes/' + item.participanteId + '/nota-temporaria', {
+          notaTemporaria: item.nota
+        })
+      }))
+      await onAtualizarParticipantes()
+      await carregarTimes()
+      const falha = arrayResultados.find(function (resultado) {
+        return resultado.status === 'rejected'
+      })
+      if (falha) {
+        const erroRequisicao = falha.reason
+        const mensagem = erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro
+        onMensagem('Algumas notas não foram salvas', mensagem || 'Confira as notas e tente salvar novamente.')
+      }
+    }
+    catch (erroRequisicao) {
+      console.error('Erro ao atualizar notas temporárias:', erroRequisicao)
+      onMensagem('Não foi possível atualizar as notas', 'Atualize a página e tente novamente.')
+    }
+    finally {
+      setSalvandoNotas(false)
+    }
+  }
+
   if (carregando) {
     return <CarregamentoConteudo tipo="times" mensagem="Carregando times..." />
   }
@@ -536,6 +618,25 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
   }
 
   const temTimes = arrayTimes.length > 0
+  const notasDisponiveis = arrayParticipantes.every(function (participante) {
+    return Object.hasOwn(participante, 'mediaGeral') && Object.hasOwn(participante, 'notaTemporaria')
+  })
+  const arraySemNota = arrayParticipantes.filter(function (participante) {
+    return participante.mediaGeral == null && participante.notaTemporaria == null
+  })
+  const arrayPrecisamNota = arrayParticipantes.filter(function (participante) {
+    return participante.mediaGeral == null
+  })
+  const haNotasNaoSalvas = arrayPrecisamNota.some(function (participante) {
+    const valor = mapaNotasTemporarias[participante.id]
+    if (valor === '' || valor === undefined) return false
+    return Number(valor) !== participante.notaTemporaria
+  })
+  const temJogadorSemNotaNosTimes = arrayTimes.some(function (time) {
+    return time.jogadores.some(function (jogador) {
+      return jogador.forca == null && jogador.notaTemporaria == null
+    })
+  })
 
   return (
     <div className="partida-conteudo">
@@ -553,7 +654,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
             <div className="partida-acoes-lista">
               <button
                 onClick={handleClicarGerar}
-                disabled={gerando} aria-busy={gerando}
+                disabled={gerando || salvandoNotas} aria-busy={gerando}
                 className="partida-botao partida-botao-primario"
               >
                 <Shuffle size={16} aria-hidden="true" />
@@ -572,6 +673,31 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
           )}
         </div>
       </section>
+
+      {ehPresidente && !partidaFinalizada && !notasDisponiveis && (
+        <p role="alert" className="partida-painel partida-nota">Não foi possível verificar as notas dos participantes. Atualize a página antes de gerar os times.</p>
+      )}
+
+      {ehPresidente && !partidaFinalizada && notasDisponiveis && arrayPrecisamNota.length > 0 && (
+        <section className="partida-painel">
+          <h2>Notas temporárias</h2>
+          <p className="partida-posicoes-ajuda">O presidente deve informar manualmente uma nota de 0 a 10 para cada jogador sem média. Clique em Salvar para registrar todas as notas preenchidas. Se os times já foram formados, regenere-os após salvar as notas.</p>
+          {arraySemNota.length > 0 && <p className="partida-nota">Faltam {arraySemNota.length} {arraySemNota.length === 1 ? 'nota' : 'notas'} para gerar os times.</p>}
+          <div className="partida-posicoes-grade">
+            {arrayPrecisamNota.map((participante) => (
+              <label key={participante.id} className="partida-posicao-campo" htmlFor={'nota-temporaria-' + participante.id}>
+                <span>{participante.nome}</span>
+                <input id={'nota-temporaria-' + participante.id} className="partida-nota-input" type="number" min="0" max="10" step="0.01" value={mapaNotasTemporarias[participante.id] || ''} onChange={(evento) => handleAlterarNota(participante.id, evento.target.value)} disabled={salvandoNotas} />
+              </label>
+            ))}
+          </div>
+          <div className="partida-notas-rodape">
+            <button type="button" className="partida-botao partida-botao-primario" onClick={handleSalvarNotas} disabled={salvandoNotas}>
+              {salvandoNotas ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </section>
+      )}
 
       {ehPresidente && !partidaFinalizada && arrayParticipantes.length > 0 && (
         <section className="partida-painel partida-posicoes">
@@ -621,8 +747,9 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
 
       {temTimes && (
         <p className="partida-nota">
-          A força média inclui uma estimativa para quem ainda não foi avaliado: a média dos jogadores avaliados da partida, ou 5 quando ninguém tem avaliação.
-          {' '}Extras também jogam e entram na força média, mas não ocupam vagas da composição de referência.
+          {temJogadorSemNotaNosTimes
+            ? 'Esta formação contém jogadores sem nota temporária. O presidente deve atribuir as notas e regenerar os times.'
+            : 'Jogadores sem média usam a nota temporária dada pelo presidente. Todos os confirmados participam da formação e entram na força média.'}
         </p>
       )}
 
@@ -636,7 +763,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
                 <div className="text-right">
                   <p>Força média</p>
                   <strong>
-                    {time.mediaForca !== null && time.mediaForca !== undefined ? time.mediaForca.toFixed(2) : '—'}
+                    {time.mediaForca != null && time.jogadores.every(function (jogador) { return jogador.forca != null || jogador.notaTemporaria != null }) ? time.mediaForca.toFixed(2) : '—'}
                   </strong>
                 </div>
               </div>
@@ -654,27 +781,25 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
                           </span>
                         )}
                       </div>
-                      {jogador.extraFormacao === true && (
-                        <p className="text-xs text-gray-500">Extra — distribuído pela força</p>
-                      )}
-                      {jogador.extraFormacao === false && (
+                      {jogador.posicaoFormacaoId != null && (
                         <p className="text-xs text-green-700 truncate">
                           {jogador.posicaoFormacaoNome || 'Sem posição definida'}
                         </p>
                       )}
-                      {jogador.extraFormacao == null && jogador.posicaoTemporariaNome && (
+                      {jogador.posicaoFormacaoId == null && jogador.posicaoTemporariaNome && (
                         <p className="text-xs text-green-700 truncate">
                           {jogador.posicaoTemporariaNome} (nesta partida)
                         </p>
                       )}
-                      {jogador.extraFormacao == null && !jogador.posicaoTemporariaNome && jogador.posicoes.length > 0 && (
+                      {jogador.posicaoFormacaoId == null && !jogador.posicaoTemporariaNome && jogador.posicoes.length > 0 && (
                         <p className="text-xs text-gray-500 truncate">{jogador.posicoes.join(', ')}</p>
                       )}
                     </div>
                     <div className="partida-forca">
                       <p>
-                        {jogador.forca !== null && jogador.forca !== undefined ? jogador.forca.toFixed(2) : '—'}
+                        {obterForcaExibida(jogador) === null ? '—' : obterForcaExibida(jogador).toFixed(2)}
                       </p>
+                      {jogador.forca == null && jogador.notaTemporaria != null && <span className="text-xs text-gray-500">temporária</span>}
                     </div>
                   </div>
                 ))}
@@ -706,6 +831,12 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
       />
     </div>
   )
+}
+
+function obterForcaExibida(jogador) {
+  if (jogador.forca != null) return jogador.forca
+  if (jogador.notaTemporaria != null) return jogador.notaTemporaria
+  return null
 }
 
 // Aba 5.3 — Avaliações

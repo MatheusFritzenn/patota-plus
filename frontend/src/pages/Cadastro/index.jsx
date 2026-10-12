@@ -227,7 +227,12 @@ function Cadastro() {
     })
 
     if (error) {
-      setErro('Erro ao criar conta: ' + error.message)
+      if (error.code === 'user_already_exists' || error.message === 'User already registered') {
+        setErro('Este e-mail já está cadastrado. Faça login ou recupere sua senha.')
+      }
+      else {
+        setErro('Não foi possível criar sua conta. Tente novamente.')
+      }
       setCarregando(false)
       return
     }
