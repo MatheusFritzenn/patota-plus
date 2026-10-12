@@ -1,12 +1,13 @@
 import { CarregamentoPagina, CarregamentoConteudo, IndicadorCarregamento } from '../../components/Carregamento.jsx'
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import ModalConfirmacao from '../../components/ModalConfirmacao.jsx'
 import ModalMensagem from '../../components/ModalMensagem.jsx'
 import Avatar from '../../components/Avatar.jsx'
-import { Trash2 } from 'lucide-react'
+import { CalendarDays, ChevronRight, CircleCheck, Clock3, Crown, Flag, LockKeyhole, MapPin, Pencil, RotateCcw, Shield, Shuffle, SlidersHorizontal, Star, Trash2, UsersRound } from 'lucide-react'
+import './style.css'
 
 // Formata a data (timestamp) para o padrão dd/mm/aaaa
 function formatarData(data) {
@@ -202,64 +203,85 @@ function DetalhesPartida() {
   const partidaFinalizada = partida.status === 'FINALIZADA'
 
   const arrayAbas = [
-    { id: 'lista-jogadores', nome: 'Lista de jogadores' },
-    { id: 'times', nome: 'Times' },
-    { id: 'avaliacoes', nome: 'Avaliações' }
+    { id: 'lista-jogadores', nome: 'Lista de jogadores', icone: UsersRound },
+    { id: 'times', nome: 'Times', icone: Shield },
+    { id: 'avaliacoes', nome: 'Avaliações', icone: Star }
   ]
 
+  function navegarAbas(evento, indice) {
+    let proximoIndice = indice
+    if (evento.key === 'ArrowRight') proximoIndice = (indice + 1) % arrayAbas.length
+    else if (evento.key === 'ArrowLeft') proximoIndice = (indice + arrayAbas.length - 1) % arrayAbas.length
+    else if (evento.key === 'Home') proximoIndice = 0
+    else if (evento.key === 'End') proximoIndice = arrayAbas.length - 1
+    else return
+
+    evento.preventDefault()
+    setAbaAtiva(arrayAbas[proximoIndice].id)
+    document.getElementById('partida-aba-' + arrayAbas[proximoIndice].id).focus()
+  }
+
+  let textoStatus = 'Agendada'
+  if (partida.status === 'EM_ANDAMENTO') textoStatus = 'Em andamento'
+  if (partidaFinalizada) textoStatus = 'Finalizada'
+  if (partida.status === 'CANCELADA') textoStatus = 'Cancelada'
+
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
+    <main className="partida-pagina max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-10">
       {/* Cabeçalho da partida */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate('/patota/' + partida.patotaId)}
-          className="text-sm text-green-700 hover:underline cursor-pointer mb-2"
-        >
-          ← Voltar para a patota
-        </button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-800">{partida.patotaNome}</h1>
-          {partidaFinalizada && (
-            <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2.5 py-1 rounded-full">
-              Finalizada
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-500">
-          {formatarData(partida.data)} às {partida.horario} — {partida.local}
-        </p>
-        {ehPresidente && (partida.status === 'AGENDADA' || partida.status === 'EM_ANDAMENTO') && (
-          <div className="flex items-center gap-4 mt-3">
-            <button
-              onClick={() => navigate('/partida/' + id + '/editar')}
-              className="text-sm font-medium text-green-700 hover:underline cursor-pointer"
-            >
-              Editar partida
-            </button>
-            <button
-              onClick={() => setModalExcluirAberto(true)}
-              className="text-sm font-medium text-red-600 hover:underline cursor-pointer"
-            >
-              Excluir partida
-            </button>
+      <header className="mb-6">
+        <nav aria-label="Caminho da página" className="partida-caminho">
+          <Link to="/minhas-patotas">Minhas patotas</Link>
+          <ChevronRight size={14} aria-hidden="true" />
+          <Link to={'/patota/' + partida.patotaId}>{partida.patotaNome}</Link>
+          <ChevronRight size={14} aria-hidden="true" />
+          <span aria-current="page">Partida</span>
+        </nav>
+        <div className="partida-cabecalho">
+          <div className="partida-cabecalho-linha">
+            <div className="partida-identidade">
+              <span className="partida-icone"><Shield size={29} aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <p className="partida-sobre">{partida.patotaNome}</p>
+                <h1>Detalhes da partida</h1>
+                <div className="partida-etiquetas">
+                  <span className={'partida-etiqueta ' + (partidaFinalizada || partida.status === 'CANCELADA' ? 'partida-etiqueta-neutra' : '')}>{textoStatus}</span>
+                  {ehPresidente && <span className="partida-etiqueta partida-etiqueta-neutra"><Crown size={14} aria-hidden="true" />Você é presidente</span>}
+                </div>
+              </div>
+            </div>
+            {ehPresidente && (partida.status === 'AGENDADA' || partida.status === 'EM_ANDAMENTO') && (
+              <div className="partida-acoes-cabecalho">
+                <button type="button" onClick={() => navigate('/partida/' + id + '/editar')} className="partida-botao"><Pencil size={16} aria-hidden="true" />Editar partida</button>
+                <button type="button" onClick={() => setModalExcluirAberto(true)} className="partida-botao partida-botao-perigo"><Trash2 size={16} aria-hidden="true" />Excluir partida</button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          <div className="partida-metadados">
+            <span><CalendarDays size={17} aria-hidden="true" />{formatarData(partida.data)}</span>
+            <span><Clock3 size={17} aria-hidden="true" />{partida.horario}</span>
+            <span><MapPin size={17} aria-hidden="true" />{partida.local}</span>
+          </div>
+        </div>
+      </header>
 
       {/* Abas */}
-      <div className="flex border-b border-gray-200 mb-6">
-        {arrayAbas.map((aba) => (
-          <button
-            key={aba.id}
-            onClick={() => setAbaAtiva(aba.id)}
-            className={`px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${abaAtiva === aba.id ? 'text-green-700 border-b-2 border-green-700' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            {aba.nome}
-          </button>
-        ))}
+      <div role="tablist" aria-label="Abas da partida" className="partida-abas">
+        {arrayAbas.map((aba, indice) => {
+          const Icone = aba.icone
+          let ordemFoco = -1
+          if (abaAtiva === aba.id) ordemFoco = 0
+          return (
+            <button type="button" role="tab" id={'partida-aba-' + aba.id} aria-controls="partida-painel" aria-selected={abaAtiva === aba.id} tabIndex={ordemFoco} key={aba.id} onClick={() => setAbaAtiva(aba.id)} onKeyDown={(evento) => navegarAbas(evento, indice)}>
+              <Icone size={18} aria-hidden="true" />{aba.nome}
+              {aba.id === 'lista-jogadores' && <span className="partida-contagem">{arrayParticipantes.length}</span>}
+            </button>
+          )
+        })}
       </div>
 
       {/* Conteúdo das abas */}
+      <div id="partida-painel" role="tabpanel" tabIndex={0} aria-labelledby={'partida-aba-' + abaAtiva}>
       {abaAtiva === 'lista-jogadores' && (
         <AbaListaJogadores
           arrayParticipantes={arrayParticipantes}
@@ -297,6 +319,7 @@ function DetalhesPartida() {
           onMensagem={(titulo, mensagem) => setModalMensagem({ aberto: true, titulo: titulo, mensagem: mensagem })}
         />
       )}
+      </div>
 
       {/* Modal de confirmação de finalização da partida */}
       <ModalConfirmacao
@@ -343,106 +366,58 @@ function DetalhesPartida() {
 
 // Aba 5.1 — Lista de jogadores
 function AbaListaJogadores({ arrayParticipantes, vagasRestantes, vagasTotal, partidaFinalizada, estaConfirmado, ehPresidente, userId, onConfirmar, onRecusar, onRemover, onFinalizar }) {
+  let percentualOcupacao = 0
+  if (vagasTotal > 0) percentualOcupacao = Math.min(100, (arrayParticipantes.length / vagasTotal) * 100)
+
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-      {/* Cabeçalho: vagas + ações de presença */}
-      <div className="flex items-center justify-between mb-6">
+    <section className="partida-painel">
+      <div className="partida-secao-topo">
         <div>
-          <p className="text-sm text-gray-500">Vagas</p>
-          <p className="text-gray-800 font-medium">
-            {arrayParticipantes.length}/{vagasTotal}
-            {!partidaFinalizada && (
-              <span className="text-sm text-gray-500 font-normal">
-                {' '}— {vagasRestantes} restante(s)
-              </span>
-            )}
+          <h2>{partidaFinalizada ? 'Jogadores presentes' : 'Jogadores confirmados'}</h2>
+          <p>{arrayParticipantes.length} de {vagasTotal} vagas preenchidas
+            {!partidaFinalizada && ' · ' + vagasRestantes + ' vaga(s) disponível(is)'}
+            {partidaFinalizada && ' · Presença registrada'}
           </p>
         </div>
-
-        {/* Ações (apenas se a partida não está finalizada) */}
         {!partidaFinalizada && (
-          <div className="flex items-center gap-3">
-            {/* Presidente pode finalizar a partida */}
-            {ehPresidente && (
-              <button
-                onClick={onFinalizar}
-                className="border border-gray-400 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-              >
-                Finalizar partida
-              </button>
-            )}
-
+          <div className="partida-acoes-lista">
+            {estaConfirmado && <span className="partida-etiqueta"><CircleCheck size={15} aria-hidden="true" />Você está confirmado</span>}
             {estaConfirmado ? (
-              <button
-                onClick={onRecusar}
-                className="border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-              >
-                Recusar presença
-              </button>
+              <button type="button" onClick={onRecusar} className="partida-botao partida-botao-perigo">Recusar presença</button>
             ) : (
-              <button
-                onClick={onConfirmar}
-                disabled={vagasRestantes <= 0}
-                className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {vagasRestantes <= 0 ? 'Sem vagas' : 'Confirmar presença'}
-              </button>
+              <button type="button" onClick={onConfirmar} disabled={vagasRestantes <= 0} className="partida-botao partida-botao-primario">{vagasRestantes <= 0 ? 'Sem vagas' : 'Confirmar presença'}</button>
             )}
           </div>
         )}
       </div>
-
-      {/* Lista de participantes */}
+      {!partidaFinalizada && vagasTotal > 0 && <div className="partida-progresso" role="progressbar" aria-label="Vagas preenchidas" aria-valuenow={arrayParticipantes.length} aria-valuemin={0} aria-valuemax={vagasTotal}><span style={{ width: percentualOcupacao + '%' }} /></div>}
       {arrayParticipantes.length === 0 && (
-        <p className="text-gray-500 text-center">
+        <p className="partida-vazio-texto">
           {partidaFinalizada ? 'Nenhum jogador participou desta partida.' : 'Nenhum jogador confirmado ainda.'}
         </p>
       )}
-
       {arrayParticipantes.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="partida-lista">
           {arrayParticipantes.map((participante) => (
-            <div key={participante.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-              {/* Foto */}
-              <Avatar nome={participante.nome} foto={participante.foto} tamanho="lg" corBorda="verde" />
-
-              {/* Dados */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-gray-800 font-medium">{participante.nome}</p>
-                  {participante.id === userId && (
-                    <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">
-                      Você
-                    </span>
-                  )}
+            <div key={participante.id} className="partida-jogador">
+              <Avatar nome={participante.nome} foto={participante.foto} tamanho="md" corBorda="verde" />
+              <div className="partida-jogador-dados">
+                <div className="partida-jogador-nome">
+                  <p>{participante.nome}</p>
+                  {participante.id === userId && <span className="partida-etiqueta">Você</span>}
                 </div>
-                {participante.posicaoTemporariaNome && (
-                  <p className="text-sm text-green-700">
-                    Posição nesta partida: {participante.posicaoTemporariaNome}
-                  </p>
-                )}
-                {!participante.posicaoTemporariaNome && participante.posicoes.length > 0 && (
-                  <p className="text-sm text-gray-500">{participante.posicoes.join(', ')}</p>
-                )}
+                {participante.posicaoTemporariaNome && <p className="partida-jogador-posicao">{participante.posicaoTemporariaNome} nesta partida</p>}
+                {!participante.posicaoTemporariaNome && participante.posicoes.length > 0 && <p className="partida-jogador-posicao">{participante.posicoes.join(', ')}</p>}
               </div>
-
-              {/* Presidente pode remover jogador (se a partida não está finalizada) */}
               {ehPresidente && !partidaFinalizada && (
-                <div>
-                  <button
-                    onClick={() => onRemover(participante)}
-                    className="text-red-500 hover:text-red-700 cursor-pointer transition-colors"
-                    title="Remover jogador"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+                <button type="button" onClick={() => onRemover(participante)} className="partida-remover" aria-label={'Remover ' + participante.nome} title="Remover jogador"><Trash2 size={18} aria-hidden="true" /></button>
               )}
             </div>
           ))}
         </div>
       )}
-    </div>
+      {ehPresidente && !partidaFinalizada && <div className="partida-rodape"><p>Finalize a partida para registrar os presentes.</p><button type="button" onClick={onFinalizar} className="partida-botao"><Flag size={16} aria-hidden="true" />Finalizar partida</button></div>}
+    </section>
   )
 }
 
@@ -455,6 +430,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
   const [modalRegenerarAberto, setModalRegenerarAberto] = useState(false)
   const [modalDesfazerAberto, setModalDesfazerAberto] = useState(false)
   const [salvandoPosicaoId, setSalvandoPosicaoId] = useState(null)
+  const [posicoesAbertas, setPosicoesAbertas] = useState(false)
 
   useEffect(() => {
     carregarTimes()
@@ -553,7 +529,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
 
   if (erro) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+      <div className="partida-painel partida-estado-vazio">
         <p className="text-red-500">{erro}</p>
       </div>
     )
@@ -562,51 +538,49 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
   const temTimes = arrayTimes.length > 0
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="partida-conteudo">
       {/* Cabeçalho / controles do presidente */}
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <section className="partida-painel">
+        <div className="partida-secao-topo">
           <div>
-            <h3 className="text-sm font-semibold text-gray-700">Formação de times</h3>
-            <p className="text-sm text-gray-500">
-              A formação define uma posição para cada jogador e busca equilibrar a força mantendo a composição dos times. A posição temporária tem prioridade sobre o perfil.
+            <h2>Formação de times</h2>
+            <p>
+              Divisão por posições, buscando equilibrar a força dos times.
             </p>
           </div>
 
           {ehPresidente && !partidaFinalizada && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="partida-acoes-lista">
               <button
                 onClick={handleClicarGerar}
                 disabled={gerando} aria-busy={gerando}
-                className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="partida-botao partida-botao-primario"
               >
+                <Shuffle size={16} aria-hidden="true" />
                 {gerando ? <IndicadorCarregamento texto="Gerando..." /> : (temTimes ? 'Regenerar times' : 'Gerar times')}
               </button>
               {temTimes && (
                 <button
                   onClick={() => setModalDesfazerAberto(true)}
-                  className="border border-gray-400 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                  className="partida-botao"
                 >
+                  <RotateCcw size={16} aria-hidden="true" />
                   Desfazer
                 </button>
               )}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {ehPresidente && !partidaFinalizada && arrayParticipantes.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-700">Posições nesta partida</h3>
-            <p className="text-sm text-gray-500">
-              Selecione uma posição temporária antes de gerar ou regenerar os times. A opção padrão mantém as posições do perfil. Após uma alteração, regenere os times para aplicar o novo equilíbrio.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <section className="partida-painel partida-posicoes">
+          <button type="button" className="partida-posicoes-toggle" aria-expanded={posicoesAbertas} aria-controls="partida-posicoes-conteudo" onClick={() => setPosicoesAbertas(!posicoesAbertas)}><span><SlidersHorizontal size={18} aria-hidden="true" />Posições nesta partida</span><span>{posicoesAbertas ? 'Recolher' : 'Ajustar posições'}</span></button>
+          <div id="partida-posicoes-conteudo" hidden={!posicoesAbertas}>
+          <p className="partida-posicoes-ajuda">A posição temporária tem prioridade sobre o perfil e vale apenas para esta partida. Após uma alteração, regenere os times.</p>
+          <div className="partida-posicoes-grade">
             {arrayParticipantes.map((participante) => (
-              <label key={participante.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3">
+              <label key={participante.id} className="partida-posicao-campo">
                 <span className="text-sm font-medium text-gray-800">{participante.nome}</span>
                 {salvandoPosicaoId === participante.id && <span className="text-sm text-green-700"><IndicadorCarregamento texto="Salvando posição..." /></span>}
                 <span className="text-xs text-gray-500">
@@ -616,7 +590,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
                   value={participante.posicaoTemporariaId || ''}
                   onChange={(evento) => handleAlterarPosicao(participante.id, evento.target.value)}
                   disabled={salvandoPosicaoId !== null}
-                  className="mt-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  className="partida-posicao-select"
                 >
                   <option value="">Usar posição do perfil</option>
                   {arrayPosicoesDisponiveis.map((posicao) => (
@@ -626,14 +600,15 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
               </label>
             ))}
           </div>
-
-        </div>
+          </div>
+        </section>
       )}
 
       {/* Estado vazio */}
       {!temTimes && (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-          <p className="text-gray-500 text-lg mb-2">Times não formados</p>
+        <div className="partida-painel partida-estado-vazio">
+          <Shield size={26} aria-hidden="true" />
+          <h2>Times não formados</h2>
           <p className="text-gray-400 text-sm">
             {partidaFinalizada
               ? 'Esta partida foi finalizada sem formação de times.'
@@ -645,7 +620,7 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
       )}
 
       {temTimes && (
-        <p className="text-xs text-gray-500">
+        <p className="partida-nota">
           A força média inclui uma estimativa para quem ainda não foi avaliado: a média dos jogadores avaliados da partida, ou 5 quando ninguém tem avaliação.
           {' '}Extras também jogam e entram na força média, mas não ocupam vagas da composição de referência.
         </p>
@@ -653,26 +628,26 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
 
       {/* Grade de times */}
       {temTimes && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="partida-times-grade">
           {arrayTimes.map((time) => (
-            <div key={time.id} className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-gray-800 font-semibold">{time.nome}</h4>
+            <section key={time.id} className="partida-painel partida-time">
+              <div className="partida-time-cabecalho">
+                <div><h3>{time.nome}</h3><p>{time.jogadores.length} jogadores</p></div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500">Força média</p>
-                  <p className="text-sm font-bold text-green-700">
+                  <p>Força média</p>
+                  <strong>
                     {time.mediaForca !== null && time.mediaForca !== undefined ? time.mediaForca.toFixed(2) : '—'}
-                  </p>
+                  </strong>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="partida-lista">
                 {time.jogadores.map((jogador) => (
-                  <div key={jogador.id} className="flex items-center gap-3">
+                  <div key={jogador.id} className="partida-jogador">
                     <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="md" corBorda="verde" />
-                    <div className="flex-1 min-w-0">
+                    <div className="partida-jogador-dados">
                       <div className="flex items-center gap-2">
-                        <p className="text-gray-800 font-medium truncate">{jogador.nome}</p>
+                        <p className="partida-nome-compacto">{jogador.nome}</p>
                         {jogador.ehGoleiro && (
                           <span className="text-xs bg-yellow-100 text-yellow-700 font-medium px-2 py-0.5 rounded-full shrink-0">
                             GOL
@@ -696,15 +671,15 @@ function AbaTimes({ partidaId, ehPresidente, partidaFinalizada, arrayParticipant
                         <p className="text-xs text-gray-500 truncate">{jogador.posicoes.join(', ')}</p>
                       )}
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-gray-700">
+                    <div className="partida-forca">
+                      <p>
                         {jogador.forca !== null && jogador.forca !== undefined ? jogador.forca.toFixed(2) : '—'}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}
@@ -872,7 +847,7 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
 
   if (erro) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
+      <div className="partida-painel partida-estado-vazio">
         <p className="text-red-500">{erro}</p>
       </div>
     )
@@ -881,9 +856,10 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
   // Partida ainda não finalizada — avaliações não liberadas
   if (!partidaFinalizada || !avaliacoesLiberadas) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-        <p className="text-gray-500 text-lg mb-2">Avaliações indisponíveis</p>
-        <p className="text-gray-400 text-sm">As avaliações serão liberadas quando o presidente finalizar a partida.</p>
+      <div className="partida-painel partida-estado-vazio">
+        <span className="partida-estado-icone"><LockKeyhole size={24} aria-hidden="true" /></span>
+        <h2>Avaliações ainda não liberadas</h2>
+        <p>Após o presidente finalizar a partida, você poderá avaliar os companheiros do seu time.</p>
       </div>
     )
   }
@@ -891,26 +867,26 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
   // Avaliações encerradas — mostra o resultado (médias por jogador na partida)
   if (avaliacoesEncerradas) {
     return (
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-sm font-semibold text-gray-700">Resultado das avaliações</h3>
-          <span className="text-xs bg-gray-200 text-gray-600 font-medium px-2 py-0.5 rounded-full">Encerradas</span>
+      <div className="partida-painel">
+        <div className="partida-secao-topo">
+          <div><h2>Resultado das avaliações</h2><p>Médias recebidas nesta partida.</p></div>
+          <span className="partida-etiqueta partida-etiqueta-neutra">Encerradas</span>
         </div>
 
         {arrayResultado.length === 0 ? (
-          <p className="text-gray-500 text-center">Nenhum jogador avaliado nesta partida.</p>
+          <p className="partida-vazio-texto">Nenhum jogador avaliado nesta partida.</p>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="partida-lista">
             {arrayResultado.map((jogador) => (
-              <div key={jogador.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="lg" corBorda="verde" />
-                <div className="flex-1">
-                  <p className="text-gray-800 font-medium">{jogador.nome}</p>
+              <div key={jogador.id} className="partida-jogador">
+                <Avatar nome={jogador.nome} foto={jogador.foto} tamanho="md" corBorda="verde" />
+                <div className="partida-jogador-dados">
+                  <p className="partida-nome-compacto">{jogador.nome}</p>
                   <p className="text-sm text-gray-500">
                     {jogador.totalAvaliacoes} avaliações recebidas
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="partida-media">
                   <p className="text-sm text-gray-500">Média</p>
                   <p className="text-lg font-bold text-green-700">
                     {jogador.totalAvaliacoes > 0 ? jogador.mediaPartida.toFixed(2) : '—'}
@@ -926,70 +902,65 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
 
   // Avaliações abertas
   return (
-    <div className="flex flex-col gap-4">
+    <div className="partida-conteudo">
       {/* Cabeçalho com ação do presidente */}
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <section className="partida-painel">
+        <div className="partida-secao-topo">
           <div>
-            <h3 className="text-sm font-semibold text-gray-700">Avaliações abertas</h3>
-            <p className="text-sm text-gray-500">Dê uma nota de 0 a 10 para cada companheiro (decimais são permitidos).</p>
+            <h2>Avalie seus companheiros</h2>
+            <p>Notas de 0 a 10, com decimais · apenas jogadores do seu time.</p>
           </div>
-
-          {ehPresidente && (
-            <button
-              onClick={() => setModalEncerrarAberto(true)}
-              className="border border-gray-400 text-gray-600 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              Encerrar avaliações
-            </button>
-          )}
+          <span className="partida-etiqueta">Avaliações abertas</span>
         </div>
-      </div>
 
       {/* Formulário de avaliação (somente para quem participou) */}
       {!participou ? (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
-          <p className="text-gray-500">
+        <div className="partida-vazio-texto">
+          <p>
             {ehPresidente
               ? 'Você não participou desta partida, então não avalia jogadores. Como presidente, você pode encerrar as avaliações acima.'
               : 'Apenas quem participou da partida pode avaliar os companheiros.'}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <div>
           {arrayAvaliaveis.length === 0 ? (
-            <p className="text-gray-500 text-center">Não há companheiros para avaliar nesta partida.</p>
+            <p className="partida-vazio-texto">Não há companheiros para avaliar nesta partida.</p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="partida-lista">
               {arrayAvaliaveis.map((avaliavel) => (
-                <div key={avaliavel.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Avatar nome={avaliavel.nome} foto={avaliavel.foto} tamanho="lg" corBorda="verde" />
-                  <div className="flex-1">
-                    <p className="text-gray-800 font-medium">{avaliavel.nome}</p>
+                <div key={avaliavel.id} className="partida-jogador">
+                  <Avatar nome={avaliavel.nome} foto={avaliavel.foto} tamanho="md" corBorda="verde" />
+                  <div className="partida-jogador-dados">
+                    <p className="partida-nome-compacto">{avaliavel.nome}</p>
                     {avaliavel.posicoes.length > 0 && (
                       <p className="text-sm text-gray-500">{avaliavel.posicoes.join(', ')}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <label className="partida-nota-campo" htmlFor={'nota-' + avaliavel.id}>
                     <input
+                      id={'nota-' + avaliavel.id}
                       type="number"
                       min="0"
                       max="10"
                       step="0.1"
                       value={mapaNotas[avaliavel.id]}
                       onChange={(evento) => handleMudarNota(avaliavel.id, evento.target.value)}
-                      placeholder="0-10"
-                      className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-center text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="—"
+                      aria-label={'Nota de ' + avaliavel.nome}
+                      className="partida-nota-input"
                     />
-                  </div>
+                    <span>/ 10</span>
+                  </label>
                 </div>
               ))}
 
-              <div className="flex justify-end pt-2">
+              <div className="partida-rodape">
+                <span>{arrayAvaliaveis.filter((avaliavel) => mapaNotas[avaliavel.id] !== '' && mapaNotas[avaliavel.id] !== undefined).length} de {arrayAvaliaveis.length} notas preenchidas</span>
                 <button
                   onClick={handleSalvarAvaliacoes}
                   disabled={salvando} aria-busy={salvando}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="partida-botao partida-botao-primario"
                 >
                   {salvando ? <IndicadorCarregamento texto="Salvando..." /> : 'Salvar avaliações'}
                 </button>
@@ -998,6 +969,8 @@ function AbaAvaliacoes({ partidaId, userId, ehPresidente, partidaFinalizada, onM
           )}
         </div>
       )}
+        {ehPresidente && <div className="partida-rodape"><span>Administração da partida</span><button type="button" onClick={() => setModalEncerrarAberto(true)} className="partida-botao">Encerrar avaliações</button></div>}
+      </section>
 
       {/* Modal de confirmação de encerramento */}
       <ModalConfirmacao
