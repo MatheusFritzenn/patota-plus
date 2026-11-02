@@ -8,6 +8,7 @@ import api from '../../services/api.js'
 import Avatar from '../../components/Avatar.jsx'
 import RequisitosSenha from '../../components/RequisitosSenha.jsx'
 import { senhaAtendeRequisitos, mensagemSenhaInvalida } from '../../utils/validacaoSenha.js'
+import { formatarDataNascimentoDigitada, dataNascimentoParaIso, dataNascimentoParaExibicao } from '../../utils/dataNascimento.js'
 
 // Modalidades hardcodadas
 const arrayModalidades = [
@@ -87,14 +88,7 @@ function Perfil() {
       setTelefone(dadosUsuario.telefone || '')
       setFotoUrl(dadosUsuario.foto || null)
 
-      // Formatar data para input type="date"
-      if (dadosUsuario.dataNascimento) {
-        const dataObj = new Date(dadosUsuario.dataNascimento)
-        const ano = dataObj.getFullYear()
-        const mes = String(dataObj.getMonth() + 1).padStart(2, '0')
-        const dia = String(dataObj.getDate()).padStart(2, '0')
-        setDataNascimento(ano + '-' + mes + '-' + dia)
-      }
+      setDataNascimento(dataNascimentoParaExibicao(dadosUsuario.dataNascimento))
 
       // Extrair IDs das modalidades
       const arrayIdsModalidades = []
@@ -264,6 +258,15 @@ function Perfil() {
       return
     }
 
+    let nascimentoIso = null
+    if (dataNascimento) {
+      nascimentoIso = dataNascimentoParaIso(dataNascimento)
+      if (!nascimentoIso) {
+        setErro('Informe uma data de nascimento válida no formato DD/MM/AAAA.')
+        return
+      }
+    }
+
     if (arrayModalidadesSelecionadas.length === 0) {
       setErro('Selecione ao menos uma modalidade.')
       return
@@ -339,7 +342,7 @@ function Perfil() {
       const dadosAtualizar = {
         nome: nome,
         telefone: telefone,
-        dataNascimento: dataNascimento,
+        dataNascimento: nascimentoIso,
         modalidades: arrayModalidadesSelecionadas,
         posicoes: arrayPosicoesSelecionadas
       }
@@ -365,15 +368,7 @@ function Perfil() {
     setTelefone(usuario.telefone || '')
     setFotoUrl(usuario.foto || null)
 
-    if (usuario.dataNascimento) {
-      const dataObj = new Date(usuario.dataNascimento)
-      const ano = dataObj.getFullYear()
-      const mes = String(dataObj.getMonth() + 1).padStart(2, '0')
-      const dia = String(dataObj.getDate()).padStart(2, '0')
-      setDataNascimento(ano + '-' + mes + '-' + dia)
-    } else {
-      setDataNascimento('')
-    }
+    setDataNascimento(dataNascimentoParaExibicao(usuario.dataNascimento))
 
     const arrayIdsModalidades = []
     if (usuario.modalidades) {
@@ -432,9 +427,7 @@ function Perfil() {
 
   const arrayPosicoesDisponiveis = obterPosicoesDisponiveis()
   let nascimentoFormatado = 'Não informado'
-  if (dataNascimento) {
-    nascimentoFormatado = dataNascimento.split('-').reverse().join('/')
-  }
+  if (dataNascimento) nascimentoFormatado = dataNascimento
 
   return (
     <main className="perfil-page mx-auto max-w-[836px] px-4 py-7 text-[#172d20] sm:px-7">
@@ -487,7 +480,7 @@ function Perfil() {
                   {editando ? <><label htmlFor="perfil-telefone" className="perfil-label">Telefone (com DDD)</label><input id="perfil-telefone" type="tel" autoComplete="tel" placeholder="(11) 99999-9999" value={telefone} onChange={handleTelefoneChange} className="perfil-input" /></> : <><p className="perfil-label">Telefone (com DDD)</p><p className="text-sm">{usuario.telefone || 'Não informado'}</p></>}
                 </div>
                 <div className="min-w-0">
-                  {editando ? <><label htmlFor="perfil-nascimento" className="perfil-label">Data de nascimento</label><input id="perfil-nascimento" type="date" autoComplete="bday" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="perfil-input" /></> : <><p className="perfil-label">Data de nascimento</p><p className="text-sm">{nascimentoFormatado}</p></>}
+                  {editando ? <><label htmlFor="perfil-nascimento" className="perfil-label">Data de nascimento</label><input id="perfil-nascimento" type="text" inputMode="numeric" autoComplete="bday" placeholder="DD/MM/AAAA" maxLength={10} value={dataNascimento} onChange={(e) => setDataNascimento(formatarDataNascimentoDigitada(e.target.value))} className="perfil-input" /></> : <><p className="perfil-label">Data de nascimento</p><p className="text-sm">{nascimentoFormatado}</p></>}
                 </div>
               </div>
             </section>

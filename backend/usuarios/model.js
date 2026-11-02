@@ -17,7 +17,7 @@ export async function criarUsuario(dados) {
     const queryInsertUsuario = `
       INSERT INTO usuarios (id, nome, email, telefone, data_nascimento, foto, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-      RETURNING id, nome, email, telefone, data_nascimento AS "dataNascimento", foto, created_at AS "createdAt", updated_at AS "updatedAt"
+      RETURNING id, nome, email, telefone, TO_CHAR(data_nascimento, 'YYYY-MM-DD') AS "dataNascimento", foto, created_at AS "createdAt", updated_at AS "updatedAt"
     `
     const arrayValoresUsuario = [
       dados.id,
@@ -99,7 +99,7 @@ export async function criarUsuario(dados) {
 export async function buscarUsuarioPorId(id) {
   // Busca o usuário
   const querySelectUsuario = `
-    SELECT id, nome, email, telefone, data_nascimento AS "dataNascimento", foto, created_at AS "createdAt", updated_at AS "updatedAt"
+    SELECT id, nome, email, telefone, TO_CHAR(data_nascimento, 'YYYY-MM-DD') AS "dataNascimento", foto, created_at AS "createdAt", updated_at AS "updatedAt"
     FROM usuarios
     WHERE id = $1
   `

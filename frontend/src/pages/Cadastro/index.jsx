@@ -6,6 +6,7 @@ import supabase from '../../services/supabaseClient.js'
 import api from '../../services/api.js'
 import RequisitosSenha from '../../components/RequisitosSenha.jsx'
 import { senhaAtendeRequisitos, mensagemSenhaInvalida } from '../../utils/validacaoSenha.js'
+import { formatarDataNascimentoDigitada, dataNascimentoParaIso } from '../../utils/dataNascimento.js'
 import './style.css'
 
 // Modalidades hardcodadas (IDs devem corresponder ao banco)
@@ -181,6 +182,12 @@ function Cadastro() {
       return
     }
 
+    const nascimentoIso = dataNascimentoParaIso(dataNascimento)
+    if (!nascimentoIso) {
+      setErro('Informe uma data de nascimento válida no formato DD/MM/AAAA.')
+      return
+    }
+
     if (arrayModalidadesSelecionadas.length === 0) {
       setErro('Selecione ao menos uma modalidade.')
       return
@@ -242,7 +249,7 @@ function Cadastro() {
       const dadosUsuario = {
         nome: nome,
         telefone: telefone,
-        dataNascimento: dataNascimento,
+        dataNascimento: nascimentoIso,
         modalidades: arrayModalidadesSelecionadas,
         posicoes: arrayPosicoesSelecionadas
       }
@@ -292,7 +299,7 @@ function Cadastro() {
               </div>
               <div className="min-w-0">
                 <label htmlFor="dataNascimento" className="cadastro-label">Data de nascimento</label>
-                <input id="dataNascimento" type="date" autoComplete="bday" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} required className="cadastro-input" />
+                <input id="dataNascimento" type="text" inputMode="numeric" autoComplete="bday" placeholder="DD/MM/AAAA" maxLength={10} value={dataNascimento} onChange={(e) => setDataNascimento(formatarDataNascimentoDigitada(e.target.value))} required className="cadastro-input" />
               </div>
             </div>
           </section>
