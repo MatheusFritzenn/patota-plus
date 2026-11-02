@@ -16,11 +16,63 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > PascalCase/singular (ex.: `Usuario`, `MembroPatota`). O Prisma foi abandonado em favor
 > de SQL direto via `pg` (node-postgres); este documento reflete os nomes reais das tabelas.
 
-> **Decisão sobre migrations:** durante o desenvolvimento, não manter arquivos de
-> migrations incrementais. Ao finalizar completamente o projeto, gerar uma migration
-> inicial a partir do schema real e um seed separado com os dados básicos, validando a
-> recriação em um ambiente vazio. A migration representará o estado final, sem recuperar
-> o histórico de alterações. A tarefa está no roadmap de `projeto-patota-plus.md`.
+> **Decisão final sobre o banco:** não haverá migration inicial nem arquivos de
+> migrations incrementais. O encerramento prevê limpar os dados do banco existente
+> e aplicar um seed separado com modalidades e posições, mantendo os IDs usados
+> pelo código. O schema existente no Supabase permanece como referência real.
+> Em 26/10/2026, as tabelas `public` do banco conectado foram limpas e o seed
+> `backend/sql/seed-inicial.sql` foi aplicado. A exclusão dos usuários do Auth e
+> dos arquivos do Storage será feita manualmente pelo usuário.
+
+> **Massa de demonstração importada em 01/11/2026:** a patota `RUIM DI MIRA FC`
+> recebeu as partidas de 06, 13, 20 e 27/10/2026 da planilha histórica, com 8 times
+> manuais e 53 participações. Foram inseridas 300 avaliações **simuladas**, autorizadas
+> para o TCC, entre companheiros de time e sem autoavaliações, reproduzindo as 14
+> médias fornecidas. As partidas estão finalizadas e as avaliações encerradas.
+> O script `backend/sql/importar-historico-ruim-di-mira.sql` registra a origem
+> sintética e impede reimportação das mesmas datas. O schema não possui campo de
+> origem da avaliação; essa distinção está na planilha e neste registro.
+> O cache foi calculado com `AVG(nota)` e `COUNT(*)`, conforme o backend atual.
+> Há divergência anterior com a regra de "média das médias por partida" descrita
+> em `projeto-patota-plus.md`; nesta massa os dois cálculos coincidem, pois cada
+> jogador mantém a mesma média em todas as partidas. A regra não foi alterada.
+>
+> **Revisão em 01/11/2026:** após correção da planilha pelo usuário, os times das
+> quatro datas e as 300 avaliações simuladas foram atualizados, preservando os IDs
+> das partidas, dos times e das 53 participações. As 14 médias foram recalculadas
+> conforme as novas metas. Fonte final: `outputs/avaliacoes-outubro/Histórico Times - revisado.xlsx`.
+> A aba das metas estava salva como `Planilha1`. O script da revisão está em
+> `backend/scripts/revisar-historico-ruim-di-mira.js`, com SQL em
+> `backend/sql/revisar-historico-ruim-di-mira.sql`; o backup anterior está em
+> `outputs/avaliacoes-outubro/backup-antes-revisao.json`.
+
+> **Histórico ampliado em 02/11/2026:** foram importadas as escalações manuais
+> das abas `08set`, `15set`, `22set` e `29set` da mesma planilha revisada, referentes
+> a setembro de 2026: 4 partidas, 8 times e 55 participações. A patota passou a
+> ter 8 rodadas históricas, 16 times e 108 participações. As novas partidas estão
+> finalizadas e com avaliações encerradas; a fonte não contém avaliações de
+> setembro, portanto nenhuma avaliação foi criada e as 300 avaliações simuladas
+> de outubro e as 14 médias existentes foram preservadas. Posições e notas
+> temporárias das novas participações permanecem NULL por ausência na fonte.
+> Horário e local seguem os dados habituais da patota, como na importação anterior,
+> e não representam informações históricas adicionais fornecidas na planilha.
+> A importação transacional está em `backend/scripts/importar-setembro-ruim-di-mira.js`
+> (simulação por padrão; `--aplicar` grava), com bloqueio de datas já existentes.
+> Backup e comprovante estão em `outputs/avaliacoes-outubro/backup-antes-importacao-setembro.json`
+> e `outputs/avaliacoes-outubro/importacao-setembro-confirmada.json`.
+> A conferência após o commit validou as escalações e a preservação de outubro,
+> avaliações e médias. O aumento da amostra não garante significância estatística;
+> a comparação automática e o Wilcoxon foram executados em 02/11/2026 pela rotina
+> local `backend/scripts/analise-times/executar.js`, em transação somente leitura,
+> sem novas tabelas ou alterações no histórico. Snapshots e relatórios ficam em
+> `outputs/analise-times/`; o protocolo está no README da rotina. As médias
+> atuais não constituem um registro das notas disponíveis antes de cada rodada.
+
+> **Arquivos locais de apoio:** as planilhas, backups e comprovantes em `outputs/`
+> são ignorados pelo Git. Os scripts pontuais de importação, revisão e conferência
+> do histórico citados acima foram preservados neste computador e excluídos do
+> versionamento via `.git/info/exclude`. Não são dependências da rotina de análise;
+> o baseline necessário está em `backend/scripts/analise-times/protocolo.json`.
 
 ---
 
@@ -100,24 +152,9 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > `membro_patotas`, `partidas`, `mensalidades` e `movimentacoes_financeiras` possuem
 > cascata; as dependências de partidas também são removidas pelas respectivas FKs.
 
-> **PENDÊNCIA (roadmap — geolocalização):** definir e adicionar os dados geográficos do
-> local padrão de jogos da patota. Eles devem permitir calcular a distância até a localização
-> do usuário e ordenar os resultados da busca da menor para a maior distância.
-
-> **DECISÃO PARA A ALTERAÇÃO FUTURA DO SCHEMA — geolocalização:** adicionar `cep` (oito dígitos,
-> obrigatório), `numero` (aceitando `S/N`), `complemento` (opcional) e uma coluna geográfica
-> para o local padrão. A coluna geográfica deverá usar PostGIS, com tipo
-> `geography(POINT, 4326)` e índice GiST; o PostGIS deverá ser instalado em schema dedicado.
-> Manter rua, cidade e estado para exibição. O backend obterá o ponto por geocodificação do
-> endereço somente na criação ou alteração da patota e fará as consultas de distância por SQL
-> direto via `pg`. A localização momentânea do usuário será recebida apenas como parâmetro da
-> busca e não será persistida. Conferir os nomes definitivos e o schema escolhido ao aplicar
-> a alteração; nenhuma dessas colunas existe no banco enquanto esta pendência estiver aberta.
-
 > **FILTRO DE BUSCA IMPLEMENTADO:** o filtro por modalidade usa `patotas.modalidade_id`,
-> sem alteração no schema, e aceita a opção de listar todas as modalidades. Quando a
-> proximidade for implementada, deverá poder ser combinada com esse filtro. Filtro por
-> posição e busca textual ficam fora do escopo atual.
+> sem alteração no schema, e aceita a opção de listar todas as modalidades. Filtro por
+> posição, busca textual e proximidade ficam fora do escopo final.
 
 ### membro_patotas (N:N com metadados)
 | Coluna | Tipo | Observacao |

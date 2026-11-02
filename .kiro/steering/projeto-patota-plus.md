@@ -50,7 +50,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 5. **Tela da patota** — abas: Visão Geral, Jogos, Membros, Relatórios (presidente)
 6. **Detalhes da partida** — abas: Lista de jogadores, Times, Avaliações
 7. **Criar/editar partida** — formulário compartilhado (somente presidente; edição implementada)
-8. **Busca de patotas** — filtro por modalidade e ordenação por proximidade
+8. **Busca de patotas** — filtro por modalidade
 9. **Perfil do usuário** — dados pessoais, alteração de senha e média geral
 10. **Mensalidades** — relatório e baixa manual pelo presidente
 11. **Criar/editar patota** — formulário de patota
@@ -69,7 +69,7 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 | Fase 2 — Avaliações | Presença, relatório de presença, avaliações pós-partida, médias, histórico |
 | Fase 3 — Financeiro | Mensalidades, baixa manual, relatório de pagamentos e caixa da patota |
 | Fase 4 — Inteligentes | Formação automática de equipes |
-| Fase 5 — Finalização | Melhorias de interface, validações, testes, correções, deploy |
+| Fase 5 — Finalização | Melhorias de interface, validações, correções e limpeza dos dados com seed inicial |
 
 ---
 
@@ -81,18 +81,17 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 > de menu no cabeçalho. O login e o logo levam a Minhas patotas; a rota `/home`
 > redireciona para essa mesma tela diretamente em `Rotas.jsx`, para preservar links antigos.
 
-1. **Geolocalização da patota e busca por proximidade:** ao criar ou editar uma patota,
-   registrar a geolocalização de seu local padrão de jogos. Na busca de patotas, usar a
-   localização do usuário para calcular a distância e exibir primeiro as patotas mais próximas.
-   O filtro por modalidade já implementado e a ordenação por proximidade devem funcionar em conjunto.
-   Seguir as decisões da seção "Próxima implementação — geolocalização e proximidade"
-   abaixo.
+1. **Limpeza dos dados e seed inicial:** concluída em 26/10/2026 nas tabelas `public`
+   do PostgreSQL. Os dados de uso foram removidos e os cadastros básicos de 3
+   modalidades e 9 posições foram inseridos com os IDs esperados pelo código.
+   Por escolha do usuário, a exclusão dos 19 usuários do Supabase Auth e dos 8
+   arquivos do Storage será feita manualmente no painel do projeto.
 
 > **Concluído em 23/09/2026 — filtro por modalidade:** a busca permite selecionar
 > uma modalidade ou visualizar todas, com filtro aplicado no backend a patotas das
 > quais o usuário ainda não participa. A tela mostra a quantidade encontrada; os
 > cards exibem a modalidade em destaque verde e não exibem mais a descrição.
-> A geolocalização e a ordenação por distância continuam pendentes.
+> A geolocalização e a ordenação por distância foram retiradas do escopo final.
 > **Concluído em 23/09/2026 — emblema da patota:** o presidente pode adicionar,
 > substituir ou remover um emblema opcional no cadastro/edição. Os arquivos ficam
 > no bucket público `patota-emblemas` do Supabase Storage, com políticas de escrita
@@ -148,50 +147,45 @@ O documento completo de requisitos e escopo está em: #[[file:TCC_PATOTA_Requisi
 
 ---
 
-## Próxima implementação — geolocalização e proximidade
+## Decisões de encerramento
 
-**Status:** solução técnica definida, ainda não implementada.
+### Análise administrativa dos times (02/11/2026)
 
-### Cadastro do local da patota
+O comando local `npm --prefix backend run analisar:times` compara as oito rodadas
+históricas de setembro/outubro de 2026 com alternativas calculadas em memória por
+`balancearTimes`. O backend consulta o banco em transação somente leitura e exporta
+o snapshot; Python 3.12 + SciPy 1.16.3 executam Wilcoxon pareado bilateral, alfa 0,05,
+com permutação exaustiva de sinais. Não há endpoint, tela ou dependência de Python
+na aplicação hospedada. O Wilcoxon não participa da geração dos times.
 
-- Adicionar ao endereço da patota `cep`, `numero` e `complemento`. O CEP será obrigatório,
-  armazenado somente com os oito dígitos; o complemento será opcional. O número deverá
-  aceitar `S/N` quando o local não possuir numeração.
-- Usar a API gratuita ViaCEP para auxiliar o preenchimento de rua, cidade e estado. Permitir
-  correção manual, pois o CEP não identifica necessariamente o local exato e o ViaCEP não
-  fornece coordenadas geográficas.
-- Ao criar uma patota ou alterar seu endereço, o backend deverá enviar o endereço completo
-  para o Nominatim/OpenStreetMap e converter o endereço em latitude e longitude. A chamada
-  ficará isolada em um service do backend e usará o Axios já instalado, para permitir a troca
-  futura do provedor sem alterar controllers e models.
-- O Nominatim será usado somente no baixo volume previsto para o TCC: consulta disparada pelo
-  envio do formulário, sem autocomplete, com identificação da aplicação, atribuição ao
-  OpenStreetMap, cache do resultado e limite global de no máximo uma requisição por segundo.
-  As coordenadas salvas evitam repetir a geocodificação durante as buscas. Se esse perfil de
-  uso mudar ou a política do serviço deixar de atendê-lo, substituir o provedor.
-- Ativar o PostGIS em um schema dedicado no Supabase e armazenar o ponto do local em uma
-  coluna `geography(POINT, 4326)` da tabela `patotas`, com índice espacial GiST. Ao construir
-  o ponto, informar longitude antes de latitude.
-- Manter também os campos textuais do endereço para exibição ao usuário. Não é necessário
-  adicionar mapa, Leaflet, React Leaflet ou biblioteca JavaScript de cálculo de distância
-  nesta fase.
+A métrica é a diferença absoluta entre médias de força dos times. Os dois métodos
+usam as mesmas notas atuais; a alternativa automática usa perfis atuais e eventual
+posição temporária. Avaliações simuladas e ausência de notas/posições históricas
+são explicitadas nos relatórios. As escalações manuais são conferidas contra o
+baseline fixado em `backend/scripts/analise-times/protocolo.json` e preservadas.
 
-### Busca por proximidade
+Cada execução gera um único `relatorio.html` em `outputs/analise-times/<instante-UTC>/`,
+com resumo, interpretação, tabela e formações expansíveis. Entrada e resultado JSON
+ficam incorporados no HTML para reprodução; não são gerados arquivos intermediários.
+O arquivo abre localmente no navegador. Relatórios antigos foram preservados.
+São registrados n efetivo, zeros, W+, W−, p exato e r = Z/√n efetivo, com Z
+padronizado pelos postos médios, sem correção de continuidade. Há limite de 16
+pares não nulos para enumeração exaustiva; não há troca automática de método.
+O protocolo, pressupostos, limitações e preparo do ambiente estão em
+`backend/scripts/analise-times/README.md`. Testes específicos:
+`npm --prefix backend run test:analise` (Node.js e Python, sem banco).
 
-- O filtro por modalidade já está implementado na tela e no backend. É o único filtro de busca
-  previsto para o TCC; filtro por posição e campo de texto livre ficam fora do escopo.
-  Quando a proximidade for implementada, ambos deverão funcionar juntos.
-- Solicitar a posição atual somente quando o usuário acessar ou acionar a busca por
-  proximidade, usando `navigator.geolocation.getCurrentPosition` no frontend. A API exige
-  HTTPS e consentimento do usuário.
-- Enviar latitude e longitude ao backend Express apenas como parâmetros da busca. Não
-  persistir a localização do usuário.
-- Fazer o model de patotas calcular no PostgreSQL/PostGIS a distância em linha reta entre o
-  ponto recebido e cada patota, retornar a distância em quilômetros e ordenar do menor para
-  o maior valor. Usar funções espaciais como `ST_Distance` e, quando houver filtro por raio,
-  `ST_DWithin`; o acesso continuará sendo SQL direto via `pg`.
-- Exibir a distância junto de cada resultado. Se o usuário negar a permissão ou a localização
-  falhar, manter a busca disponível sem ordenação por proximidade e informar essa condição.
+Os dez testes específicos passaram. Na execução inicial das oito rodadas, todas
+apresentaram menor desequilíbrio automático: W+=36, W−=0, n=8, nenhum zero,
+p=0,0078125 e r≈0,892227. A interpretação é exploratória, condicionada às notas de
+referência e aos pressupostos de independência/simetria, sem inferir placares reais.
+
+### Demais decisões
+
+Geolocalização, ordenação por proximidade, CI no GitHub Actions, migration inicial e
+atualização dos testes antigos de formação de times foram retirados do escopo final
+por decisão do usuário. A parte PostgreSQL da limpeza e do seed foi concluída;
+resta a limpeza manual do Supabase Auth e Storage.
 
 ---
 
@@ -312,32 +306,12 @@ Esses totais são referências de composição, não limites de participantes da
 
 ---
 
-## Roadmap após a conclusão do projeto
-
-1. **Testes automáticos no GitHub (CI):** assim que o projeto estiver pronto,
-   configurar uma rotina no GitHub Actions para executar os testes a cada push e
-   pull request. Usar inicialmente `npm ci` e `npm test` no backend, incluindo os
-   testes de formação de times e os demais testes existentes nesse momento.
-   A rotina deve sinalizar falhas para detectar regressões nas regras cobertas.
-   Esta configuração fica reservada para depois da conclusão das funcionalidades
-   previstas do projeto, conforme decisão do usuário.
-2. **Migration inicial e seed do banco:** somente quando o projeto estiver totalmente
-   finalizado, conferir o schema real do Supabase e gerar uma migration inicial capaz de
-   recriar a estrutura final em um banco vazio: tabelas, tipos, relacionamentos, índices,
-   restrições e demais objetos necessários à aplicação. Preparar um seed separado com
-   os dados básicos, como modalidades e posições, preservando os IDs usados pelo código.
-   Documentar os pré-requisitos do ambiente Supabase e validar a recriação em um ambiente
-   separado antes da entrega. Essa migration representa o estado final, sem reconstruir
-   o histórico das alterações. Por decisão do usuário, os arquivos de migrations
-   incrementais não serão mantidos durante o desenvolvimento; manter a modelagem
-   canônica atualizada a cada alteração no banco.
-
 ---
 
 ## Prioridades
 
 - **P1 (Essencial):** Cadastro, Login, Home, Patota (visão geral/jogos/membros), Detalhes da partida, Busca com filtro por modalidade, Perfil, Criar patota, Criar/editar partida com sugestões dos dados habituais.
-- **P2 (Importante):** Avaliações, Relatórios, mensalidades com baixa manual, Caixa, Geolocalização.
+- **P2 (Importante):** Avaliações, Relatórios, mensalidades com baixa manual, Caixa.
 - **P3 (Diferenciais):** Formação automática de equipes.
 
 ---

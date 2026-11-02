@@ -1,2 +1,10 @@
 output
 monografia
+.venv-wilcoxon/
+__pycache__/
+
+# Resultados gerados, planilhas de trabalho e backups locais
+/outputs/
+
+# Dependências instaladas em qualquer subpasta
+node_modules/

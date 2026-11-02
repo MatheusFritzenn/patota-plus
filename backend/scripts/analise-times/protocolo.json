@@ -1,0 +1,491 @@
+{
+  "patotaId": "742b50b7-000f-4598-8bd3-15b5fe6284fe",
+  "patotaNome": "RUIM DI MIRA FC",
+  "alternativa": "bilateral",
+  "alfa": 0.05,
+  "origemNotas": "Escalações históricas reais e notas atuais de referência. As 300 avaliações de outubro foram simuladas para reproduzir as notas fornecidas; não representam avaliações feitas pelos jogadores. Setembro não tem avaliações registradas.",
+  "posicoes": "Perfis atuais e posição temporária da participação, quando existente. Não são registros completos das posições históricas.",
+  "fonteBaseline": "Histórico Times - revisado.xlsx, abas de setembro e outubro; conferido na importação de 02/11/2026.",
+  "baseline": [
+    {
+      "aba": "08set",
+      "data": "2026-09-08",
+      "jogadores": [
+        {
+          "nome": "Leo Rita",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time B"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time A"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time A"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time B"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time A"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time B"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "15set",
+      "data": "2026-09-15",
+      "jogadores": [
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time A"
+        },
+        {
+          "nome": "Leo Rita",
+          "time": "Time B"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time A"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time A"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time A"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time B"
+        },
+        {
+          "nome": "Ferraz",
+          "time": "Time A"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "22set",
+      "data": "2026-09-22",
+      "jogadores": [
+        {
+          "nome": "Leo Rita",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time B"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ferraz",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time A"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time A"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time A"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "29set",
+      "data": "2026-09-29",
+      "jogadores": [
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time A"
+        },
+        {
+          "nome": "Leo Rita",
+          "time": "Time B"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time B"
+        },
+        {
+          "nome": "Ferraz",
+          "time": "Time A"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time A"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time A"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time A"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "06out",
+      "data": "2026-10-06",
+      "jogadores": [
+        {
+          "nome": "Leo Rita",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time B"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time A"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time A"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time A"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time B"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time B"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "13out",
+      "data": "2026-10-13",
+      "jogadores": [
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time A"
+        },
+        {
+          "nome": "Leo Rita",
+          "time": "Time B"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time B"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time A"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ferraz",
+          "time": "Time B"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time A"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "20out",
+      "data": "2026-10-20",
+      "jogadores": [
+        {
+          "nome": "Leo Rita",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time B"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time B"
+        },
+        {
+          "nome": "Vinicius Cordova",
+          "time": "Time A"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time B"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time A"
+        },
+        {
+          "nome": "Marcelo",
+          "time": "Time B"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ferraz",
+          "time": "Time B"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time B"
+        }
+      ]
+    },
+    {
+      "aba": "27out",
+      "data": "2026-10-27",
+      "jogadores": [
+        {
+          "nome": "Leo Rita",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ruan Cunha",
+          "time": "Time B"
+        },
+        {
+          "nome": "Alison",
+          "time": "Time A"
+        },
+        {
+          "nome": "Matheus Fritzen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Edu",
+          "time": "Time A"
+        },
+        {
+          "nome": "Guilherme Hoegen",
+          "time": "Time B"
+        },
+        {
+          "nome": "Pedro Medley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Ferraz",
+          "time": "Time B"
+        },
+        {
+          "nome": "Kaleo",
+          "time": "Time A"
+        },
+        {
+          "nome": "Dias",
+          "time": "Time B"
+        },
+        {
+          "nome": "Wesley",
+          "time": "Time A"
+        },
+        {
+          "nome": "Kevin",
+          "time": "Time B"
+        }
+      ]
+    }
+  ]
+}

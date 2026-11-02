@@ -4,6 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "analisar:times": "node scripts/analise-times/executar.js",
+    "test:analise": "node --test tests/analise-times.test.js && node scripts/analise-times/executar.js --testar",
     "test": "node --test",
     "start": "node local.js",
     "dev": "nodemon local.js"
