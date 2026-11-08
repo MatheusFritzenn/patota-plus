@@ -38,7 +38,6 @@ Instale Node.js e Python 3.12. Na raiz do projeto, no Windows:
 npm --prefix backend install
 py -3.12 -m venv .venv-wilcoxon
 .venv-wilcoxon/Scripts/python.exe -m pip install -r backend/scripts/analise-times/requirements.txt
-npm --prefix backend run test:analise
 npm --prefix backend run analisar:times
 ```
 
@@ -85,27 +84,7 @@ foi decidida depois da discussão do limite amostral e antes da primeira execuç
 isso também consta no relatório. O algoritmo otimiza a própria métrica avaliada,
 portanto o resultado não demonstra melhoria do placar ou da experiência em campo.
 
-## Validação e reprodução
-
-```powershell
-npm --prefix backend run test:analise
-```
-
-Os testes específicos não executam o conjunto antigo de formação, que a documentação
-do projeto registra como desatualizado. Verificam preservação da entrada, métrica,
-participantes, determinismo e rejeição de notas ausentes. Em Python:
-
-- Exemplo de Wilcoxon (1945), reproduzido na documentação oficial do SciPy:
-  `6,8,14,16,23,24,28,29,41,-48,49,56,60,-67,75`;
-  W+=96, W−=24, n=15, p=0,041259765625, Z=36/√310, r=36/√4650.
-- Exemplo manual: `0,8; 0,6; −0,2; 0,4; 0`;
-  W+=9, W−=1, n=4, um zero, p=4/16=0,25, r=4/√30.
-- Empates, todos zeros, um par, quatro/seis pares, inversão dos sinais,
-  ruído numérico, não finitos, entradas duplicadas e geração dos relatórios.
-
-Fonte: https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wilcoxon.html
-(exemplo original: Wilcoxon, F. Individual Comparisons by Ranking Methods,
-Biometrics Bulletin, 1, 1945, pp. 80–83, DOI 10.2307/3001968).
+## Reproduzir a análise
 
 Para repetir apenas a estatística de uma entrada já salva, sem consultar o banco:
 

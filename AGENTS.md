@@ -222,27 +222,36 @@ São registrados n efetivo, zeros, W+, W−, p exato e r = Z/√n efetivo, com Z
 padronizado pelos postos médios, sem correção de continuidade. Há limite de 16
 pares não nulos para enumeração exaustiva; não há troca automática de método.
 O protocolo, pressupostos, limitações e preparo do ambiente estão em
-`backend/scripts/analise-times/README.md`. Testes específicos:
-`npm --prefix backend run test:analise` (Node.js e Python, sem banco).
+`backend/scripts/analise-times/README.md`.
 
-Os dez testes específicos passaram. Na execução inicial das oito rodadas, todas
+Na execução inicial das oito rodadas, todas
 apresentaram menor desequilíbrio automático: W+=36, W−=0, n=8, nenhum zero,
 p=0,0078125 e r≈0,892227. A interpretação é exploratória, condicionada às notas de
 referência e aos pressupostos de independência/simetria, sem inferir placares reais.
 
 #### Demais decisões
 
-Geolocalização, ordenação por proximidade, CI no GitHub Actions, migration inicial e
-atualização dos testes antigos de formação de times foram retirados do escopo final
+Geolocalização, ordenação por proximidade e CI no GitHub Actions foram retirados do escopo final
 por decisão do usuário. A parte PostgreSQL da limpeza e do seed foi concluída;
 resta a limpeza manual do Supabase Auth e Storage.
+
+Em 08/11/2026, por decisão do usuário, os arquivos de testes automatizados e seus
+comandos foram removidos do projeto, incluindo os testes da migration e da rotina
+Python. Não adicionar novas suítes de teste sem solicitação explícita. As validações
+de execução da aplicação e o teste estatístico de Wilcoxon permanecem no código.
+
+Em 08/11/2026, por solicitação do usuário, a migration inicial voltou ao escopo
+para permitir novas instalações. `npm --prefix backend run db:inicializar` cria
+schema e seed em banco vazio; `-- --supabase` inclui buckets e políticas de imagens.
+Isso não altera nem atualiza o banco existente. Instruções em
+`backend/migrations/README.md` e no README da raiz.
 
 ---
 
 ### Formação por composição
 
-**Status:** implementado em 21/09/2026, com schema atualizado no Supabase e testes
-automatizados. Substitui a busca antiga com corte de 22 participantes.
+**Status:** implementado em 21/09/2026, com schema atualizado no Supabase.
+Substitui a busca antiga com corte de 22 participantes.
 
 **Revisão em 12/10/2026:** todos os confirmados participam da composição, sem
 classificação por ordem de confirmação. A geração exige nota temporária do presidente
@@ -343,16 +352,11 @@ Esses totais são referências de composição, não limites de participantes da
   pela posição da formação (goleiro, lateral, zagueiro, volante, meia, atacante no campo),
   depois os sem posição; empates seguem por nome. Formações anteriores
   à atualização do schema mantêm a exibição antiga até a regeneração, sem atribuição retroativa.
-- Os testes da revisão de 21/09/2026 cobrem referência das três modalidades,
-  versatilidade, remanejamento, falta de posições, determinismo, contagem de divisões,
-  ótimo por oráculo independente, reservas acima de 22 participantes, teto e persistência
-  transacional. Eles não foram atualizados para as regras de 12/10/2026.
 - Na medição local realizada durante a implementação em 21/09/2026, sem banco:
   futsal/society com 14 jogadores avaliou 144 divisões em cerca de 7 ms;
   com 30, atingiu 350.000 em 27 ms. Campo com 24 avaliou 17.280 em 2 ms; com 40, atingiu
   350.000 em 25 ms. Valores dependem da máquina e dos participantes, sem garantia de tempo
-  fixo e sem incluir consultas/gravações. O teste PostgreSQL optativo da revisão anterior
-  usa tabelas temporárias; seu cenário não foi atualizado para as regras de 12/10/2026.
+  fixo e sem incluir consultas/gravações.
 
 ---
 
@@ -605,13 +609,33 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > PascalCase/singular (ex.: `Usuario`, `MembroPatota`). O Prisma foi abandonado em favor
 > de SQL direto via `pg` (node-postgres); este documento reflete os nomes reais das tabelas.
 
-> **Decisão final sobre o banco:** não haverá migration inicial nem arquivos de
-> migrations incrementais. O encerramento prevê limpar os dados do banco existente
-> e aplicar um seed separado com modalidades e posições, mantendo os IDs usados
-> pelo código. O schema existente no Supabase permanece como referência real.
-> Em 26/10/2026, as tabelas `public` do banco conectado foram limpas e o seed
-> `backend/sql/seed-inicial.sql` foi aplicado. A exclusão dos usuários do Auth e
-> dos arquivos do Storage será feita manualmente pelo usuário.
+> **Decisão revisada em 08/11/2026:** existe uma migration inicial versionada em
+> `backend/migrations/001-inicial.sql`, derivada da consulta somente leitura ao
+> schema real. O seed `backend/sql/seed-inicial.sql` preserva os IDs de modalidades
+> e posições. O comando `db:inicializar` aplica ambos em transação única e recusa
+> bancos com tabelas, sequências ou views em `public`; não há reset, atualização
+> incremental ou alteração automática do banco existente. `--supabase` aplica
+> também `backend/sql/supabase-storage.sql` na mesma transação, em uma instância
+> Supabase nova. O backend conecta como proprietário das tabelas ou papel com
+> BYPASSRLS; nas novas instalações, RLS bloqueia acesso direto da Data API aos
+> dados de negócio. Auth continua fornecido pelo Supabase.
+>
+> **Diferenças documentadas em relação ao banco existente:** `patotas` ainda tem
+> `latitude`, `longitude`, `cep`, `numero`, `complemento` e `localizacao`, além do
+> índice espacial e da restrição de CEP. Nenhum desses campos é usado pelo código
+> atual; ficam fora da migration inicial, dispensando PostGIS. Nenhum campo foi
+> removido do banco existente. O schema atual tem RLS desativado nas tabelas públicas
+> e políticas de escrita de avatares limitadas apenas pelo bucket. A instalação
+> nova ativa RLS nas tabelas de negócio e restringe escrita de avatares ao usuário;
+> os emblemas usam função de autorização SECURITY DEFINER com search_path fixo,
+> sem liberar leitura direta de patotas. Essas diferenças não foram aplicadas ao
+> projeto Supabase existente. Não foram adicionados triggers de cadastro nem FK
+> para `auth.users`: o perfil continua sendo criado pela API com o UUID autenticado.
+>
+> **Histórico:** em 26/10/2026, as tabelas `public` do banco conectado foram limpas
+> e o seed inicial foi aplicado. A exclusão dos usuários do Auth e dos arquivos do
+> Storage ficou a cargo do usuário. O seed agora versionado foi reconstruído a
+> partir dos cadastros básicos conferidos no banco em 08/11/2026.
 
 > **Massa de demonstração importada em 01/11/2026:** a patota `RUIM DI MIRA FC`
 > recebeu as partidas de 06, 13, 20 e 27/10/2026 da planilha histórica, com 8 times

@@ -23,11 +23,7 @@ function executarPython(arrayArgs, entrada = undefined) {
 }
 
 async function executar() {
-  if (arrayArgumentos.length === 1 && arrayArgumentos[0] === '--testar') {
-    console.log(executarPython(['-m', 'unittest', 'discover', '-s', pasta, '-p', 'test_*.py', '-v']))
-    return
-  }
-  assert.equal(arrayArgumentos.length, 0, 'Argumento desconhecido. Use sem argumentos ou --testar')
+  assert.equal(arrayArgumentos.length, 0, 'Argumento desconhecido. Use sem argumentos.')
   executarPython(['-c', 'import scipy, numpy; assert scipy.__version__ == "1.16.3" and numpy.__version__ == "2.3.4", "Instale requirements.txt"'])
   dotenv.config({ path: path.join(raiz, 'backend/.env'), quiet: true })
   assert.ok(process.env.DATABASE_URL, 'DATABASE_URL ausente no backend/.env')
