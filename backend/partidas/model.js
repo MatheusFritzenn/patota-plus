@@ -633,15 +633,19 @@ export async function encerrarAvaliacoes(partidaId) {
     `
     const resultadoAvaliados = await client.query(querySelectAvaliados, [partidaId])
 
-    // Para cada avaliado, recalcula a média geral com base em TODAS as avaliações
-    // que ele já recebeu (em qualquer partida) e atualiza o cache media_usuarios.
+    // Cada partida tem o mesmo peso na média geral, independentemente da
+    // quantidade de avaliadores. total_avaliacoes continua contando as notas.
     for (const linha of resultadoAvaliados.rows) {
       const avaliadoId = linha.avaliadoId
 
       const queryAgregado = `
-        SELECT COUNT(*)::int AS total, COALESCE(AVG(nota), 0) AS media
-        FROM avaliacoes
-        WHERE avaliado_id = $1
+        SELECT COALESCE(SUM(total), 0)::int AS total, COALESCE(AVG(media_partida), 0) AS media
+        FROM (
+          SELECT COUNT(*)::int AS total, AVG(nota) AS media_partida
+          FROM avaliacoes
+          WHERE avaliado_id = $1
+          GROUP BY partida_id
+        ) medias_partidas
       `
       const resultadoAgregado = await client.query(queryAgregado, [avaliadoId])
       const totalAvaliacoes = resultadoAgregado.rows[0].total

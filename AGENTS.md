@@ -199,20 +199,87 @@ O documento completo de requisitos e escopo está em: [TCC_PATOTA_Requisitos_Esc
 
 ### Decisões de encerramento
 
-#### Análise administrativa dos times (02/11/2026)
+#### Análise administrativa dos times (02/11/2026; migração em 25/11/2026)
 
 O comando local `npm --prefix backend run analisar:times` compara as oito rodadas
 históricas de setembro/outubro de 2026 com alternativas calculadas em memória por
-`balancearTimes`. O backend consulta o banco em transação somente leitura e exporta
-o snapshot; Python 3.12 + SciPy 1.16.3 executam Wilcoxon pareado bilateral, alfa 0,05,
-com permutação exaustiva de sinais. Não há endpoint, tela ou dependência de Python
-na aplicação hospedada. O Wilcoxon não participa da geração dos times.
+`balancearTimes`. O backend consulta o banco em transação somente leitura e executa
+Wilcoxon pareado bilateral, alfa 0,05, com implementação própria em JavaScript
+(`backend/lib/wilcoxon.js`) e permutação exaustiva de sinais. A rotina e a geração
+do relatório são inteiramente Node.js, sem Python, NumPy ou SciPy. Não há endpoint
+ou tela; o Wilcoxon não participa da geração dos times. A implementação anterior
+usava SciPy 1.16.3 e foi substituída em 25/11/2026 por solicitação do usuário,
+após a correção do orientador. Testes unitários específicos são executados por
+`npm --prefix backend run test:wilcoxon`, sem banco nem dependências estatísticas.
 
 A métrica é a diferença absoluta entre médias de força dos times. Os dois métodos
-usam as mesmas notas atuais; a alternativa automática usa perfis atuais e eventual
+usam as mesmas notas de referência em cada cenário; a alternativa automática usa perfis atuais e eventual
 posição temporária. Avaliações simuladas e ausência de notas/posições históricas
 são explicitadas nos relatórios. As escalações manuais são conferidas contra o
 baseline fixado em `backend/scripts/analise-times/protocolo.json` e preservadas.
+
+**Reanálise temporal em 25/11/2026:** o usuário forneceu 624 avaliações declaradas
+reais, individuais entre companheiros, das oito rodadas, na planilha
+`Patota-Avaliacoes-Setembro-Outubro-2026_1.xlsx`. Confirmou que a coleta ocorreu
+logo após cada jogo, na mesma data. A fonte normalizada está localmente em
+`outputs/planilha-avaliacoes-2026-11-25/avaliacoes-reais.json`. Após a importação,
+`npm --prefix backend run analisar:times` usa diretamente as avaliações do banco.
+A opção `--avaliacoes <arquivo.json>` preserva a comparação com fonte externa.
+Esse cenário usa somente notas de datas estritamente anteriores, com média das
+médias por partida (decisão explícita do usuário), sem arredondar as médias
+intermediárias; a força final tem duas casas, como o cache da aplicação. Notas
+integrais e partidas de origem ficam incorporadas no relatório. Inicialmente,
+foram excluídas 08/09 (início do histórico) e 15/09 (Ferraz sem média anterior).
+Na primeira reanálise, as seis rodadas de 22/09 a 27/10 foram incluídas: W+=21, W−=0, p=0,03125 e
+r≈0,898717. O relatório explicita exclusões, declaração temporal e hashes da fonte.
+A primeira reanálise leu as avaliações reais do JSON sem usar `media_usuarios`,
+antes da importação no PostgreSQL descrita abaixo. Desde a alteração solicitada
+em 25/11/2026, sem argumentos o comando consulta as avaliações das oito rodadas
+no PostgreSQL na mesma transação somente leitura das escalações. Confere que
+`created_at::date` corresponde à data da partida; divergências interrompem a
+análise. O relatório incorpora o snapshot e seu hash, sem depender de planilha ou
+JSON externo. Médias atuais sem corte temporal exigem `--medias-atuais`.
+Há testes unitários de corte
+temporal, pesos das partidas, ausência de histórico e integridade da fonte na
+suíte já autorizada do Wilcoxon.
+
+**Nota temporária histórica de Ferraz (25/11/2026):** o presidente informou a nota
+9 atribuída antes da estreia de 15/09 e decidiu manter 08/09 apenas como ponto de
+partida, sem simulações. A nota foi salva somente em `participacoes.nota_temporaria`
+na participação de Ferraz em 15/09. Avaliações e médias dos perfis foram conferidas
+e preservadas. Backup e comprovante estão em
+`outputs/nota-temporaria-ferraz/2026-11-25T20-42-25.340Z/`.
+O protocolo registra jogador, partida, data, valor e declaração temporal. A análise
+aceita a nota temporária apenas sem média anterior, para a participação exata e
+se o valor do banco corresponder ao declarado. Não aceita notas temporárias sem
+confirmação histórica nem as inclui em médias futuras; média anterior real tem
+prioridade. A nota vale igualmente para medir times manuais e formar/medir os
+automáticos. Isso permite incluir 15/09 sem remover jogadores. Agora entram sete
+rodadas, com W+=28, W−=0, p=0,015625 e r≈0,894427; somente 08/09 fica excluída.
+O relatório distingue a nota temporária das médias de avaliações; a análise
+permanece exploratória. A suíte autorizada soma 22 testes, incluindo os três
+casos de uso, restrição e prioridade de notas temporárias históricas.
+
+**Importação das avaliações reais em 25/11/2026:** autorizada pelo usuário e
+executada por `backend/scripts/importar-avaliacoes-reais.js`, com validação inicial
+em simulação e aplicação em transação serializável. Atualizou os 300 registros
+simulados preservando seus IDs e inseriu outros 324: agora há 624 avaliações reais
+nas oito partidas. Times, partidas, participações e dados fora da importação foram
+conferidos e preservados. Os 14 caches de `media_usuarios` foram recalculados com
+**média das médias por partida**, sem arredondar médias intermediárias, com força
+final em duas casas. O fluxo `encerrarAvaliacoes` foi corrigido para manter a mesma
+regra; `total_avaliacoes` continua sendo a quantidade de notas individuais. Isso
+resolve a divergência anterior entre o backend e os requisitos.
+
+As datas reais declaradas foram gravadas em `avaliacoes.created_at` com horário
+`00:00:00` como convenção para data sem hora conhecida, não como hora de coleta.
+O corte da reanálise permanece por datas estritamente anteriores. Backup das notas
+e médias anteriores, fonte com hash e estrutura das partidas estão em
+`outputs/importacao-avaliacoes-reais/2026-11-25T20-21-41.887Z/backup-antes.json`;
+o `comprovante.json` da mesma pasta registra commit e conferência posterior.
+Não repetir os scripts históricos de importação/revisão da massa simulada sobre
+esses dados. O script novo simula por padrão; `--aplicar` faz upsert, sem excluir
+notas, e aborta se houver avaliação no alvo ausente da fonte autorizada.
 
 Cada execução gera um único `relatorio.html` em `outputs/analise-times/<instante-UTC>/`,
 com resumo, interpretação, tabela e formações expansíveis. Entrada e resultado JSON
@@ -239,6 +306,9 @@ Em 08/11/2026, por decisão do usuário, os arquivos de testes automatizados e s
 comandos foram removidos do projeto, incluindo os testes da migration e da rotina
 Python. Não adicionar novas suítes de teste sem solicitação explícita. As validações
 de execução da aplicação e o teste estatístico de Wilcoxon permanecem no código.
+Em 25/11/2026, o usuário autorizou explicitamente testes unitários para a migração
+do Wilcoxon ao backend. Essa suíte específica é a exceção à decisão anterior;
+isso não reintroduz as demais suítes removidas.
 
 Em 08/11/2026, por solicitação do usuário, a migration inicial voltou ao escopo
 para permitir novas instalações. `npm --prefix backend run db:inicializar` cria
@@ -645,10 +715,11 @@ Convenções reais do banco (PostgreSQL no Supabase):
 > O script `backend/sql/importar-historico-ruim-di-mira.sql` registra a origem
 > sintética e impede reimportação das mesmas datas. O schema não possui campo de
 > origem da avaliação; essa distinção está na planilha e neste registro.
-> O cache foi calculado com `AVG(nota)` e `COUNT(*)`, conforme o backend atual.
+> O cache foi calculado com `AVG(nota)` e `COUNT(*)`, conforme o backend à época.
 > Há divergência anterior com a regra de "média das médias por partida" descrita
 > em [Contexto do projeto](#contexto-do-projeto); nesta massa os dois cálculos coincidem, pois cada
-> jogador mantém a mesma média em todas as partidas. A regra não foi alterada.
+> jogador mantém a mesma média em todas as partidas. A regra foi corrigida na
+> importação das avaliações reais em 25/11/2026, descrita em "Decisões de encerramento".
 >
 > **Revisão em 01/11/2026:** após correção da planilha pelo usuário, os times das
 > quatro datas e as 300 avaliações simuladas foram atualizados, preservando os IDs

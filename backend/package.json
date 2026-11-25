@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "db:inicializar": "node scripts/inicializar-banco.js",
+    "importar:avaliacoes": "node scripts/importar-avaliacoes-reais.js",
     "analisar:times": "node scripts/analise-times/executar.js",
+    "test:wilcoxon": "node --test tests/wilcoxon.test.js tests/analise-times.test.js",
     "start": "node local.js",
     "dev": "nodemon local.js"
   },

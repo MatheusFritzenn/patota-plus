@@ -3,7 +3,17 @@
   "patotaNome": "RUIM DI MIRA FC",
   "alternativa": "bilateral",
   "alfa": 0.05,
-  "origemNotas": "Escalações históricas reais e notas atuais de referência. As 300 avaliações de outubro foram simuladas para reproduzir as notas fornecidas; não representam avaliações feitas pelos jogadores. Setembro não tem avaliações registradas.",
+  "notasTemporariasHistoricas": [
+    {
+      "partidaId": "9e38f62d-591d-4fdd-a37d-9f01f3b4d404",
+      "data": "2026-09-15",
+      "usuarioId": "2c8cd637-8726-4b18-b337-ec2969d37df7",
+      "nota": 9,
+      "momento": "antes_partida_declarado_pelo_presidente",
+      "origem": "Nota temporária de Ferraz atribuída pelo presidente antes da estreia e informada pelo usuário em 25/11/2026; não é avaliação nem média histórica."
+    }
+  ],
+  "origemNotas": "Escalações históricas e 624 avaliações reais declaradas pelo usuário, importadas em 25/11/2026 a partir de Patota-Avaliacoes-Setembro-Outubro-2026_1.xlsx (SHA-256 3a764121b430ccd23846798fec7781e8021902bb4123ee0f0809134323ef2f56). A coleta foi realizada após cada jogo na mesma data, segundo o usuário. Por padrão, a análise reconstrói médias anteriores diretamente das avaliações do banco. --medias-atuais usa o cache sem corte temporal. A massa simulada de 300 avaliações foi substituída; relatórios anteriores preservam sua origem original.",
   "posicoes": "Perfis atuais e posição temporária da participação, quando existente. Não são registros completos das posições históricas.",
   "fonteBaseline": "Histórico Times - revisado.xlsx, abas de setembro e outubro; conferido na importação de 02/11/2026.",
   "baseline": [

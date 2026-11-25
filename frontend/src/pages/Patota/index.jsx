@@ -931,7 +931,11 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     }
     catch (erroRequisicao) {
       console.error('Erro ao carregar relatório de mensalidades:', erroRequisicao)
-      setErro('Erro ao carregar o relatório de mensalidades.')
+      let mensagem = 'Erro ao carregar o relatório de mensalidades.'
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        mensagem = erroRequisicao.response.data.erro
+      }
+      setErro(mensagem)
     }
     finally {
       setCarregando(false)
@@ -942,7 +946,7 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     evento.preventDefault()
     const valor = Number(valorMensalidade)
     if (!Number.isFinite(valor) || valor <= 0) {
-      setErro('Informe um valor de mensalidade válido.')
+      setErro('Informe um valor de mensalidade maior que zero.')
       return
     }
 
@@ -954,7 +958,11 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     }
     catch (erroRequisicao) {
       console.error('Erro ao salvar valor da mensalidade:', erroRequisicao)
-      setErro('Erro ao salvar o valor da mensalidade.')
+      let mensagem = 'Erro ao salvar o valor da mensalidade.'
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        mensagem = erroRequisicao.response.data.erro
+      }
+      setErro(mensagem)
     }
     finally {
       setSalvandoValor(false)
@@ -962,6 +970,11 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
   }
 
   async function alternarStatus(mensalidade) {
+    if (!relatorio || Number(relatorio.valorMensalidade) <= 0) {
+      setErro('Defina um valor vigente maior que zero e clique em Salvar antes de dar baixa nas mensalidades.')
+      return
+    }
+
     let novoStatus = 'PAGO'
     if (mensalidade.status === 'PAGO') novoStatus = 'PENDENTE'
 
@@ -976,7 +989,11 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
     }
     catch (erroRequisicao) {
       console.error('Erro ao atualizar mensalidade:', erroRequisicao)
-      setErro('Erro ao atualizar o status da mensalidade.')
+      let mensagem = 'Erro ao atualizar o status da mensalidade.'
+      if (erroRequisicao.response && erroRequisicao.response.data && erroRequisicao.response.data.erro) {
+        mensagem = erroRequisicao.response.data.erro
+      }
+      setErro(mensagem)
     }
     finally {
       setMembroAtualizando(null)
@@ -1005,7 +1022,10 @@ function RelatorioMensalidades({ patotaId, usuarioId }) {
             </div>
           </form>
         </div>
-        {erro && <p className="mt-4 text-sm text-red-500">{erro}</p>}
+        {!erro && relatorio && Number(relatorio.valorMensalidade) <= 0 && (
+          <p className="mt-4 text-sm text-amber-700">Defina um valor vigente maior que zero e clique em Salvar antes de dar baixa nas mensalidades.</p>
+        )}
+        {erro && <p role="alert" className="mt-4 text-sm text-red-500">{erro}</p>}
       </div>
 
       {relatorio && (

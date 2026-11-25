@@ -22,6 +22,12 @@ export function compararRodada(partida, arrayFonte) {
   for (const arrayJogadores of mapaTimes.values()) arrayManual.push(resumirTime(arrayJogadores[0].timeNome, arrayJogadores))
   const formacao = balancearTimes(arrayFonte, partida.modalidadeId)
   const arrayAutomatico = formacao.times.map(function (time) { return resumirTime('Time ' + time.numero, time.jogadores) })
+  for (const time of arrayAutomatico) {
+    for (const jogador of time.jogadores) {
+      const origem = arrayFonte.find(function (participante) { return participante.id === jogador.id })
+      if (origem && origem.historico) jogador.historico = origem.historico
+    }
+  }
   const arrayIdsAutomaticos = arrayAutomatico.flatMap(function (time) { return time.jogadores.map(function (j) { return j.id }) }).sort()
   assert.deepEqual(arrayIdsAutomaticos, arrayFonte.map(function (j) { return j.id }).sort(), 'Formação alterou os participantes')
   const manual = Math.abs(arrayManual[0].media - arrayManual[1].media)
