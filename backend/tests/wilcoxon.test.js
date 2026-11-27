@@ -39,10 +39,10 @@ test('empates recebem postos médios e sinais mantêm sua multiplicidade', funct
   assert.equal(resultado.significativo, false)
 })
 
-test('regressão das oito rodadas históricas com um par de postos empatados', function () {
+test('regressão dos resultados das sete rodadas históricas', function () {
   // Métricas do snapshot de 25/11/2026, sem identificadores ou dados pessoais.
+  // A rodada de 08/09 é apenas ponto de partida e não entra na análise atual.
   const arrayDiferencas = [
-    1.1071428571428568 - 0.023809523809523725,
     0.9285714285714288 - 0.014285714285713347,
     0.2142857142857144 - 0.014285714285713347,
     0.07142857142857117 - 0.014285714285713347,
@@ -52,12 +52,12 @@ test('regressão das oito rodadas históricas com um par de postos empatados', f
     1.4333333333333327
   ]
   const resultado = analisarWilcoxon(arrayDiferencas)
-  assert.equal(resultado.nEfetivo, 8)
+  assert.equal(resultado.nEfetivo, 7)
   assert.equal(resultado.zerosDescartados, 0)
-  assert.equal(resultado.wMais, 36)
+  assert.equal(resultado.wMais, 28)
   assert.equal(resultado.wMenos, 0)
-  assert.equal(resultado.pValor, 0.0078125)
-  proximo(resultado.r, 0.8922268747738975)
+  assert.equal(resultado.pValor, 0.015625)
+  proximo(resultado.r, 14 / Math.sqrt(245))
 })
 
 test('inverter sinais preserva p e módulo de r, invertendo a direção', function () {
